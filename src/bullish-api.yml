@@ -1,0 +1,2505 @@
+openapi: 3.0.0
+servers:
+  - url: https://api.exchange.bullish.com/trading-api/v1
+    description: PRODUCTION
+  - url: https://api.bugbounty.bullish.com/trading-api/v1
+    description: SECURITY SANDBOX
+  - url: https://api.simnext.bullish.com/trading-api/v1
+    description: API SANDBOX
+info:
+  description: |
+    # Overview
+
+    Welcome to the _Bullish Trading API_ documentation!
+
+    This documentation provides resource descriptions and endpoints usage instructions for the API.
+
+    The API:
+    - follows [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) conventions
+    - endpoints fall under one of the two categories:
+      - Authenticated, they provide access to private client data e.g. [Get Orders](#get-/orders) endpoint
+      - Non-authenticated, they provide access to public data e.g. [Get Markets](#get-/markets) endpoint
+    - uses bearer based authentication
+    - enforces a blanket rate limit across all requests
+    - base URL is `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
+  
+    # Exchange Time
+    
+    All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
+
+    # Pagination Support
+
+    If specified in the API documentation, an endpoint may return cursor paginated responses. Default page size is 25.
+
+    There are 4 special query parameters used to control the pagination behaviour.
+    - `_pageSize` can be one of `5, 25, 50, 100`, default value is `25`
+    - `_nextPage` cursor to the next page
+    - `_previousPage` cursor to the previous page
+    - `_metaData` can be false/true, if false the links are NOT part of the response. explicity set `_metaData=true` to guarantee links are returned.
+
+    The paginated data is returned in the following wrapped format with generated links to the previous and next pages:
+    ```json
+    {
+      "data": [
+        {
+          "averageFillPrice": null,
+          "baseFee": "0.00000000",
+          "createdAtDatetime": "2018-11-18T00:00:00.000Z",
+          "createdAtTimestamp": "1639464207402",
+          "handle": null,
+          "margin": false,
+          "orderId": "390755652232282113",
+          "price": "8520.7000",
+          "quantity": "1.00000000",
+          "quantityFilled": "0.00000000",
+          "quoteFee": "0.0003",
+          "side": "BUY",
+          "status": "OPEN",
+          "statusReason": "Open",
+          "statusReasonCode": "6001",
+          "stopPrice": null,
+          "symbol": "BTCUSD",
+          "timeInForce": "GTC",
+          "type": "LMT"
+        },
+        ...
+      ],
+      "links": {
+        "next": "/trading-api/v1/orders?_pageSize=5&symbol=BTCUSD&_nextPage=Mjk3NzM1MzQ5NDI0NjIwMDMy",
+        "previous": "/trading-api/v1/orders?_pageSize=5&symbol=BTCUSD&_previousPage=Mjk3NzM1Mzg3NzQ3OTc1Njgw"
+      }
+    }
+    ```
+
+    # How To Filter
+
+    - If specified in the API documentation, an endpoint may support filters on specific fields and values e.g. `GET /orders?status=OPEN`
+    - Filter parameters and values should match 1 to 1 with those seen in an API response, what you see is what you query on and by.
+    - Pagination query parameters start with an underscore to differentiate them from filter query parameters e.g. `GET /orders?status=OPEN&_pageSize=25`
+
+    # Rate Limits
+
+    Each API key has a rate limit of 400 requests per 10 seconds (approximately 40 requests per second).
+
+    # Price And Quantity Precision
+    
+    The API defines the price and quantity for an asset in `asset value` format.
+    The price and quantity are decimal values thus they have defined a precision. 
+    To find out the price and quantity precision, for all or one symbol, you can use any
+    of the below API endpoints.
+    - The [Get Markets](#get-/markets) API endpoint for all supported symbols
+    - The [Get Market By Symbol](#get-/markets/-symbol-) API endpoint for a specific symbol
+
+    Consult the responses of these above two API endpoints:
+    - the precision for quantity is defined by the `basePrecision`
+    - the precision for price is defined by `quotePrecision`
+
+    # Authentication
+    
+    The API uses bearer based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
+    
+    # How To Send Authenticated Requests
+
+    To send an authenticated request, you must follow these steps:
+    1. [Generate An API Key](#overview--generate-an-api-key)
+    2. [Get Your Bullish Account Id](#overview--get-your-bullish-account-id)
+    3. [Add Authenticated Request Header](#overview--add-authenticated-request-header)
+    4. [Generate A JWT Token](#overview--generate-a-jwt-token)
+    5. [Construct The BX-NONCE Header](#overview--construct-the-bx-nonce-header)
+    6. [Construct The Command You Want To Send](#overview--construct-the-command-you-want-to-send)
+    7. [Construct The BX-SIGNATURE Header](#overview--construct-the-bx-signature-header)
+    8. [Send The HTTP Authenticated Request](#overview--send-the-HTTP-authenticated-request)
+    9. [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests)
+
+    ## Generate An API Key
+
+    A prerequisite to generate API keys is to have a Bullish account. To generate an API key follow these steps:
+    
+    1. Log in into your Bullish account
+    2. Click on your account initials at the upper right corner and then click **Settings**
+    3. Click **API Keys** and then click **Add API Key**
+    4. Enter a key name in the *Key Name* field and click *Generate API Key*
+    
+    **NOTES**
+
+    - An API key is a public/private key pair
+    - The private key is what you will use to sign your requests
+    - From here on the:
+      - public key will be referred to as `PUBLIC_KEY`
+      - private key will be referred to as `PRIVATE_KEY`
+    - For information about the format of keys please review [EOS Wallet Specification](https://developers.eos.io/manuals/eos/v2.0/keosd/wallet-specification)
+    - Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
+    - When you generate an API key you also get back the API metadata, in the next section you will learn how to use it
+
+    ## Get Your Bullish Account Id
+
+    An API key additionally has a `metadata` string assoicated with it which is displayed along side the key.
+    You must base64 decode the `metadata` to extract your `account id` (example follows). You will need the `account id` in the next step.
+
+    ```shell
+    echo eyJwdWJsaWNLZXkiOiJQVUJfUjFfNWNpVW52TW5rVThMOVBCWnZaa1BGcjhqdkRnUHpzcHhWNGlqOThIN1JqM1FSNzJyMkEiLCJhY2NvdW50SWQiOjIyMjAwMDAwMDAwMDAwNCwiY3JlZGVudGlhbElkIjoiMTAifQ== | base64 --decode
+    {"publicKey":"PUB_R1_5ciUnvMnkU8L9PBZvZkPFr8jvDgPzspxV4ij98H7Rj3QR72r2A","accountId":"12345","credentialId":"10"}
+    ```
+
+    ## Add Authenticated Request Header
+
+    Each authenticated request must include a `Authorization` header:
+      - `Authorization: Bear <JWT_TOKEN>`
+
+    The JWT is valid for 24 hours.
+
+    ## Generate A JWT Token
+
+    To generate/get a JWT token you will need to perform the following request:
+
+    ### POST /trading-api/v1/users/login
+
+    - Body
+      - `publicKey` - bullish account public key
+      - `accountId` - bullish account id corresponding to the metadata
+      - `signature` - signed JSON string encoding of `loginPayload`, see the code sample for how to get it
+      - `expirationTime` - epoch timestamp in milliseconds that is 5 minutes in the future
+      - `nonce` - epoch timestamp in milliseconds; note this login API nonce has no connection to the orders API nonce
+      - `biometricsUsed` - set to `false`
+      - `sessionKey` - set to `null`
+
+    ```json
+    {
+      "publicKey": "<PUBLIC_KEY>",
+      "signature": "<SIGNATURE>",
+      "loginPayload": {
+        "accountId": "100008771"
+        "nonce": 1638776636,
+        "expirationTime": 1638776936,
+        "biometricsUsed": false,
+        "sessionKey": null
+      }
+    }
+    ```
+
+    - Response
+
+    ```json
+    {
+      "authorizer": "<AUTHORIZER>",
+      "token": "<JWT_TOKEN>"
+    }
+    ```
+
+    #### Python code reference
+
+    ```python
+    # requires dependency libeospy=2.1.0
+
+    import json, requests, base64
+    import requests
+    import os
+    from datetime import datetime, timezone
+    from eospy.cleos import EOSKey
+    from hashlib import sha256
+
+    # you get the metadata value when you generate an API key
+    metadata = "eyJwdWJsaWNLZXkiOiJQVUJfUjFfNTN1cWlwR1c1V3Q3b25xV2oxUE40QWZEeXUyUWR6OWlxS202UXRIZ3FwM1d5YWFqZlgiLCJhY2NvdW50SWQiOjIyMjAwMDAwMDAwMDA2MywiY3JlZGVudGlhbElkIjoiMTc1In0="
+    metadatab64decode = base64.b64decode(metadata)
+
+    # get the accountId
+    accountId = json.loads(metadatab64decode)['accountId']
+
+    # make it about 5 mins in the future
+    timestamp = int(datetime.now(timezone.utc).timestamp())
+    expirationTime = str(ts + 300)
+
+    # prepare login payload
+    loginPayload = {
+        "accountId": accountId,
+        "nonce": timestamp,
+        "expirationTime": expirationTime,
+        "biometricsUsed": False,
+        "sessionKey": None,
+    }
+
+    # prepare the signing key
+    privateKey = "PVT_R1_iXseCjTB4vsai5mrdP4NRJSe2K8ahjqDjLEeFdj7vy7Y5i7Vo"
+    eoskey = EOSKey(privateKey)
+
+    # get the signed the login payload
+    digest = sha256((json.dumps(loginPayload, separators=(',', ':'))).encode("utf-8").rstrip()).hexdigest()
+    signature = eoskey.sign(digest)
+
+    # final preparation steps for login request
+    publicKey = "PUB_R1_6cwgY7xNZsa3jFoJYvPeBMC9D8n1kcgJWz5w1GkRnAUR1caQWh"
+    body = {
+        "publicKey": publicKey,
+        "signature": signature,
+        "loginPayload": loginPayload,
+    }
+
+    defaultHeader = {'Content-type': 'application/json', }
+    hostname = "https://api.exchange.bullish.com"
+    session = requests.Session()
+
+    # perform the login request
+    response = session.post(hostname + '/trading-api/v1/users/login', json=body, verify=True, headers=defaultHeader)
+
+    # print the response which contains the JWT token
+    print(response.text)
+    ```
+
+    ## Construct The BX-NONCE Header
+
+    The header `BX-NONCE` value is a unique client-side 64-bit unsigned integer. It has the following characteristics:
+
+    - Each request the client sends how have incrementing `BX-NONCE` value
+    - To prevent a client to send the max value of a 64-bit unsigned integer and thus immediately exhaust all unique nonces
+    the exchange will only accept a nonce within a specified range
+    - The lower and upper bounds of the current nonce range are specified by nonce endpoint e.g. `GET /nonce`
+    - The nonce range is updated daily
+    - The nonce `lowerBound` is the start of day EPOCH timestamp in micro seconds
+    - The nonce `upperBound` is the end of day EPOCH timestamp in micro seconds
+
+    ## Construct The Command You Want To Send
+
+    Each authenticated request contains a `<COMMAND>` to be executed by the API.
+    A `<COMMAND>` has the following properties:
+
+      - A `<COMMAND>` is JSON encoded
+      - Every field in the JSON payload must have a value. Use `null` to represent the absence of a value
+      - The fields must be specified and encoded in the order presented in this documentation
+
+    Find below two `<COMMAND>` examples:
+    1. [Create Spot Or Margin Order](#overview--create-spot-or-margin-order-example)
+    2. [Cancel Spot Or Margin Order](#overview--cancel-spot-or-margin-order-example)
+
+    ### Create Spot Or Margin Order Example
+    
+    To create a buy limit order:
+    - for the BTCUSD market
+    - at a price of `55071.5000`
+    - for a quantity of `1.87000000`
+    - with a time-in-force of `GTC` (good till cancelled)
+
+    The COMMAND would be constructed like below:
+
+    ```json
+    {
+      "timestamp": "<TIMESTAMP>",
+      "nonce": "<NONCE>",
+      "authorizer": "<AUTHORIZER>",
+      "command": {
+        "commandType": "V1CreateOrder",
+        "handle": null,
+        "symbol": "BTCUSD",
+        "type": "LMT",
+        "side": "BUY",
+        "price": "55071.5000",
+        "stopPrice": null,
+        "quantity": "1.87000000",
+        "timeInForce": "GTC",
+        "allowMargin": false
+      }
+    }
+    ```
+
+    ### Cancel Spot Or Margin Order Example
+    
+    To cancel a buy limit order:
+    - for the BTCUSD market
+    - where the `orderId` is `390755251743358977`
+
+    The COMMAND would be constructed like below:
+
+    ```json
+    {
+      "timestamp": "<TIMESTAMP>",
+      "nonce": "<NONCE>",
+      "authorizer": "<AUTHORIZER>"
+      "command": {
+        "commandType": "V1CancelOrder",
+        "orderId": "390755251743358977",
+        "handle": null,
+        "symbol": "BTCUSD"
+      }
+    }
+    ```
+
+    ## Construct The BX-SIGNATURE Header
+
+    Set the `BX-SIGNATURE` header to the value resulting from signing the `<COMMAND>`.
+
+    Before signing the `<COMMAND>` string remove any spaces and newline characters.
+    
+    The resulting value is also referred to as the request signature. Each component of the signature is detailed below:
+      - `<TIMESTAMP>`: number of milliseconds since EPOCH
+      - `<NONCE>`: client side incremented 64-bit unsigned integer
+      - `<AUTHORIZER>`: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+      - `<COMMAND>`: the command which is sent in the request payload, JSON encoded
+
+    ### How To Sign
+
+    To obtain the signature:
+
+    1. Encode the request JSON payload, also referred to as body, with the SHA-256 hash function and take the hexdigest
+    2. Sign the hexdigest from step 1 with ECDSA P-256 using your `<PRIVATE_KEY>`
+    3. Various signing examples can be found on [GitHub](https://github.com/bullish-exchange)
+
+    ## Send The HTTP Authenticated Request
+
+    You can send the HTTP authenticated request as per the example below.
+    
+    #### Python code reference
+
+    ```python
+    # requires dependency libeospy=2.1.0
+
+    import json
+    import requests
+    from datetime import datetime, timezone
+    from eospy.cleos import EOSKey
+    from hashlib import sha256
+
+    session = requests.Session()
+
+    privateKey = "PVT_R1_UVciHw7dwkoDFFCSjMGn8DndPAPTK86h3orhvDvRtQeseYGY2"
+    hostname = "https://api.exchange.bullish.com"
+
+    # JWT token / Authorizer - see the `Generate a JWT Token` section for example code
+    token = "eyJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJiMXgtYXV0aC1zZXJ2aWNlIiwic3ViIjoiNyIsImV4cCI6MTYzMDU5MzEwOCwiU1RBR0UiOiJBVVRIRU5USUNBVEVEX1dJVEhfQkxPQ0tDSEFJTiJ9.EReoMNL7a0FPW5DS0MFqJdU6GbzmJtKXzvSQyGe-4X90FJsuV66ffqm_PtrYaiZt_KQZ9CP1w35X0NeAjaXrHQ"
+    authorizer = "D2040000000000002A00000000000000"
+
+    # generate next valid nonce
+    response = session.get(hostname + "/trading-api/v1/nonce")
+    responseJSON = json.loads(response.text)
+    nonce = responseJSON['lowerBound']
+    nextNonce = str(nonce + 1)
+
+    timestamp = str(int(datetime.now(timezone.utc).timestamp() * 1000))
+
+    # create order
+    body = {
+        "timestamp": timestamp,
+        "nonce": nextNonce,
+        "authorizer": authorizer,
+        "command": {
+            "commandType": "V1CreateOrder",
+            "handle": "1608642455000001",
+            "symbol": "BTCUSD",
+            "type": "LMT",
+            "side": "BUY",
+            "price": "55071.5000",
+            "stopPrice": None,
+            "quantity": "1.87000000",
+            "timeInForce": "GTC",
+            "allowMargin": False
+        }
+    }
+
+    payload = (json.dumps(body, separators=(',', ':'))).encode("utf-8")
+    digest = sha256(payload.rstrip()).hexdigest()
+    eoskey = EOSKey(privateKey)
+    signature = eoskey.sign(digest)
+
+    headers = {'Content-type': 'application/json',
+               'Authorization': 'Bearer ' + token,
+               'BX-SIGNATURE': signature,
+               'BX-TIMESTAMP': timestamp,
+               'BX-NONCE': nextNonce}
+
+    response = session.post(hostname + "/trading-api/v1/orders", json=body, headers=headers)
+    responseJSON = json.loads(response.text)
+    print(responseJSON)
+    ```
+
+    ## How To Ensure The Order Of *Create Order* or *Cancel Order* Requests
+
+    To ensure the order of the *create order* or *cancel order* requests,
+    you must wait for an acknowledgement response which will contain the `orderId` 
+    generated on the server side. 
+    Also remember that the `nonce` parameter, for these two requests, must be a
+    unique increasing integer value. 
+
+    For example, let us assume the following:
+    * You sent 10 *create order* requests in a row without waiting for an `orderId`
+    * The `nonce` increases with each request sent and thus
+    * The `nonce` is unique for each request
+
+    Because the requests received by the Bullish exchange are processed in parallel
+    the following two possible scenarios can happen:
+    * *happy scenario* which has a small chance to occur: all 10 requests are 
+    processed in the exact order sent by the client, no error, all great and you 
+    are happy
+    * *unhappy scenario* which has a higher chance to occur: the requests are not 
+    processed in the exact order sent by you, because the requests might arrive at the
+    bullish processing server at different times and thus the validations
+    of the `nonce` for each request take place at random times. Because of that all
+    the requests that are validated and have the `nonce` higher than the latest
+    valid `nonce` will be accepted as valid and the ones which have the `nonce`
+    smaller than the last valid `nonce` will be considered invalid and dropped.
+    In the worse case scenario the request with the highest `nonce`, the 10th request
+    you sent, is validated first, and the rest of the 9 requests will fail the
+    validation because they have the `nonce` smaller than the 10th.
+    Also if some requests are failing because of some other errors, e.g. incorrect
+    inputs or internal error, you will not know because you did not wait for the
+    acknowledgement from the server side for each request you sent.
+
+    If you wait the acknowledgement from the server side you ensure the order of 
+    the requests you sent and you can also verify the status of the order(s) you 
+    created or cancelled.
+
+    # Quickly Try The API
+
+    To quickly try the API you can use the `TRY` green button which you can find on the bottom right side of each endpoint documentation section, next to `FILL EXAMPLE` and `CLEAR` buttons.
+
+    ## Try The Non-Authenticated Endpoints
+
+    To try the endpoints for which the authentication is not required follow below steps:
+    1. Fill in the input parameters, including the request headers
+    2. Click the `TRY` green button
+    3. Inspect the results
+
+    ## Try The Authenticated Endpoints
+
+    To try the endpoints for which authentication is required follow below steps:
+    1. Obtain a [bearer token](#overview--generate-a-jwt-token) using your API key
+    2. Set it in the dedicated `api-token` field in the [Authentication](#auth) section
+    2. Fill in the input parameters
+    2. Click the `TRY` green button
+    3. Inspect the results
+
+  version: 1.0.0
+  title: Bullish Trading API
+
+tags:
+  - name: nonce
+    x-displayName: Nonce
+    description: Non-authenticated API for getting nonce range information
+  - name: users
+    description: Authenticated APIs for interacting with users
+  - name: orders
+    description: Authenticated APIs for interacting with orders
+  - name: trades
+    description: Authenticated APIs for reading trade data
+  - name: accounts
+    description: Authenticated APIs for reading account data
+  - name: markets
+    description: Non-authenticated APIs for reading market data
+  - name: time
+    description: Non-authenticated API for reading time data
+  - name: positions
+    description: Authenticated APIs for accessing the margin account positions
+  - name: asset-data
+    description: Non-authenticated APIs for accessing general asset data information
+  - name: market-data
+    description: Non-authenticated APIs for accessing general market data information
+  - name: ohlcv
+    description: Non-authenticated APIs for reading OHLCV candle data
+  - name: fees
+    description: Non-authenticated APIs for reading fee data
+  - name: account-model
+    x-displayName: SpotAccount Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/SpotAccount"/>
+  - name: order-model
+    x-displayName: Order Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Order"/>
+  - name: create-order-request-model
+    x-displayName: Create Order Request Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/CreateOrderRequest"/>
+  - name: update-order-quantity-request-model
+    x-displayName: Update Order Quantity Request Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/UpdateOrderQuantityRequest"/>
+  - name: trade-model
+    x-displayName: Trade Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Trade"/>
+  - name: obfuscated-trade-model
+    x-displayName: Obfuscated Trade Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/ObfuscatedTrade"/>
+  - name: market-model
+    x-displayName: Market Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Market"/>
+  - name: orderbook-model
+    x-displayName: Order Book Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderBook"/>
+  - name: tick-model
+    x-displayName: Tick Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Tick"/>
+  - name: ohlcv-candle-model
+    x-displayName: OHLCV Candle Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OHLCVCandle"/>
+  - name: position-model
+    x-displayName: Position Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Position"/>
+  - name: spot-account-id
+    x-displayName: SpotAccount ID
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/SpotAccountID"/>
+  - name: order-id
+    x-displayName: Order ID
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderID"/>
+  - name: trade-id
+    x-displayName: Trade ID
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/TradeID"/>
+  - name: position-id
+    x-displayName: Position ID
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/PositionID"/>
+  - name: market-id
+    x-displayName: Market ID
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/MarketID"/>
+  - name: timestamp
+    x-displayName: Timestamp Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/TimeStamp"/>
+  - name: timestamp-as-string
+    x-displayName: Timestamp Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/TimeStampAsString"/>
+  - name: datetime
+    x-displayName: Datetime Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/DateTime"/>
+  - name: order-time-in-force
+    x-displayName: Order Time In Force
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderTimeInForce"/>
+  - name: order-time-in-force-as-string
+    x-displayName: Order Time In Force
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderTimeInForceAsString"/>
+  - name: order-type
+    x-displayName: Order Type
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderType"/>
+  - name: order-type-as-string
+    x-displayName: Order Type
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderTypeAsString"/>
+  - name: order-status
+    x-displayName: Order Status
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderStatus"/>
+  - name: order-status-as-string
+    x-displayName: Order Status
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderStatusAsString"/>
+  - name: order-side
+    x-displayName: Order Side
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderSide"/>
+  - name: order-side-as-string
+    x-displayName: Order Side
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderSideAsString"/>
+  - name: candle-window
+    x-displayName: Candle Window
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/CandleWindow"/>
+x-tagGroups:
+  - name: Authenticated API
+    tags:
+      - users
+      - accounts
+      - orders
+      - trades
+      - positions
+  - name: Non-authenticated API
+    tags:
+      - market-data
+      - time
+paths:
+  /nonce:
+    get:
+      tags:
+        - nonce
+      summary: Get The Current Nonce Range
+      description: Get the current nonce range. The lower bound of nonce range is EPOCH start of day in microseconds, and upper bound of nonce range is EPOCH end of day in microseconds.
+      operationId: user-get-current-nonce-range
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nonce'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /accounts/spot:
+    get:
+      tags:
+        - accounts
+      summary: Get Spot Accounts
+      description: Gets the spot accounts, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: user-get-spot-accounts
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/SpotAccount'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /accounts/spot/{symbol}:
+    get:
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/AssetSymbol'
+          required: true
+      tags:
+        - accounts
+      summary: Get Spot Account by Symbol
+      description: Gets the spot account by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: user-get-spot-account-by-symbol
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpotAccount'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /accounts/margin:
+    get:
+      tags:
+        - accounts
+      summary: Get Margin Accounts
+      description: Gets the margin accounts, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: user-get-margin-accounts
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/MarginAccount'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /accounts/margin/{symbol}:
+    get:
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: true
+      tags:
+        - accounts
+      summary: Get Margin Account by Symbol
+      description: Gets the margin account by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: user-get-margin-account-by-symbol
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarginAccount'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /orders:
+    get:
+      tags:
+        - orders
+      summary: Get Orders
+      description: |
+        Gets the orders list based on specified filters.
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - [supports pagination](#overview--pagination)
+        - supports filtering on `symbol`, `handle`, `side`, `status`
+      operationId: trade-get-orders
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: false
+        - in: query
+          name: handle
+          description: Unique numeric identifier generated on the client side expressed as a string value
+          schema:
+            $ref: '#/components/schemas/OrderHandle'
+          required: false
+        - in: query
+          name: side
+          description: order side
+          schema:
+            $ref: '#/components/schemas/OrderSide'
+          required: false
+        - in: query
+          name: status
+          description: order status
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+          required: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/Order'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+    post:
+      tags:
+        - orders
+      summary: Create Order
+      description: Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: trade-create-order
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: command signature is a signature resulted from the [signed message of the `<COMMAND>`](#overview--construct-the-bx-signature-header)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: command timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: command nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+        - in: query
+          name: test
+          description: to validate integration with the `POST /orders` API pass the query parameter `test=true` e.g. `/orders?test=true`. The request will be validated but not executed.
+          schema:
+            $ref: '#/components/schemas/Boolean'
+          required: false
+      responses:
+        200:
+          description: Status OK. This means an create order command was successfully acknowledged. It does not necessarily mean the order was created. To check the current status of the order, query [Get Order by ID](#get-/orders/-orderId-) using the `orderId` received in the response payload. Also consult the section [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrderResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: new order
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      security:
+        - jwtTokenAuth: []
+    delete:
+      tags:
+        - orders
+      summary: Cancel Order
+      description: Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: trade-cancel-order
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: command signature is a signature resulted from the [signed message of the `<COMMAND>`](#overview--construct-the-bx-signature-header)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: command timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: command nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: true
+        - in: query
+          name: handle
+          description: Unique numeric identifier generated on the client side expressed as a string value
+          schema:
+            $ref: '#/components/schemas/OrderHandle'
+          required: false
+        - in: query
+          name: orderId
+          description: unique order ID
+          schema:
+            $ref: '#/components/schemas/OrderID'
+          required: false
+        - in: query
+          name: test
+          description: to validate integration with the `DELETE /orders` API pass the query parameter `test=true` e.g. `/orders?test=true`. The request will be validated but not executed.
+          schema:
+            $ref: '#/components/schemas/Boolean'
+          required: false
+      responses:
+        204:
+          description: Status OK. This means an cancel order command was successfully acknowledged. It does not necessarily mean the order was cancelled. To check the current status of the order, query [Get Order by ID](#get-/orders/-orderId-) using the `orderId`. Also consult the section [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests).
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /orders/{orderId}:
+    parameters:
+      - in: path
+        name: orderId
+        schema:
+          type: number
+        required: true
+        description: order ID
+    get:
+      tags:
+        - orders
+      summary: Get Order by ID
+      description: Gets an order by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: trade-get-order-by-id
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /trades:
+    get:
+      tags:
+        - trades
+      summary: Get Trades
+      description: |
+        Get a list of trades based on specified filters.
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - [supports pagination](#overview--pagination)
+        - supports filtering on `symbol`, `orderId`
+      operationId: trade-get-trades
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: false
+        - in: query
+          name: orderId
+          description: unique order ID
+          schema:
+            $ref: '#/components/schemas/OrderID'
+          required: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/Trade'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /trades/{tradeId}:
+    get:
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: path
+          name: tradeId
+          schema:
+            type: number
+          required: true
+          description: trade ID
+      tags:
+        - trades
+      summary: Get Trade by ID
+      description: Gets a trade by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: trade-get-trade-by-id
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trade'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /positions:
+    get:
+      tags:
+        - positions
+      summary: Get Positions
+      description: Get the list of positions, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: trade-get-positions
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/Position'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /positions/{symbol}:
+    get:
+      tags:
+        - positions
+      summary: Get Positions by Symbol
+      description: Gets a position by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      operationId: trade-get-position-by-symbol
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /assets:
+    get:
+      tags:
+        - asset-data
+      summary: Get Assets
+      description: Get supported assets
+      operationId: asset-data-get-assets
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/Asset'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /markets:
+    get:
+      tags:
+        - market-data
+      summary: Get Markets
+      description: Get Markets
+      operationId: market-data-get-markets
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/Market'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /markets/{symbol}:
+    parameters:
+      - in: path
+        name: symbol
+        schema:
+          $ref: '#/components/schemas/MarketSymbol'
+        required: true
+    get:
+      tags:
+        - market-data
+      summary: Get Market by Symbol
+      description: Get Market by Symbol
+      operationId: market-data-get-market
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Market'
+  /markets/{symbol}/orderbook/hybrid:
+    get:
+      parameters:
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: true
+          description: symbol to get
+      tags:
+        - market-data
+      summary: Get Market Order Book
+      description: Get Order Book by Market Symbol
+      operationId: market-data-get-market-orderbook
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderBook'
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /markets/{symbol}/trades:
+    get:
+      parameters:
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: true
+          description: symbol to get
+      tags:
+        - market-data
+      summary: Get Market Trades
+      description: |
+        Get Trades by Market Symbol.
+        - return top 100
+      operationId: market-data-get-trades-by-market-symbol
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/ObfuscatedTrade'
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /markets/{symbol}/tick:
+    get:
+      parameters:
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: true
+          description: symbol to get
+      tags:
+        - market-data
+      summary: Get Market Tick
+      description: |
+        Get Current Tick by Market Symbol.
+        - return top 100
+      operationId: market-data-current-tick-by-market-symbol
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tick'
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /markets/{symbol}/candle:
+    get:
+      tags:
+        - market-data
+      summary: Get Market Candle
+      description: Get Current OHLCV Candle by Market Symbol
+      operationId: market-data-current-candle-by-market-symbol
+      parameters:
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: true
+        - in: query
+          name: createdAtDatetime[gte]
+          description: start timestamp of window, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: true
+        - in: query
+          name: createdAtDatetime[lte]
+          description: end timestamp of window, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: true
+        - in: query
+          name: timeBucket
+          schema:
+            $ref: '#/components/schemas/TimeBucket'
+          required: true
+          description: time bucket size
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 1
+                maxItems: 30
+                items:
+                  $ref: '#/components/schemas/OHLCVCandle'
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /time:
+    get:
+      tags:
+        - time
+      summary: Get Exchange Time
+      description: Get Current Exchange Time
+      operationId: market-data-get-current-exchange-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentExchangeTimeResponse'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+components:
+  securitySchemes:
+    jwtTokenAuth:
+      type: HTTP
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
+    Boolean:
+      type: boolean
+      format: true or false
+    OrderTypeAsString:
+      type: string
+      description: order type can have the following string values `"LMT"`, `"MKT"`, `"STOP_LIMIT"`
+      example: "LMT"
+    OrderSideAsString:
+      type: string
+      description: order side can have the following string values `"BUY"`, `"SELL"`
+      example: BUY
+    OrderTimeInForceAsString:
+      type: string
+      description: time in force can have the following string values `"GTC"`
+    OrderStatusAsString:
+      type: string
+      description: order status can have the following string values `"OPEN"`, `"CLOSED"`, `"CANCELLED"`, `"REJECTED"`
+      example: OPEN
+    TimeStampAsString:
+      type: string
+      format: string
+      example: "1621490985000"
+      description: unsigned 64 bit integer value which is the number of milliseconds since EPOCH expressed as string
+    NonceAsString:
+      type: string
+      format: string
+      example: "123456789"
+      description: the nonce is a client side incremented unsigned 64 bit integer expressed as string
+    SpotAccountID:
+      type: string
+      example: BTC
+    MarginAccountID:
+      type: string
+      example: BTCUSD
+    OrderID:
+      type: string
+      example: "297735387747975680"
+    RequestID:
+      type: string
+      example: 197735387747975680
+    OrderHandle:
+      description: Unique numeric identifier generated on the client side expressed as a string value
+      type: string
+      example: "187"
+    MarketID:
+      type: string
+      example: BTCUSD
+    TradeID:
+      type: string
+      example: 8
+    PositionID:
+      type: string
+      example: BTCUSD
+    MonetaryValue:
+      description: see [asset value](#overview--price-and-quantity-precision) format
+      type: string
+      example: '0.00000000'
+    DateTime:
+      type: string
+      format: date-time
+      example: "2021-05-20T01:01:01.000Z"
+      description: ISO 8601 with millisecond as string
+    TimeStamp:
+      type: string
+      format: int64
+      example: "1621490985000"
+      description: number of milliseconds since EPOCH as string
+    SpotAccount:
+      type: object
+      required:
+        - accountId
+        - currency
+        - symbol
+        - total
+        - free
+        - used
+      properties:
+        accountId:
+          description: unique spot account ID
+          allOf:
+            - $ref: '#/components/schemas/SpotAccountID'
+        currency:
+          description: asset symbol
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        symbol:
+          description: asset symbol
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        total:
+          description: total, `free + used`, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        free:
+          description: money available for trading, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        used:
+          description: money on hold, locked, frozen, or pending, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+    MarginAccount:
+      type: object
+      required:
+        - accountId
+        - symbol
+        - baseFree
+        - quoteFree
+        - baseUsed
+        - quoteUsed
+        - baseTotal
+        - quoteTotal
+        - baseDebt
+        - quoteDebt
+        - baseCallPrice
+        - quoteCallPrice
+        - quotePrincipal
+        - basePrincipal
+      properties:
+        accountId:
+          description: unique margin account ID
+          allOf:
+            - $ref: '#/components/schemas/MarginAccountID'
+        symbol:
+          description: symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        baseFree:
+          description: base free, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteFree:
+          description: quote free, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        baseUsed:
+          description: base used, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteUsed:
+          description: quote used, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        baseTotal:
+          description: base total, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteTotal:
+          description: quote total, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        baseDebt:
+          description: base debt, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteDebt:
+          description: quote debt, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        baseCallPrice:
+          description: base call price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteCallPrice:
+          description: quote call price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        basePrincipal:
+          description: base principal, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quotePrincipal:
+          description: quote principal, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+    AmendOrderRequest:
+      type: object
+      required:
+        - quantity
+      properties:
+        orderId:
+          description: unique order ID
+          allOf:
+            - $ref: '#/components/schemas/OrderID'
+        handle:
+          allOf:
+            - $ref: '#/components/schemas/OrderHandle'
+        symbol:
+          description: symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        price:
+          description: updated price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        stopPrice:
+          description: updated stop price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quantity:
+          description: updated quantity, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+    CreateOrderResponse:
+      type: object
+      required:
+        - message
+        - requestId
+        - orderId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - CreateOrder"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+        orderId:
+          description: unique order ID
+          allOf:
+            - $ref: '#/components/schemas/OrderID'
+    CreateOrderCommand:
+      type: object
+      required:
+        - commandType
+        - handle
+        - symbol
+        - type
+        - side
+        - price
+        - stopPrice
+        - quantity
+        - timeInForce
+        - allowMargin
+      properties:
+        commandType:
+          description: The command type, it must be 'V1CreateOrder'
+          type: string
+          example: 'V1CreateOrder'
+        handle:
+          allOf:
+            - $ref: '#/components/schemas/OrderHandle'
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        type:
+          allOf:
+            - $ref: '#/components/schemas/OrderTypeAsString'
+          example: 'LMT'
+        side:
+          allOf:
+            - $ref: '#/components/schemas/OrderSideAsString'
+          example: 'BUY'
+        timeInForce:
+          allOf:
+            - $ref: '#/components/schemas/OrderTimeInForceAsString'
+          example: 'GTC'
+        price:
+          description: price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        stopPrice:
+          description: stop price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quantity:
+          description: quantity, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        allowMargin:
+          description: allow margin trading
+          type: boolean
+          example: false
+    CancelOrderCommand:
+      type: object
+      required:
+        - commandType
+        - orderId
+        - handle
+        - symbol
+      properties:
+        commandType:
+          description: The command type, it must be 'V1CancelOrder'
+          type: string
+          example: 'V1CancelOrder'
+        orderId:
+          description: unique order ID
+          allOf:
+            - $ref: '#/components/schemas/OrderID'
+        handle:
+          allOf:
+            - $ref: '#/components/schemas/OrderHandle'
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+    Authorizer:
+      type: string
+      format: string
+      example: "03E02367E8C900000500000000000000"
+      description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)     
+    CreateOrderRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/CreateOrderCommand'
+    CancelOrderRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/CancelOrderCommand'
+    Position:
+      type: object
+      required:
+        - positionId
+        - symbol
+        - leverage
+        - maxLeverage
+        - quantity
+        - baseLoanAmount
+        - quoteLoanAmount
+        - dailyInterestRatePercentage
+        - baseAccruedInterestAmount
+        - quoteAccruedInterestAmount
+        - liquidationRisk
+        - positionType
+        - utilisation
+        - updatedAtDatetime
+        - updatedAtTimestamp
+      properties:
+        positionId:
+          description: unique position ID
+          allOf:
+            - $ref: '#/components/schemas/PositionID'
+        symbol:
+          description: symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        leverage:
+          description: leverage
+          type: string
+          example: '1.00'
+        maxLeverage:
+          description: leverage
+          type: string
+          example: '1.00'
+        utilisation:
+          description: leverage
+          type: string
+          example: '1.00'
+        quantity:
+          description: quantity, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        baseLoanAmount:
+          description: base loan amount, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteLoanAmount:
+          description: quote loan amount, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        dailyInterestRatePercentage:
+          description: daily interest rate percentage, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        baseAccruedInterestAmount:
+          description: base accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteAccruedInterestAmount:
+          description: quote accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        liquidationRisk:
+          description: liquidation risk
+          allOf:
+            - $ref: '#/components/schemas/LiquidationRisk'
+        liquidationPrice:
+          description: liquidation price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        positionType:
+          description: long vs short
+          allOf:
+            - $ref: '#/components/schemas/PositionType'
+        updatedAtDatetime:
+          description: the time the position was retrieved, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        updatedAtTimestamp:
+          description: The time the position was retrieved
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+    Order:
+      type: object
+      required:
+        - orderId
+        - handle
+        - symbol
+        - price
+        - stopPrice
+        - averageFillPrice
+        - margin
+        - quantity
+        - quantityFilled
+        - baseFee
+        - quoteFee
+        - side
+        - type
+        - timeInForce
+        - status
+        - statusReason
+        - statusReasonCode
+        - createdAtTimestamp
+        - createdAtDatetime
+      properties:
+        handle:
+          allOf:
+            - $ref: '#/components/schemas/OrderHandle'
+        orderId:
+          description: unique order ID
+          allOf:
+            - $ref: '#/components/schemas/OrderID'
+        symbol:
+          description: market symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        price:
+          description: price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        averageFillPrice:
+          description: average fill price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        stopPrice:
+          description: stop price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        margin:
+          description: is margin order
+          type: boolean
+          example: false
+        quantity:
+          description: quantity, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quantityFilled:
+          description: quantity filled, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        baseFee:
+          description: base fee, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteFee:
+          description: quote fee, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        side:
+          description: order side
+          allOf:
+            - $ref: '#/components/schemas/OrderSideAsString'
+          example: 'BUY'
+        type:
+          description: order type
+          allOf:
+            - $ref: '#/components/schemas/OrderTypeAsString'
+          example: 'LMT'
+        timeInForce:
+          description: time in force
+          allOf:
+            - $ref: '#/components/schemas/OrderTimeInForceAsString'
+          example: 'FOK'
+        status:
+          description: order status
+          allOf:
+            - $ref: '#/components/schemas/OrderStatusAsString'
+          example: 'OPEN'
+        statusReason:
+          description: status reason, describes why the order is in a specific state 
+          type: string
+          example: "User cancelled"
+        statusReasonCode:
+          description: status reason code, is the code associated to the `statusReason`. This code always stays the same whereas the `statusReason` might slightly change over time with consequent releases
+          type: integer
+          example: 1002
+        createdAtDatetime:
+          description: denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: denotes the time the order was ACK'd by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+    ObfuscatedTrade:
+      type: object
+      required:
+        - symbol
+        - price
+        - quantity
+        - side
+        - status
+        - type
+        - createdAtTimestamp
+        - createdAtDatetime
+      properties:
+        symbol:
+          description: market symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        price:
+          description: price
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quantity:
+          description: quantity
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        side:
+          description: order side
+          allOf:
+            - $ref: '#/components/schemas/OrderSideAsString'
+          example: 'BUY'
+        type:
+          description: order type
+          allOf:
+            - $ref: '#/components/schemas/OrderTypeAsString'
+          example: 'LMT'
+        createdAtDatetime:
+          description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: denotes the time the trade was executed by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+    Trade:
+      type: object
+      required:
+        - tradeId
+        - orderId
+        - symbol
+        - price
+        - quantity
+        - baseFee
+        - quoteFee
+        - side
+        - createdAtTimestamp
+        - createdAtDatetime
+      properties:
+        tradeId:
+          description: unique trade ID
+          allOf:
+            - $ref: '#/components/schemas/TradeID'
+        orderId:
+          description: unique order ID
+          allOf:
+            - $ref: '#/components/schemas/OrderID'
+        symbol:
+          description: market symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        price:
+          description: price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quantity:
+          description: quantity, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        baseFee:
+          description: base fee, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteFee:
+          description: quote fee, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        side:
+          description: order side
+          allOf:
+            - $ref: '#/components/schemas/OrderSideAsString'
+          example: 'BUY'
+        createdAtDatetime:
+          description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: denotes the time the trade was executed by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+    Tick:
+      type: object
+      required:
+        - createdAtDatetime
+        - createdAtTimestamp
+        - high
+        - low
+        - bestBid
+        - bidVolume
+        - bestAsk
+        - askVolume
+        - vwap
+        - open
+        - close
+        - last
+        - change
+        - percentage
+        - average
+        - baseVolume
+        - quoteVolume
+        - bancorPrice
+        - lastTradeDatetime
+        - lastTradeTimestamp
+        - lastTradeQuantity
+      properties:
+        createdAtDatetime:
+          description: denotes the time of the current tick on the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: denotes the time of the current tick on the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        high:
+          description: highest price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        low:
+          description: lowest price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        bestBid:
+          description: current best bid (buy) price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        bidVolume:
+          description: current best bid (buy) quantity (may be missing or undefined), see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        bestAsk:
+          description: current best ask (sell) price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        askVolume:
+          description: current best ask (sell) quantity (may be missing or undefined), see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        vwap:
+          description: volume weighed average price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        open:
+          description: opening price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        close:
+          description: price of last trade (closing price for current period), see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        last:
+          description: price of last trade (closing price for current period), see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        change:
+          description: absolute change, `last - open`, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        percentage:
+          description: relative change, `(change/open) * 100`, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        average:
+          description: average price, `(last + open) / 2`, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        baseVolume:
+          description: volume of base asset traded for last 24 hours, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        quoteVolume:
+          description: volume of quote asset traded for last 24 hours, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        bancorPrice:
+          description: current price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        lastTradeDatetime:
+          description: time of the last trade on this symbol, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        lastTradeTimestamp:
+          description: time of the last trade on this symbol
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        lastTradeQuantity:
+          description: quantity of the last trade on this symbol, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+    MarketSymbol:
+      type: string
+      description: market symbol as denoted in the world
+      example: 'BTCUSD'
+    AssetSymbol:
+      type: string
+      description: asset symbol as denoted in the world
+      example: 'BTC'
+    AssetID:
+      type: string
+      description: unique asset ID
+      example: 1
+    PriceQuantityTuple:
+      type: object
+      properties:
+        price:
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        priceLevelQuantity:
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+    OrderBook:
+      type: object
+      required:
+        - bids
+        - asks
+        - datetime
+        - timestamp
+        - sequenceNumber
+      properties:
+        bids:
+          description: bids
+          type: array
+          minItems: 0
+          maxItems: 50
+          items:
+            allOf:
+              - $ref: '#/components/schemas/PriceQuantityTuple'
+        asks:
+          description: asks
+          type: array
+          minItems: 0
+          maxItems: 50
+          items:
+            allOf:
+              - $ref: '#/components/schemas/PriceQuantityTuple'
+        datetime:
+          description: date and time of order book snapshot, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        timestamp:
+          description: timestamp of order book snapshot
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        sequenceNumber:
+          description: an incremented unique identifier of the order book snapshot
+          type: integer
+          example: 999
+    Market:
+      type: object
+      required:
+        - marketId
+        - symbol
+        - quoteAssetId
+        - baseAssetId
+        - quoteSymbol
+        - baseSymbol
+        - quotePrecision
+        - basePrecision
+        - pricePrecision
+        - quantityPrecision
+        - costPrecision
+        - minQuantityLimit
+        - maxQuantityLimit
+        - maxPriceLimit
+        - minPriceLimit
+        - maxCostLimit
+        - minCostLimit
+        - timeZone
+        - tickSize
+        - makerFee
+        - takerFee
+        - spotTradingEnabled
+        - marginTradingEnabled
+        - marketEnabled
+      properties:
+        marketId:
+          description: unique market ID
+          allOf:
+            - $ref: '#/components/schemas/MarketID'
+        symbol:
+          description: market symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        baseSymbol:
+          description: base asset symbol
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        quoteSymbol:
+          description: quote asset symbol
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        quoteAssetId:
+          description: quote asset id
+          allOf:
+            - $ref: '#/components/schemas/AssetID'
+        baseAssetId:
+          description: base asset id
+          allOf:
+            - $ref: '#/components/schemas/AssetID'
+        quotePrecision:
+          description: quote precision
+          type: integer
+          example: 4
+        basePrecision:
+          description: base precision
+          type: integer
+          example: 8
+        pricePrecision:
+          description: number of decimal digits 'after the dot' for price
+          type: integer
+          example: 8
+        quantityPrecision:
+          description: number of decimal digits 'after the dot' for quantity
+          type: integer
+          example: 8
+        costPrecision:
+          description: number of decimal digits 'after the dot' for cost, `price * quantity`
+          type: integer
+          example: 8
+        minQuantityLimit:
+          description: order quantity should be > min, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        maxQuantityLimit:
+          description: order quantity should be < max, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        maxPriceLimit:
+          description: order price should be < max, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        minPriceLimit:
+          description: order price should be > min, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        maxCostLimit:
+          description: order cost, `price * quantity` should be < max, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        minCostLimit:
+          description: order cost, `price * quantity` should be > min, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        timeZone:
+          description: time zone
+          type: string
+          example: Etc/UTC
+        tickSize:
+          description: tick size, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        makerFee:
+          description: maker fee in bps
+          type: integer
+          example: 10
+        takerFee:
+          description: taker fee in bps
+          type: integer
+          example: 10
+        orderTypes:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/OrderTypeAsString'
+        spotTradingEnabled:
+          description: spot trading enabled
+          type: boolean
+          example: true
+        marginTradingEnabled:
+          description: margin trading enabled
+          type: boolean
+          example: true
+        marketEnabled:
+          description: market enabled
+          type: boolean
+          example: true
+    Asset:
+      type: object
+      required:
+        - assetId
+        - symbol
+        - precision
+        - minBalanceInterest
+        - apr
+        - minFee
+      properties:
+        assetId:
+          description: unique asset ID
+          allOf:
+            - $ref: '#/components/schemas/AssetID'
+        symbol:
+          description: asset symbol
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        precision:
+          description: number of decimal digits 'after the dot' for asset amount
+          type: integer
+          example: 8
+        minBalanceInterest:
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        apr:
+          description: annualized percentage rate
+          type: number
+          example: 12.5
+        minFee:
+          description: minimum fee
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+    OHLCVCandle:
+      type: object
+      properties:
+        open:
+          description: see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        high:
+          description: see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        low:
+          description: see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        close:
+          description: see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        volume:
+          description: see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        createdAtTimestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        createdAtDatetime:
+          description: date and time of the candle, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+    CurrentExchangeTimeResponse:
+      type: object
+      required:
+        - timestamp
+        - datetime
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        datetime:
+          description: ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+    Nonce:
+      type: object
+      required:
+        - upperBound
+        - lowerBound
+      properties:
+        lowerBound:
+          description: lower bound of nonce range
+          type: integer
+          example: 8455
+        upperBound:
+          description: upper bound of nonce range
+          type: integer
+          example: 9455
+    OrderTimeInForce:
+      type: string
+      enum:
+        - GTC
+    OrderType:
+      type: string
+      enum:
+        - LMT
+        - MKT
+        - STOP_LIMIT
+    OrderSide:
+      type: string
+      example: BUY
+      enum:
+        - BUY
+        - SELL
+    TimeBucket:
+      type: string
+      example: 1m
+      enum:
+        - 1m
+        - 5m
+        - 30m
+        - 1h
+        - 6h
+        - 12h
+        - 1d
+    OrderStatus:
+      type: string
+      example: OPEN
+      enum:
+        - OPEN
+        - CLOSED
+        - CANCELED
+        - REJECTED
+    LiquidationRisk:
+      type: string
+      enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+    PositionType:
+      type: string
+      enum:
+        - LONG
+        - SHORT
+  headers:
+    Authorization:
+      description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+      schema:
+        type: string
+      type: string
+    BX-SIGNATURE:
+      description: command signature is a signature resulted from the [signed message of the `<COMMAND>`](#overview--construct-the-bx-signature-header)
+      schema:
+        type: string
+      type: string
+    BX-TIMESTAMP:
+      description: command timestamp is the number of milliseconds since EPOCH
+      schema:
+        type: string
+      type: string
+    BX-NONCE:
+      description: command nonce is a client side incremented unsigned 64 bit integer
+      schema:
+        type: string
+      type: string
+
