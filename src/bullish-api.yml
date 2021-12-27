@@ -22,9 +22,16 @@ info:
     - uses bearer based authentication
     - enforces a blanket rate limit across all requests
     - base URL is `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
-  
+
+    # Code Examples
+    Find further code examples at - https://github.com/bullish-exchange
+
+    # API Change Log
+    - 31-12-2021 - add pagination support to `GET /markets/{symbol}/candle`
+    - 31-12-2021 - removed `dailyInterestRatePercentage` from `GET /positions`
+
     # Exchange Time
-    
+
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
 
     # Pagination Support
@@ -82,9 +89,9 @@ info:
     Each API key has a rate limit of 400 requests per 10 seconds (approximately 40 requests per second).
 
     # Price And Quantity Precision
-    
+
     The API defines the price and quantity for an asset in `asset value` format.
-    The price and quantity are decimal values thus they have defined a precision. 
+    The price and quantity are decimal values thus they have defined a precision.
     To find out the price and quantity precision, for all or one symbol, you can use any
     of the below API endpoints.
     - The [Get Markets](#get-/markets) API endpoint for all supported symbols
@@ -95,9 +102,9 @@ info:
     - the precision for price is defined by `quotePrecision`
 
     # Authentication
-    
+
     The API uses bearer based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
-    
+
     # How To Send Authenticated Requests
 
     To send an authenticated request, you must follow these steps:
@@ -114,12 +121,12 @@ info:
     ## Generate An API Key
 
     A prerequisite to generate API keys is to have a Bullish account. To generate an API key follow these steps:
-    
+
     1. Log in into your Bullish account
     2. Click on your account initials at the upper right corner and then click **Settings**
     3. Click **API Keys** and then click **Add API Key**
     4. Enter a key name in the *Key Name* field and click *Generate API Key*
-    
+
     **NOTES**
 
     - An API key is a public/private key pair
@@ -207,7 +214,7 @@ info:
 
     # make it about 5 mins in the future
     timestamp = int(datetime.now(timezone.utc).timestamp())
-    expirationTime = str(ts + 300)
+    expirationTime = str(timestamp + 300)
 
     # prepare login payload
     loginPayload = {
@@ -271,7 +278,7 @@ info:
     2. [Cancel Spot Or Margin Order](#overview--cancel-spot-or-margin-order-example)
 
     ### Create Spot Or Margin Order Example
-    
+
     To create a buy limit order:
     - for the BTCUSD market
     - at a price of `55071.5000`
@@ -301,7 +308,7 @@ info:
     ```
 
     ### Cancel Spot Or Margin Order Example
-    
+
     To cancel a buy limit order:
     - for the BTCUSD market
     - where the `orderId` is `390755251743358977`
@@ -327,7 +334,7 @@ info:
     Set the `BX-SIGNATURE` header to the value resulting from signing the `<COMMAND>`.
 
     Before signing the `<COMMAND>` string remove any spaces and newline characters.
-    
+
     The resulting value is also referred to as the request signature. Each component of the signature is detailed below:
       - `<TIMESTAMP>`: number of milliseconds since EPOCH
       - `<NONCE>`: client side incremented 64-bit unsigned integer
@@ -345,7 +352,7 @@ info:
     ## Send The HTTP Authenticated Request
 
     You can send the HTTP authenticated request as per the example below.
-    
+
     #### Python code reference
 
     ```python
@@ -412,10 +419,10 @@ info:
     ## How To Ensure The Order Of *Create Order* or *Cancel Order* Requests
 
     To ensure the order of the *create order* or *cancel order* requests,
-    you must wait for an acknowledgement response which will contain the `orderId` 
-    generated on the server side. 
+    you must wait for an acknowledgement response which will contain the `orderId`
+    generated on the server side.
     Also remember that the `nonce` parameter, for these two requests, must be a
-    unique increasing integer value. 
+    unique increasing integer value.
 
     For example, let us assume the following:
     * You sent 10 *create order* requests in a row without waiting for an `orderId`
@@ -424,10 +431,10 @@ info:
 
     Because the requests received by the Bullish exchange are processed in parallel
     the following two possible scenarios can happen:
-    * *happy scenario* which has a small chance to occur: all 10 requests are 
-    processed in the exact order sent by the client, no error, all great and you 
+    * *happy scenario* which has a small chance to occur: all 10 requests are
+    processed in the exact order sent by the client, no error, all great and you
     are happy
-    * *unhappy scenario* which has a higher chance to occur: the requests are not 
+    * *unhappy scenario* which has a higher chance to occur: the requests are not
     processed in the exact order sent by you, because the requests might arrive at the
     bullish processing server at different times and thus the validations
     of the `nonce` for each request take place at random times. Because of that all
@@ -441,8 +448,8 @@ info:
     inputs or internal error, you will not know because you did not wait for the
     acknowledgement from the server side for each request you sent.
 
-    If you wait the acknowledgement from the server side you ensure the order of 
-    the requests you sent and you can also verify the status of the order(s) you 
+    If you wait the acknowledgement from the server side you ensure the order of
+    the requests you sent and you can also verify the status of the order(s) you
     created or cancelled.
 
     # Quickly Try The API
@@ -1288,10 +1295,10 @@ paths:
           description: symbol to get
       tags:
         - market-data
-      summary: Get Market Trades
+      summary: Get Latest Market Trades
       description: |
         Get Trades by Market Symbol.
-        - return top 100
+        - return 100 most recent trades
       operationId: market-data-get-trades-by-market-symbol
       responses:
         200:
@@ -1301,7 +1308,7 @@ paths:
               schema:
                 type: array
                 minItems: 0
-                maxItems: 10
+                maxItems: 100
                 items:
                   $ref: '#/components/schemas/ObfuscatedTrade'
         404:
@@ -1344,7 +1351,9 @@ paths:
       tags:
         - market-data
       summary: Get Market Candle
-      description: Get Current OHLCV Candle by Market Symbol
+      description: |
+        Get Current OHLCV Candle by Market Symbol
+        - [supports pagination](#overview--pagination)
       operationId: market-data-current-candle-by-market-symbol
       parameters:
         - in: path
@@ -1722,7 +1731,7 @@ components:
       type: string
       format: string
       example: "03E02367E8C900000500000000000000"
-      description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)     
+      description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
     CreateOrderRequest:
       type: object
       required:
@@ -1777,7 +1786,6 @@ components:
         - quantity
         - baseLoanAmount
         - quoteLoanAmount
-        - dailyInterestRatePercentage
         - baseAccruedInterestAmount
         - quoteAccruedInterestAmount
         - liquidationRisk
@@ -1816,10 +1824,6 @@ components:
             - $ref: '#/components/schemas/MonetaryValue'
         quoteLoanAmount:
           description: quote loan amount, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
-        dailyInterestRatePercentage:
-          description: daily interest rate percentage, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/MonetaryValue'
         baseAccruedInterestAmount:
@@ -1937,7 +1941,7 @@ components:
             - $ref: '#/components/schemas/OrderStatusAsString'
           example: 'OPEN'
         statusReason:
-          description: status reason, describes why the order is in a specific state 
+          description: status reason, describes why the order is in a specific state
           type: string
           example: "User cancelled"
         statusReasonCode:
