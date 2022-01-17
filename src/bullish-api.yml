@@ -23,13 +23,6 @@ info:
     - enforces a blanket rate limit across all requests
     - base URL is `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
 
-    # Code Examples
-    Find further code examples at - https://github.com/bullish-exchange
-
-    # API Change Log
-    - 31-12-2021 - add pagination support to `GET /markets/{symbol}/candle`
-    - 31-12-2021 - removed `dailyInterestRatePercentage` from `GET /positions`
-
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -86,7 +79,7 @@ info:
 
     # Rate Limits
 
-    Each API key has a rate limit of 400 requests per 10 seconds (approximately 40 requests per second).
+    Each API key has a rate limit of 500 requests per 10 seconds (approximately 40 requests per second).
 
     # Price And Quantity Precision
 
@@ -117,6 +110,7 @@ info:
     7. [Construct The BX-SIGNATURE Header](#overview--construct-the-bx-signature-header)
     8. [Send The HTTP Authenticated Request](#overview--send-the-HTTP-authenticated-request)
     9. [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests)
+    10. [Read your orders](#overview--read-your-orders)
 
     ## Generate An API Key
 
@@ -157,6 +151,8 @@ info:
 
     ## Generate A JWT Token
 
+    See [generate a JWT token](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt.py) for a sample
+    Python script.
     To generate/get a JWT token you will need to perform the following request:
 
     ### POST /trading-api/v1/users/login
@@ -193,64 +189,6 @@ info:
     }
     ```
 
-    #### Python code reference
-
-    ```python
-    # requires dependency libeospy=2.1.0
-
-    import json, requests, base64
-    import requests
-    import os
-    from datetime import datetime, timezone
-    from eospy.cleos import EOSKey
-    from hashlib import sha256
-
-    # you get the metadata value when you generate an API key
-    metadata = "eyJwdWJsaWNLZXkiOiJQVUJfUjFfNTN1cWlwR1c1V3Q3b25xV2oxUE40QWZEeXUyUWR6OWlxS202UXRIZ3FwM1d5YWFqZlgiLCJhY2NvdW50SWQiOjIyMjAwMDAwMDAwMDA2MywiY3JlZGVudGlhbElkIjoiMTc1In0="
-    metadatab64decode = base64.b64decode(metadata)
-
-    # get the accountId
-    accountId = json.loads(metadatab64decode)['accountId']
-
-    # make it about 5 mins in the future
-    timestamp = int(datetime.now(timezone.utc).timestamp())
-    expirationTime = str(timestamp + 300)
-
-    # prepare login payload
-    loginPayload = {
-        "accountId": accountId,
-        "nonce": timestamp,
-        "expirationTime": expirationTime,
-        "biometricsUsed": False,
-        "sessionKey": None,
-    }
-
-    # prepare the signing key
-    privateKey = "PVT_R1_iXseCjTB4vsai5mrdP4NRJSe2K8ahjqDjLEeFdj7vy7Y5i7Vo"
-    eoskey = EOSKey(privateKey)
-
-    # get the signed the login payload
-    digest = sha256((json.dumps(loginPayload, separators=(',', ':'))).encode("utf-8").rstrip()).hexdigest()
-    signature = eoskey.sign(digest)
-
-    # final preparation steps for login request
-    publicKey = "PUB_R1_6cwgY7xNZsa3jFoJYvPeBMC9D8n1kcgJWz5w1GkRnAUR1caQWh"
-    body = {
-        "publicKey": publicKey,
-        "signature": signature,
-        "loginPayload": loginPayload,
-    }
-
-    defaultHeader = {'Content-type': 'application/json', }
-    hostname = "https://api.exchange.bullish.com"
-    session = requests.Session()
-
-    # perform the login request
-    response = session.post(hostname + '/trading-api/v1/users/login', json=body, verify=True, headers=defaultHeader)
-
-    # print the response which contains the JWT token
-    print(response.text)
-    ```
 
     ## Construct The BX-NONCE Header
 
@@ -309,6 +247,8 @@ info:
 
     ### Cancel Spot Or Margin Order Example
 
+    Special note that the cancel order request does not accept a request body hence COMMAND is not directly used in the request. COMMAND is used to construct the `BX-SIGNATURE`.
+
     To cancel a buy limit order:
     - for the BTCUSD market
     - where the `orderId` is `390755251743358977`
@@ -351,70 +291,9 @@ info:
 
     ## Send The HTTP Authenticated Request
 
-    You can send the HTTP authenticated request as per the example below.
+    See [create an order](https://github.com/bullish-exchange/api-examples/blob/master/create_order.py) for a sample
+    Python script.
 
-    #### Python code reference
-
-    ```python
-    # requires dependency libeospy=2.1.0
-
-    import json
-    import requests
-    from datetime import datetime, timezone
-    from eospy.cleos import EOSKey
-    from hashlib import sha256
-
-    session = requests.Session()
-
-    privateKey = "PVT_R1_UVciHw7dwkoDFFCSjMGn8DndPAPTK86h3orhvDvRtQeseYGY2"
-    hostname = "https://api.exchange.bullish.com"
-
-    # JWT token / Authorizer - see the `Generate a JWT Token` section for example code
-    token = "eyJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJiMXgtYXV0aC1zZXJ2aWNlIiwic3ViIjoiNyIsImV4cCI6MTYzMDU5MzEwOCwiU1RBR0UiOiJBVVRIRU5USUNBVEVEX1dJVEhfQkxPQ0tDSEFJTiJ9.EReoMNL7a0FPW5DS0MFqJdU6GbzmJtKXzvSQyGe-4X90FJsuV66ffqm_PtrYaiZt_KQZ9CP1w35X0NeAjaXrHQ"
-    authorizer = "D2040000000000002A00000000000000"
-
-    # generate next valid nonce
-    response = session.get(hostname + "/trading-api/v1/nonce")
-    responseJSON = json.loads(response.text)
-    nonce = responseJSON['lowerBound']
-    nextNonce = str(nonce + 1)
-
-    timestamp = str(int(datetime.now(timezone.utc).timestamp() * 1000))
-
-    # create order
-    body = {
-        "timestamp": timestamp,
-        "nonce": nextNonce,
-        "authorizer": authorizer,
-        "command": {
-            "commandType": "V1CreateOrder",
-            "handle": "1608642455000001",
-            "symbol": "BTCUSD",
-            "type": "LMT",
-            "side": "BUY",
-            "price": "55071.5000",
-            "stopPrice": None,
-            "quantity": "1.87000000",
-            "timeInForce": "GTC",
-            "allowMargin": False
-        }
-    }
-
-    payload = (json.dumps(body, separators=(',', ':'))).encode("utf-8")
-    digest = sha256(payload.rstrip()).hexdigest()
-    eoskey = EOSKey(privateKey)
-    signature = eoskey.sign(digest)
-
-    headers = {'Content-type': 'application/json',
-               'Authorization': 'Bearer ' + token,
-               'BX-SIGNATURE': signature,
-               'BX-TIMESTAMP': timestamp,
-               'BX-NONCE': nextNonce}
-
-    response = session.post(hostname + "/trading-api/v1/orders", json=body, headers=headers)
-    responseJSON = json.loads(response.text)
-    print(responseJSON)
-    ```
 
     ## How To Ensure The Order Of *Create Order* or *Cancel Order* Requests
 
@@ -451,6 +330,14 @@ info:
     If you wait the acknowledgement from the server side you ensure the order of
     the requests you sent and you can also verify the status of the order(s) you
     created or cancelled.
+
+
+    ## Read Your Orders
+
+    You can read all your orders from the [Get Orders](#get-/orders) endpoint which supports filtering and pagination.
+    See [read orders](https://github.com/bullish-exchange/api-examples/blob/master/read_order.py) for a sample Python script.
+
+
 
     # Quickly Try The API
 
@@ -1295,10 +1182,10 @@ paths:
           description: symbol to get
       tags:
         - market-data
-      summary: Get Latest Market Trades
+      summary: Get Market Trades
       description: |
         Get Trades by Market Symbol.
-        - return 100 most recent trades
+        - return top 100
       operationId: market-data-get-trades-by-market-symbol
       responses:
         200:
@@ -1308,7 +1195,7 @@ paths:
               schema:
                 type: array
                 minItems: 0
-                maxItems: 100
+                maxItems: 10
                 items:
                   $ref: '#/components/schemas/ObfuscatedTrade'
         404:
@@ -1351,9 +1238,7 @@ paths:
       tags:
         - market-data
       summary: Get Market Candle
-      description: |
-        Get Current OHLCV Candle by Market Symbol
-        - [supports pagination](#overview--pagination)
+      description: Get Current OHLCV Candle by Market Symbol
       operationId: market-data-current-candle-by-market-symbol
       parameters:
         - in: path
@@ -1786,6 +1671,7 @@ components:
         - quantity
         - baseLoanAmount
         - quoteLoanAmount
+        - dailyInterestRatePercentage
         - baseAccruedInterestAmount
         - quoteAccruedInterestAmount
         - liquidationRisk
@@ -1824,6 +1710,10 @@ components:
             - $ref: '#/components/schemas/MonetaryValue'
         quoteLoanAmount:
           description: quote loan amount, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/MonetaryValue'
+        dailyInterestRatePercentage:
+          description: daily interest rate percentage, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/MonetaryValue'
         baseAccruedInterestAmount:
@@ -2472,7 +2362,7 @@ components:
       enum:
         - OPEN
         - CLOSED
-        - CANCELED
+        - CANCELLED
         - REJECTED
     LiquidationRisk:
       type: string
