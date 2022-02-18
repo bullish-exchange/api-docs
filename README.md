@@ -9,6 +9,6 @@ The online documentation is available at - [Bullish API](https://api.exchange.bu
 To serve the offline documentation you could use python:
 
 ```python
-python3 -m http.server --directory src
+python3 -m http.server --directory src/trading-api
 # navigate to http://0.0.0.0:8000/ in your browser
 ```

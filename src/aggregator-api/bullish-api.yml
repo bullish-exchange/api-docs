@@ -1,0 +1,231 @@
+openapi: 3.0.0
+servers:
+  - url: https://api.exchange.bullish.com/aggregator-api/v1
+    description: PRODUCTION
+  - url: https://api.bugbounty.bullish.com/aggregator-api/v1
+    description: SECURITY SANDBOX
+  - url: https://api.simnext.bullish.com/aggregator-api/v1
+    description: API SANDBOX
+info:
+  description: |
+    # Overview
+
+    Welcome to the _Bullish Aggregator API_ documentation!
+
+    This documentation provides resource descriptions and endpoints usage instructions for the API.
+
+    The API:
+    - follows [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) conventions
+    - endpoints are non-authenticated, they provide access to public data e.g. [Get Tickers](#get-/tickers) endpoint
+    - base URL is `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
+
+  version: 1.0.0
+  title: Bullish Agregator API
+
+tags:
+  - name: tickers
+    x-displayName: Ticker Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Ticker"/>
+  - name: orderbook
+    x-displayName: OrderBook Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/OrderBook"/>
+  - name: trades
+    x-displayName: Trade Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Trade"/>
+paths:
+  /orderbook/{symbolV2}:
+    get:
+      tags:
+        - orderbook
+      summary: Get orderbook
+      description: Get orderbook of depth 100 by symbolV2
+      operationId: getOrderBook
+      parameters:
+        - name: symbolV2
+          in: path
+          required: true
+          schema:
+            type: string
+          example: BTC-USD
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderBook'
+              examples:
+                orderBookBySymbolV2:
+                  value:
+                    timestamp: "1645002272035"
+                    bids:
+                      - - "11491.5000"
+                        - "0.09222078"
+                    asks:
+                      - - "11514.6000"
+                        - "0.04731108"
+        "400":
+          description: Bad Request
+  /tickers:
+    get:
+      tags:
+        - tickers
+      summary: Get tickers
+      description: Get tickers with 24-hour rolling statistics
+      operationId: getTickers
+      parameters: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/Ticker'
+              examples:
+                tickers:
+                  value:
+                    BTC-USD:
+                      marketId: "10000"
+                      baseSymbol: "BTC"
+                      quoteSymbol: "USD"
+                      last: "11514.1859"
+                      bestAsk: "11514.6000"
+                      bestBid: "11491.5000"
+                      baseVolume: "0.00000000"
+                      quoteVolume: "0.0000"
+                      percentageChange: "0.00"
+                      high: "11514.1859"
+                      low: "11514.1859"
+                      spotTradingEnabled: true
+                      marginTradingEnabled: true
+                      marketEnabled: true
+  /trades/{symbolV2}:
+    get:
+      tags:
+        - trades
+      summary: Get last 100 trades
+      description: Get last 100 trades by symbolV2
+      operationId: getTrades
+      parameters:
+        - name: symbolV2
+          in: path
+          required: true
+          schema:
+            type: string
+          example: BTC-USD
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trade'
+              examples:
+                tradesBySymbolV2:
+                  value:
+                    - tradeId: "4"
+                      price: "11514.1859"
+                      quantity: "1.00000000"
+                      side: "BUY"
+                      createdAtTimestamp: "1645002272042"
+                      createdAtDatetime: "2022-02-16T09:04:32.042Z"
+        "400":
+          description: Bad Request
+components:
+  schemas:
+    OrderBook:
+      required:
+        - asks
+        - bids
+        - timestamp
+      type: object
+      properties:
+        timestamp:
+          type: string
+        bids:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+        asks:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+    Ticker:
+      required:
+        - baseSymbol
+        - baseVolume
+        - bestAsk
+        - bestBid
+        - high
+        - last
+        - low
+        - marginTradingEnabled
+        - marketEnabled
+        - marketId
+        - percentageChange
+        - quoteSymbol
+        - quoteVolume
+        - spotTradingEnabled
+      type: object
+      properties:
+        marketId:
+          type: string
+        baseSymbol:
+          type: string
+        quoteSymbol:
+          type: string
+        last:
+          type: string
+        bestAsk:
+          type: string
+        bestBid:
+          type: string
+        baseVolume:
+          type: string
+        quoteVolume:
+          type: string
+        percentageChange:
+          type: string
+        high:
+          type: string
+        low:
+          type: string
+        spotTradingEnabled:
+          type: boolean
+        marginTradingEnabled:
+          type: boolean
+        marketEnabled:
+          type: boolean
+    Trade:
+      required:
+        - createdAtDatetime
+        - createdAtTimestamp
+        - price
+        - quantity
+        - side
+        - tradeId
+      type: object
+      properties:
+        tradeId:
+          type: string
+        price:
+          type: string
+        quantity:
+          type: string
+        side:
+          type: string
+        createdAtTimestamp:
+          type: string
+        createdAtDatetime:
+          type: string
