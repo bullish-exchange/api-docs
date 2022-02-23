@@ -20,7 +20,7 @@ info:
     - base URL is `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
 
   version: 1.0.0
-  title: Bullish Agregator API
+  title: Bullish Aggregator API
 
 tags:
   - name: tickers

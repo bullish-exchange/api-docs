@@ -9,6 +9,13 @@ The online documentation is available at - [Bullish API](https://api.exchange.bu
 To serve the offline documentation you could use python:
 
 ```python
-python3 -m http.server --directory src/trading-api
+python3 -m http.server
 # navigate to http://0.0.0.0:8000/ in your browser
+# navigate to desired API documentation through web file browser
 ```
+
+## Versions
+
+There are two versions of API documentation maintained:
+- current - API documentation as served at - [Bullish API](https://api.exchange.bullish.com/docs/api/rest)
+- next - Future API documentation. This allows features and enhancements to be viewed ahead of scheduled releases.
