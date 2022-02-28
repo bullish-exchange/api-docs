@@ -1153,6 +1153,15 @@ paths:
             $ref: '#/components/schemas/MarketSymbol'
           required: true
           description: symbol to get
+        - name: depth
+          in: query
+          description: depth controls the number of bids/asks returned from the mid price
+          required: false
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: "5"
       tags:
         - market-data
       summary: Get Market Order Book
