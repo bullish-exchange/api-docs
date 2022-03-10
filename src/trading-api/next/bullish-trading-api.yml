@@ -30,9 +30,10 @@ info:
     - January - add pagination support to `GET /markets/{symbol}/candle`
     - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
     - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
-    - March - add order `statusCode` map to API documentation
+    - March - add order `statusReasonCode` map to API documentation
     - March - add FOK time-in-force order type
     - March - add IOC time-in-force order type
+    - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
 
     # Exchange Time
 
@@ -90,7 +91,7 @@ info:
 
     # Rate Limits
 
-    Each API key has a rate limit of 500 requests per 10 seconds (approximately 50 requests per second).
+    There is a blanket rate limit across all requests for an account of 500 requests per 10 seconds (approximately 50 requests per second).
 
     # Price And Quantity Precision
 
@@ -102,8 +103,8 @@ info:
     - The [Get Market By Symbol](#get-/markets/-symbol-) API endpoint for a specific symbol
 
     Consult the responses of these above two API endpoints:
-    - the precision for quantity is defined by the `basePrecision`
-    - the precision for price is defined by `quotePrecision`
+    - The precision for quantity is defined by the `basePrecision`
+    - The precision for price is defined by `quotePrecision`
 
     # Order timeInForce
 
@@ -1292,7 +1293,7 @@ paths:
                 minItems: 0
                 maxItems: 25
                 items:
-                  $ref: '#/components/schemas/ObfuscatedTrade'
+                  $ref: '#/components/schemas/ObfuscatedTradeWithId'
         404:
           description: Resource Not Found
         429:
@@ -1452,7 +1453,7 @@ components:
       example: "297735387747975680"
     RequestID:
       type: string
-      example: 197735387747975680
+      example: "197735387747975680"
     OrderHandle:
       description: Unique numeric identifier generated on the client side expressed as a string value
       type: string
@@ -1462,7 +1463,7 @@ components:
       example: BTCUSD
     TradeID:
       type: string
-      example: 8
+      example: "100020000000000060"
     PositionID:
       type: string
       example: BTCUSD
@@ -1938,6 +1939,41 @@ components:
           description: denotes the time the order was ACK'd by the exchange
           allOf:
             - $ref: '#/components/schemas/TimeStampAsString'
+    ObfuscatedTradeWithId:
+      type: object
+      required:
+        - tradeId
+        - symbol
+        - price
+        - quantity
+        - side
+        - createdAtTimestamp
+        - createdAtDatetime
+      properties:
+        tradeId:
+          description: unique trade ID
+          allOf:
+            - $ref: '#/components/schemas/TradeID'
+        symbol:
+          description: market symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        price:
+          description: price
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quantity:
+          description: quantity
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        createdAtDatetime:
+          description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: denotes the time the trade was executed by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
     ObfuscatedTrade:
       type: object
       required:
@@ -1945,8 +1981,6 @@ components:
         - price
         - quantity
         - side
-        - status
-        - type
         - createdAtTimestamp
         - createdAtDatetime
       properties:
@@ -1962,16 +1996,6 @@ components:
           description: quantity
           allOf:
             - $ref: '#/components/schemas/AssetValue'
-        side:
-          description: order side
-          allOf:
-            - $ref: '#/components/schemas/OrderSideAsString'
-          example: 'BUY'
-        type:
-          description: order type
-          allOf:
-            - $ref: '#/components/schemas/OrderTypeAsString'
-          example: 'LMT'
         createdAtDatetime:
           description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
           allOf:
