@@ -34,6 +34,8 @@ info:
     - March - add FOK time-in-force order type
     - March - add IOC time-in-force order type
     - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
+    - April - add private data WebSocket API
+    - April - add market data WebSocket API
 
     # Exchange Time
 
@@ -391,6 +393,372 @@ info:
     the requests you sent and you can also verify the status of the order(s) you
     created or cancelled.
 
+    # WebSockets
+
+    Connection request to the web-socket uses bearer based authentication similar to our HTTP authenticated requests.
+    To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token). Each web-socket exposes a set of
+    topics that can be subscribed to.
+
+    ## Send A Message Over The Web Socket
+
+    Messages sent by the client to the server over a web-socket follows the
+    [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification).
+
+    Find below the message types accepted by the web-socket:
+      1. [Subscription Message](#overview-subscribe-to-a-topic)
+      2. [Keepalive Ping Message](#overview-keep-web-socket-open)
+
+    ### Subscribe To A Topic
+
+    Subscribe to receive a snapshot of your existing data and subsequently receive updates.
+
+    Two types of subscription:
+      1. Subscribe by `<TOPIC>`
+      2. Subscribe by `<TOPIC>` and `<SYMBOL>`
+
+
+    The subscription message would be constructed like below:
+
+    Subscribe by `<TOPIC>`
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "<TOPIC>",
+      },
+      "id": "<TIMESTAMP>"
+    }
+    ```
+
+    Subscribe by `<TOPIC>` and `<SYMBOL>`
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "<TOPIC>",
+          "symbol": "<SYMBOL>",
+      },
+      "id": "<TIMESTAMP>"
+    }
+    ```
+
+    Find below the available `<TOPIC>`:
+      1. [Market Data Web Socket](#overview--market-data-websocket)
+      2. [Private Data Web Socket](#overview--private-data-websocket)
+
+
+    ### Keep Web Socket Open
+
+    Keep the web-socket connection open by sending keepalive ping messages periodically.
+    The web-socket closes automatically after 5 minutes.
+
+
+    The keepalive ping message would be constructed like below:
+
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "keepalivePing",
+      "params": {},
+      "id": "<TIMESTAMP>"
+    }
+    ```
+
+
+    ## Receive A Message From The Web Socket
+
+    Snapshot responses are of the following format:
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "<DATA_TYPE>",
+      "data": [ { <TOPIC_RESPONSE> } ]
+    }
+    ```
+
+    Update responses are of the following format:
+    ```json
+    {
+      "type": "update",
+      "dataType": "<DATA_TYPE>",
+      "data": { <TOPIC_RESPONSE> }
+    }
+    ```
+
+    Error responses are of the following format:
+    ```json
+    {
+      "type": "error",
+      "dataType": "V1TAErrorResponse",
+      "data": {
+        "errorCode": <ERROR_CODE>,
+        "errorCodeName": "<ERROR_CODE_NAME>",
+      }
+    }
+    ```
+
+    ### Market Data WebSocket
+
+    | Topic         |  Description  | Data Type | Subscription Type |
+    | :--           | :--           | :--           | :--               |
+    | l1Orderbook   | Provides updates for Level 1 market data  | `V1TABookLevel1` | By `<TOPIC>` and `<SYMBOL>` |
+
+    #### l1-orderbook response
+
+    If the `sequenceNumber` of an incoming update is smaller than that of a previously received update, then the
+    `sequenceNumber` is out of order. Terminate the web-socket connection and reconnect.
+
+    | Name           | Type   | Description                                                       |
+    |:---------------|:-------|:----------------------------------------------------------------- |
+    | sequenceNumber | String | incrementing, unique, unsigned integer that identifies a state of the L1-orderbook |
+    | symbol         | String | market symbol                                                     |
+    | timestamp      | String | denotes the time the update was created                           |
+    | bid            | Array  | nested array containing price and quantity of highest bid         |
+    | ask            | Array  | nested array containing price and quantity of lowest ask          |
+
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TABookLevel1",
+      "data": {
+        "sequenceNumber": "1",
+        "symbol": "BTCUSD",
+        "timestamp": "1466812800000",
+        "bid": [ [ "35.0000", "2.00000000" ] ],
+        "ask": [ [ "35.5000", "1.00000000" ] ]
+      }
+    }
+    ```
+
+    See [connect to market data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/market_data_web_socket.py) for a sample Python script.
+
+    ### Private Data WebSocket
+
+
+    | Topic             | Description | Data Type | Subscription Type |
+    | :--               | :-- | :--           | :--               |
+    | orders            | Provides snapshot and updates on your orders. | `V1TAOrder` |  By `<TOPIC>` |
+    | trades            | Provides snapshot and updates on your trades.  | `V1TATrade` | By `<TOPIC>` |
+    | positions         | Provides snapshot and updates on your positions. There are routine updates for positions.  | `V1TAPosition` | By `<TOPIC>` |
+    | spotAccounts      | Provides snapshot and updates on assets in your spot account. | `V1TASpotAccount` | By `<TOPIC>` |
+    | marginAccounts    | Provides snapshot and updates on assets in your margin account. | `V1TAMarginAccount` | By `<TOPIC>` |
+
+    #### orders response
+
+    | Name               | Type      | Description                                                                               |
+    |:-------------------|:----------|:------------------------------------------------------------------------------------------|
+    | handle             | String    | Unique numeric identifier generated on the client side expressed as a string value        |
+    | orderId            | String    | unique order ID                                                                           |
+    | symbol             | String    | market symbol                                                                             |
+    | price              | Array     | price, see [asset value](#overview--price-and-quantity-precision) format                  |
+    | averageFillPrice   | Array     | average fill price, see [asset value](#overview--price-and-quantity-precision) format     |
+    | stopPrice          | String    | stop price, see [asset value](#overview--price-and-quantity-precision) format             |
+    | margin             | Boolean   | is margin order                                                                           |
+    | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format               |
+    | quantityFilled     | String    | quantity filled, see [asset value](#overview--price-and-quantity-precision) format        |
+    | baseFee            | String    | base fee, see [asset value](#overview--price-and-quantity-precision) format               |
+    | quoteFee           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format              |
+    | side               | String    | order side                                                                                |
+    | type               | String    | order type                                                                                |
+    | timeInForce        | String    | time in force                                                                             |
+    | status             | String    | order status                                                                              |
+    | statusReason       | String    | status reason, describes why the order is in a specific state                             |
+    | statusReasonCode   | Integer   | status reason code, see [details](#overview--order-statusreasoncode-map)                  |
+    | createdAtDatetime  | date-time | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string |
+    | createdAtTimestamp | String    | denotes the time the order was ACK'd by the exchange                                      |
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TAOrder",
+      "data": [
+        {
+          "handle": null,
+          "orderId": "392883006043848705",
+          "symbol": "BTCUSD",
+          "price": "66858.2000",
+          "averageFillPrice": "66858.2000",
+          "stopPrice": null,
+          "margin": false,
+          "quantity": "2.00000000",
+          "quantityFilled": "2.00000000",
+          "baseFee": "0.00000000",
+          "quoteFee": "0.0005",
+          "side": "BUY",
+          "type": "LMT",
+          "timeInForce": "GTC",
+          "status": "CLOSED",
+          "statusReason": "Executed",
+          "statusReasonCode": 6002,
+          "createdAtDatetime": "2021-12-30T07:36:35.918Z",
+          "createdAtTimestamp": "1640849795918"
+        }
+      ]
+    }
+    ```
+
+    #### trades response
+
+    | Name               | Type      | Description                                                                                  |
+    |:-------------------|:----------|:---------------------------------------------------------------------------------------------|
+    | tradeId            | String    | unique trade ID                                                                              |
+    | orderId            | String    | unique order ID                                                                              |
+    | symbol             | String    | market symbol                                                                                |
+    | price              | String    | price, see [asset value](#overview--price-and-quantity-precision) format                     |
+    | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format                  |
+    | baseFee            | String    | base fee, see [asset value](#overview--price-and-quantity-precision) format                  |
+    | quoteFee           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                 |
+    | side               | String    | order side                                                                                   |
+    | createdAtDatetime  | date-time | denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string |
+    | createdAtTimestamp | String    | denotes the time the trade was executed by the exchange                                      |
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TATrade",
+      "data": [
+        {
+          "tradeId": "100014000000000118",
+          "orderId": "392883006043848705",
+          "symbol": "BTCUSD",
+          "price": "66858.2000",
+          "quantity": "2.00000000",
+          "baseFee": "0.00000000",
+          "quoteFee": "66.8582",
+          "side": "BUY",
+          "createdAtDatetime": "2022-01-10T20:03:43.224Z",
+          "createdAtTimestamp": "1641845023224"
+        }
+      ]
+    }
+    ```
+
+
+    #### positions response
+
+    | Name                       | Type      | Description                                                                                      |
+    |:---------------------------|:----------|:-------------------------------------------------------------------------------------------------|
+    | positionId                 | String    | unique position ID                                                                               |
+    | symbol                     | String    | market symbol                                                                                    |
+    | leverage                   | String    | leverage                                                                                         |
+    | maxLeverage                | String    | max leverage                                                                                     |
+    | utilisation                | String    | utilisation                                                                                      |
+    | quantity                   | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format                      |
+    | baseLoanAmount             | String    | base loan amount, see [asset value](#overview--price-and-quantity-precision) format              |
+    | quoteLoanAmount            | String    | quote loan amount, see [asset value](#overview--price-and-quantity-precision) format             |
+    | baseAccruedInterestAmount  | String    | base accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format  |
+    | quoteAccruedInterestAmount | String    | quote accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format |
+    | liquidationRisk            | Enum      | Allowed: LOW┃MEDIUM┃HIGH                                                                          |
+    | liquidationPrice           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                     |
+    | positionType               | Enum      | Allowed: LONG┃SHORT                                                                               |
+    | updatedAtDatetime          | date-time | the time the position was retrieved, ISO 8601 with millisecond as string                         |
+    | updatedAtTimestamp         | String    | The time the position was retrieved                                                              |
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TAPosition",
+      "data": [
+        {
+          "positionId": "10000",
+          "symbol": "BTCUSD",
+          "leverage": "-0.00",
+          "maxLeverage": "3.00",
+          "utilisation": "-0.50",
+          "quantity": "-33.33333333",
+          "baseLoanAmount": "56.55555555",
+          "quoteLoanAmount": "34.3300",
+          "baseAccruedInterestAmount": "-54.55554445",
+          "quoteAccruedInterestAmount": "-854.5500",
+          "liquidationRisk": "LOW",
+          "liquidationPrice": null,
+          "positionType": "SHORT",
+          "updatedAtDatetime": "2019-01-01T01:01:01.000Z",
+          "updatedAtTimestamp": "1546304461000"
+        }
+      ]
+    }
+    ```
+
+    #### spotAccounts response
+
+    | Name      | Type   | Description                                                                                                  |
+    |:----------|:-------|:-------------------------------------------------------------------------------------------------------------|
+    | accountId | String | unique spot account ID                                                                                       |
+    | symbol    | String | asset symbol                                                                                                 |
+    | total     | String | total, `free + used`, see [asset value](#overview--price-and-quantity-precision) format                      |
+    | free      | String | money available for trading, see [asset value](#overview--price-and-quantity-precision) format               |
+    | used      | String | money on hold, locked, frozen, or pending, see [asset value](#overview--price-and-quantity-precision) format |
+
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TASpotAccount",
+      "data": [
+        {
+          "accountId": "1",
+          "symbol": "BTC",
+          "total": "4.00000000",
+          "free": "4.00000000",
+          "used": "0.00000000",
+        }
+      ]
+    }
+    ```
+
+    #### marginAccounts response
+
+    | Name           | Type   | Description                                                                         |
+    |:---------------|:-------|:------------------------------------------------------------------------------------|
+    | accountId      | String | unique spot account ID                                                              |
+    | symbol         | String | asset symbol                                                                        |
+    | baseFree       | String | base free, see [asset value](#overview--price-and-quantity-precision) format        |
+    | quoteFree      | String | quote free, see [asset value](#overview--price-and-quantity-precision) format       |
+    | baseUsed       | String | base used, see [asset value](#overview--price-and-quantity-precision) format        |
+    | quoteUsed      | String | quote used, see [asset value](#overview--price-and-quantity-precision) format       |
+    | baseTotal      | String | base total, see [asset value](#overview--price-and-quantity-precision) format       |
+    | quoteTotal     | String | quote total, see [asset value](#overview--price-and-quantity-precision) format      |
+    | baseDebt       | String | base debt, see [asset value](#overview--price-and-quantity-precision) format        |
+    | quoteDebt      | String | quote debt, see [asset value](#overview--price-and-quantity-precision) format       |
+    | baseCallPrice  | String | base call price, see [asset value](#overview--price-and-quantity-precision) format  |
+    | quoteCallPrice | String | quote call price, see [asset value](#overview--price-and-quantity-precision) format |
+    | basePrincipal  | String | base principal, see [asset value](#overview--price-and-quantity-precision) format   |
+    | quotePrincipal | String | quote principal, see [asset value](#overview--price-and-quantity-precision) format  |
+
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TAMarginAccount",
+      "data": [
+        {
+          "accountId": "10000",
+          "symbol": "BTCUSD",
+          "baseFree": "2.66530069",
+          "quoteFree": "110483.3983",
+          "baseUsed": "0.00000000",
+          "quoteUsed": "0.0000",
+          "baseTotal": "2.66530069",
+          "quoteTotal": "110483.3983",
+          "baseDebt": "0.00000000",
+          "quoteDebt": "0.0000",
+          "baseCallPrice": "0.00000000",
+          "quoteCallPrice": "0.0000",
+          "quotePrincipal": "0.0000",
+          "basePrincipal": "0.00000000",
+        }
+      ]
+    }
+    ```
+
+    See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/private_data_web_socket.py) for a sample Python script.
+
     # Quickly Try The API
 
     To quickly try the API you can use the `TRY` green button which you can find on the bottom right side of each endpoint documentation section, next to `FILL EXAMPLE` and `CLEAR` buttons.
@@ -659,7 +1027,7 @@ paths:
         500:
           description: Internal Server Error
       security:
-        - jwtTokenAuth: []
+        - jwtTokenAuth: [ ]
   /accounts/margin:
     get:
       tags:
