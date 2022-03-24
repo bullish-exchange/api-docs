@@ -503,6 +503,8 @@ info:
     ```
 
     ### Market Data WebSocket
+    Servers
+    - wss://api.simnext.bullish.com/v1/market-data - API SANDBOX
 
     | Topic         |  Description  | Data Type | Subscription Type |
     | :--           | :--           | :--           | :--               |
@@ -538,7 +540,8 @@ info:
     See [connect to market data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/market_data_web_socket.py) for a sample Python script.
 
     ### Private Data WebSocket
-
+    Servers
+    - wss://api.simnext.bullish.com/v1/private - API SANDBOX
 
     | Topic             | Description | Data Type | Subscription Type |
     | :--               | :-- | :--           | :--               |
