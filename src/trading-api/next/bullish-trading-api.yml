@@ -510,9 +510,10 @@ info:
     | :--           | :--           | :--           | :--               |
     | l1Orderbook   | Provides updates for Level 1 market data  | `V1TABookLevel1` | By `<TOPIC>` and `<SYMBOL>` |
 
-    #### l1-orderbook response
+    #### l1Orderbook response
 
-    If the `sequenceNumber` of an incoming update is smaller than that of a previously received update, then the
+    - Level 1 market data updates are realtime.
+    - If the `sequenceNumber` of an incoming update is smaller than that of a previously received update, then the
     `sequenceNumber` is out of order. Terminate the web-socket connection and reconnect.
 
     | Name           | Type   | Description                                                       |
@@ -540,8 +541,11 @@ info:
     See [connect to market data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/market_data_web_socket.py) for a sample Python script.
 
     ### Private Data WebSocket
+    - All private data updates are realtime.
+    
     Servers
     - wss://api.simnext.bullish.com/v1/private - API SANDBOX
+   
 
     | Topic             | Description | Data Type | Subscription Type |
     | :--               | :-- | :--           | :--               |
