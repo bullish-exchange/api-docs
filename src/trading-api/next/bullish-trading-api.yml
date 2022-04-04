@@ -399,6 +399,10 @@ info:
     To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token). Each web-socket exposes a set of
     topics that can be subscribed to.
 
+    ## Servers
+      - `wss://api.exchange.bullish.com` - PRODUCTION
+      - `wss://api.simnext.bullish.com` - SANDBOX
+
     ## Send A Message Over The Web Socket
 
     Messages sent by the client to the server over a web-socket follows the
@@ -503,8 +507,9 @@ info:
     ```
 
     ### Market Data WebSocket
-    Servers
-    - wss://api.simnext.bullish.com/v1/market-data - API SANDBOX
+    Route
+    - `/trading-api/v1/market-data`
+    - `/v1/market-data` (to be deprecated in July)
 
     | Topic         |  Description  | Data Type | Subscription Type |
     | :--           | :--           | :--           | :--               |
@@ -542,10 +547,11 @@ info:
 
     ### Private Data WebSocket
     - All private data updates are realtime.
-    
-    Servers
-    - wss://api.simnext.bullish.com/v1/private - API SANDBOX
-   
+
+    Route
+    - `/trading-api/v1/private-data`
+    - `/v1/private` (to be deprecated in July)
+
 
     | Topic             | Description | Data Type | Subscription Type |
     | :--               | :-- | :--           | :--               |
@@ -621,6 +627,7 @@ info:
     | baseFee            | String    | base fee, see [asset value](#overview--price-and-quantity-precision) format                  |
     | quoteFee           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                 |
     | side               | String    | order side                                                                                   |
+    | isTaker            | Boolean   | denotes whether this is a taker's trade                                                      |
     | createdAtDatetime  | date-time | denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string |
     | createdAtTimestamp | String    | denotes the time the trade was executed by the exchange                                      |
 
@@ -638,6 +645,7 @@ info:
           "baseFee": "0.00000000",
           "quoteFee": "66.8582",
           "side": "BUY",
+          "isTaker": false,
           "createdAtDatetime": "2022-01-10T20:03:43.224Z",
           "createdAtTimestamp": "1641845023224"
         }
@@ -1232,7 +1240,7 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateOrderRequest'
       security:
-        - jwtTokenAuth: []
+        - jwtTokenAuth: [ ]
     delete:
       tags:
         - orders
@@ -1585,7 +1593,7 @@ paths:
           description: depth controls the number of bids/asks returned from the mid price
           required: false
           schema:
-            enum: [200, 100, 50, 10]
+            enum: [ 200, 100, 50, 10 ]
             type: integer
             format: int32
             nullable: true
@@ -2322,6 +2330,7 @@ components:
         - price
         - quantity
         - side
+        - isTaker
         - createdAtTimestamp
         - createdAtDatetime
       properties:
@@ -2341,6 +2350,15 @@ components:
           description: quantity
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        side:
+          description: order side
+          allOf:
+            - $ref: '#/components/schemas/OrderSideAsString'
+          example: 'BUY'
+        isTaker:
+          description: denotes whether this is a taker's trade
+          allOf:
+            - $ref: '#/components/schemas/Boolean'
         createdAtDatetime:
           description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
           allOf:
@@ -2352,13 +2370,19 @@ components:
     ObfuscatedTrade:
       type: object
       required:
+        - tradeId
         - symbol
         - price
         - quantity
         - side
+        - isTaker
         - createdAtTimestamp
         - createdAtDatetime
       properties:
+        tradeId:
+          description: unique trade ID
+          allOf:
+            - $ref: '#/components/schemas/TradeID'
         symbol:
           description: market symbol
           allOf:
@@ -2371,6 +2395,15 @@ components:
           description: quantity
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        side:
+          description: order side
+          allOf:
+            - $ref: '#/components/schemas/OrderSideAsString'
+          example: 'BUY'
+        isTaker:
+          description: denotes whether this is a taker's trade
+          allOf:
+            - $ref: '#/components/schemas/Boolean'
         createdAtDatetime:
           description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
           allOf:
@@ -2390,6 +2423,7 @@ components:
         - baseFee
         - quoteFee
         - side
+        - isTaker
         - createdAtTimestamp
         - createdAtDatetime
       properties:
@@ -2426,6 +2460,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/OrderSideAsString'
           example: 'BUY'
+        isTaker:
+          description: denotes whether this is a taker's trade
+          allOf:
+            - $ref: '#/components/schemas/Boolean'
         createdAtDatetime:
           description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
           allOf:
