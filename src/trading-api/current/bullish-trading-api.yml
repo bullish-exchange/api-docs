@@ -23,6 +23,20 @@ info:
     - enforces a blanket rate limit across all requests
     - base URL is `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
 
+    # Code Examples
+    Find further code examples at - https://github.com/bullish-exchange
+
+    # API Change Log
+    - January - add pagination support to `GET /markets/{symbol}/candle`
+    - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
+    - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
+    - March - add order `statusReasonCode` map to API documentation
+    - March - add FOK time-in-force order type
+    - March - add IOC time-in-force order type
+    - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
+    - April - add private data WebSocket API
+    - April - add market data WebSocket API
+
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -79,7 +93,7 @@ info:
 
     # Rate Limits
 
-    Each API key has a rate limit of 500 requests per 10 seconds (approximately 40 requests per second).
+    There is a blanket rate limit across all requests for an account of 500 requests per 10 seconds (approximately 50 requests per second).
 
     # Price And Quantity Precision
 
@@ -91,8 +105,62 @@ info:
     - The [Get Market By Symbol](#get-/markets/-symbol-) API endpoint for a specific symbol
 
     Consult the responses of these above two API endpoints:
-    - the precision for quantity is defined by the `basePrecision`
-    - the precision for price is defined by `quotePrecision`
+    - The precision for quantity is defined by the `basePrecision`
+    - The precision for price is defined by `quotePrecision`
+
+    # Order timeInForce
+
+    The order `timeInForce` can be set to the following values:
+    - `GTC` - good until cancelled - the order is open forever unless fully filled or cancelled
+    - `FOK` - fill or kill - if the order cannot immediately be filled in full it is cancelled
+    - `IOC` - immediate or cancel - the order is immediately filled in full or in part and any remainder is cancelled
+
+    # Order statusReasonCode Map
+
+    - The `statusReasonCode` is a field on an Order which provides details on the reasoning for the current state of the order
+    - A `statusReasonCode` will never change i.e. 2009 will always refer to an invalid market symbol
+    - The `statusReason` is a textual description of the `statusReasonCode` which may be subject to change
+
+    | statusReasonCode | |
+    | ---------- |---------------- |
+    | 1001 | Ok |
+    | 1002 | Unable to place request  |
+    | 2001 | Bad incoming request |
+    | 2002 | Invalid user's client id |
+    | 2003 | Invalid handle |
+    | 2004 | Invalid quantity |
+    | 2005 | Unknown error  |
+    | 2006 | Invalid account type, account must be from spot, margin or mms |
+    | 2007 | Account already exist  |
+    | 2008 | Invalid side, side must me from buy or sell  |
+    | 2009 | Invalid market |
+    | 2010 | Account doesn't exist  |
+    | 2011 | Account types are different  |
+    | 2012 | Invalid price  |
+    | 2013 | Invalid order type, type must be from limit, market, stop-limit  |
+    | 2015 | Exceeded maximum amount of allowed open margin orders  |
+    | 2016 | Unknown request type |
+    | 2017 | Invalid order id |
+    | 2018 | Unknown time in force option |
+    | 2020 | Margin trading is not allowed  |
+    | 2021 | Exceeded maximum amount of allowed open spot orders  |
+    | 2029 | Invalid request id |
+    | 2035 | Invalid nonce  |
+    | 3001 | Account doesn't have sufficient balance  |
+    | 3002 | Order is not found |
+    | 3003 | Borrowing is unavailable |
+    | 3007 | Duplicated order id  |
+    | 3020 | Unsolicited cancel |
+    | 3021 | Forced cancel  |
+    | 3023 | Duplicated order handle  |
+    | 3031 | Price is out of range  |
+    | 3032 | Order is either closed or rejected |
+    | 6001 | Open |
+    | 6002 | Executed |
+    | 6003 | Matured  |
+    | 6004 | Expired  |
+    | 6005 | User cancelled |
+    | 6007 | Self cross prevention  |
 
     # Authentication
 
@@ -110,7 +178,6 @@ info:
     7. [Construct The BX-SIGNATURE Header](#overview--construct-the-bx-signature-header)
     8. [Send The HTTP Authenticated Request](#overview--send-the-HTTP-authenticated-request)
     9. [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests)
-    10. [Read your orders](#overview--read-your-orders)
 
     ## Generate An API Key
 
@@ -151,8 +218,6 @@ info:
 
     ## Generate A JWT Token
 
-    See [generate a JWT token](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt.py) for a sample
-    Python script.
     To generate/get a JWT token you will need to perform the following request:
 
     ### POST /trading-api/v1/users/login
@@ -189,6 +254,7 @@ info:
     }
     ```
 
+    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt.py) for a sample Python script.
 
     ## Construct The BX-NONCE Header
 
@@ -247,8 +313,6 @@ info:
 
     ### Cancel Spot Or Margin Order Example
 
-    Special note that the cancel order request does not accept a request body hence COMMAND is not directly used in the request. COMMAND is used to construct the `BX-SIGNATURE`.
-
     To cancel a buy limit order:
     - for the BTCUSD market
     - where the `orderId` is `390755251743358977`
@@ -291,9 +355,7 @@ info:
 
     ## Send The HTTP Authenticated Request
 
-    See [create an order](https://github.com/bullish-exchange/api-examples/blob/master/create_order.py) for a sample
-    Python script.
-
+    See [create an order](https://github.com/bullish-exchange/api-examples/blob/master/create_order.py) for a sample Python script.
 
     ## How To Ensure The Order Of *Create Order* or *Cancel Order* Requests
 
@@ -331,13 +393,386 @@ info:
     the requests you sent and you can also verify the status of the order(s) you
     created or cancelled.
 
+    # WebSockets
 
-    ## Read Your Orders
+    Connection request to the web-socket uses bearer based authentication similar to our HTTP authenticated requests.
+    To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token). Each web-socket exposes a set of
+    topics that can be subscribed to.
 
-    You can read all your orders from the [Get Orders](#get-/orders) endpoint which supports filtering and pagination.
-    See [read orders](https://github.com/bullish-exchange/api-examples/blob/master/read_order.py) for a sample Python script.
+    ## Servers
+      - `wss://api.exchange.bullish.com` - PRODUCTION
+      - `wss://api.simnext.bullish.com` - SANDBOX
+
+    ## Send A Message Over The Web Socket
+
+    Messages sent by the client to the server over a web-socket follows the
+    [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification).
+
+    Find below the message types accepted by the web-socket:
+      1. [Subscription Message](#overview-subscribe-to-a-topic)
+      2. [Keepalive Ping Message](#overview-keep-web-socket-open)
+
+    ### Subscribe To A Topic
+
+    Subscribe to receive a snapshot of your existing data and subsequently receive updates.
+
+    Two types of subscription:
+      1. Subscribe by `<TOPIC>`
+      2. Subscribe by `<TOPIC>` and `<SYMBOL>`
 
 
+    The subscription message would be constructed like below:
+
+    Subscribe by `<TOPIC>`
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "<TOPIC>",
+      },
+      "id": "<TIMESTAMP>"
+    }
+    ```
+
+    Subscribe by `<TOPIC>` and `<SYMBOL>`
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "<TOPIC>",
+          "symbol": "<SYMBOL>",
+      },
+      "id": "<TIMESTAMP>"
+    }
+    ```
+
+    Find below the available `<TOPIC>`:
+      1. [Market Data Web Socket](#overview--market-data-websocket)
+      2. [Private Data Web Socket](#overview--private-data-websocket)
+
+
+    ### Keep Web Socket Open
+
+    Keep the web-socket connection open by sending keepalive ping messages periodically.
+    The web-socket closes automatically after 5 minutes.
+
+
+    The keepalive ping message would be constructed like below:
+
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "keepalivePing",
+      "params": {},
+      "id": "<TIMESTAMP>"
+    }
+    ```
+
+
+    ## Receive A Message From The Web Socket
+
+    Snapshot responses are of the following format:
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "<DATA_TYPE>",
+      "data": [ { <TOPIC_RESPONSE> } ]
+    }
+    ```
+
+    Update responses are of the following format:
+    ```json
+    {
+      "type": "update",
+      "dataType": "<DATA_TYPE>",
+      "data": { <TOPIC_RESPONSE> }
+    }
+    ```
+
+    Error responses are of the following format:
+    ```json
+    {
+      "type": "error",
+      "dataType": "V1TAErrorResponse",
+      "data": {
+        "errorCode": <ERROR_CODE>,
+        "errorCodeName": "<ERROR_CODE_NAME>",
+      }
+    }
+    ```
+
+    ### Market Data WebSocket
+    Route
+    - `/trading-api/v1/market-data`
+    - `/v1/market-data` (to be deprecated in July)
+
+    | Topic         |  Description  | Data Type | Subscription Type |
+    | :--           | :--           | :--           | :--               |
+    | l1Orderbook   | Provides updates for Level 1 market data  | `V1TABookLevel1` | By `<TOPIC>` and `<SYMBOL>` |
+
+    #### l1Orderbook response
+
+    - Level 1 market data updates are realtime.
+    - If the `sequenceNumber` of an incoming update is smaller than that of a previously received update, then the
+    `sequenceNumber` is out of order. Terminate the web-socket connection and reconnect.
+
+    | Name           | Type   | Description                                                       |
+    |:---------------|:-------|:----------------------------------------------------------------- |
+    | sequenceNumber | String | incrementing, unique, unsigned integer that identifies a state of the L1-orderbook |
+    | symbol         | String | market symbol                                                     |
+    | timestamp      | String | denotes the time the update was created                           |
+    | bid            | Array  | nested array containing price and quantity of highest bid         |
+    | ask            | Array  | nested array containing price and quantity of lowest ask          |
+
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TABookLevel1",
+      "data": {
+        "sequenceNumber": "1",
+        "symbol": "BTCUSD",
+        "timestamp": "1466812800000",
+        "bid": [ [ "35.0000", "2.00000000" ] ],
+        "ask": [ [ "35.5000", "1.00000000" ] ]
+      }
+    }
+    ```
+
+    See [connect to market data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/market_data_web_socket.py) for a sample Python script.
+
+    ### Private Data WebSocket
+    - All private data updates are realtime.
+
+    Route
+    - `/trading-api/v1/private-data`
+    - `/v1/private` (to be deprecated in July)
+
+
+    | Topic             | Description | Data Type | Subscription Type |
+    | :--               | :-- | :--           | :--               |
+    | orders            | Provides snapshot and updates on your orders. | `V1TAOrder` |  By `<TOPIC>` |
+    | trades            | Provides snapshot and updates on your trades.  | `V1TATrade` | By `<TOPIC>` |
+    | positions         | Provides snapshot and updates on your positions. There are routine updates for positions.  | `V1TAPosition` | By `<TOPIC>` |
+    | spotAccounts      | Provides snapshot and updates on assets in your spot account. | `V1TASpotAccount` | By `<TOPIC>` |
+    | marginAccounts    | Provides snapshot and updates on assets in your margin account. | `V1TAMarginAccount` | By `<TOPIC>` |
+
+    #### orders response
+
+    | Name               | Type      | Description                                                                               |
+    |:-------------------|:----------|:------------------------------------------------------------------------------------------|
+    | handle             | String    | Unique numeric identifier generated on the client side expressed as a string value        |
+    | orderId            | String    | unique order ID                                                                           |
+    | symbol             | String    | market symbol                                                                             |
+    | price              | Array     | price, see [asset value](#overview--price-and-quantity-precision) format                  |
+    | averageFillPrice   | Array     | average fill price, see [asset value](#overview--price-and-quantity-precision) format     |
+    | stopPrice          | String    | stop price, see [asset value](#overview--price-and-quantity-precision) format             |
+    | margin             | Boolean   | is margin order                                                                           |
+    | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format               |
+    | quantityFilled     | String    | quantity filled, see [asset value](#overview--price-and-quantity-precision) format        |
+    | baseFee            | String    | base fee, see [asset value](#overview--price-and-quantity-precision) format               |
+    | quoteFee           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format              |
+    | side               | String    | order side                                                                                |
+    | type               | String    | order type                                                                                |
+    | timeInForce        | String    | time in force                                                                             |
+    | status             | String    | order status                                                                              |
+    | statusReason       | String    | status reason, describes why the order is in a specific state                             |
+    | statusReasonCode   | Integer   | status reason code, see [details](#overview--order-statusreasoncode-map)                  |
+    | createdAtDatetime  | date-time | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string |
+    | createdAtTimestamp | String    | denotes the time the order was ACK'd by the exchange                                      |
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TAOrder",
+      "data": [
+        {
+          "handle": null,
+          "orderId": "392883006043848705",
+          "symbol": "BTCUSD",
+          "price": "66858.2000",
+          "averageFillPrice": "66858.2000",
+          "stopPrice": null,
+          "margin": false,
+          "quantity": "2.00000000",
+          "quantityFilled": "2.00000000",
+          "baseFee": "0.00000000",
+          "quoteFee": "0.0005",
+          "side": "BUY",
+          "type": "LMT",
+          "timeInForce": "GTC",
+          "status": "CLOSED",
+          "statusReason": "Executed",
+          "statusReasonCode": 6002,
+          "createdAtDatetime": "2021-12-30T07:36:35.918Z",
+          "createdAtTimestamp": "1640849795918"
+        }
+      ]
+    }
+    ```
+
+    #### trades response
+
+    | Name               | Type      | Description                                                                                  |
+    |:-------------------|:----------|:---------------------------------------------------------------------------------------------|
+    | tradeId            | String    | unique trade ID                                                                              |
+    | orderId            | String    | unique order ID                                                                              |
+    | symbol             | String    | market symbol                                                                                |
+    | price              | String    | price, see [asset value](#overview--price-and-quantity-precision) format                     |
+    | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format                  |
+    | baseFee            | String    | base fee, see [asset value](#overview--price-and-quantity-precision) format                  |
+    | quoteFee           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                 |
+    | side               | String    | order side                                                                                   |
+    | isTaker            | Boolean   | denotes whether this is a taker's trade                                                      |
+    | createdAtDatetime  | date-time | denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string |
+    | createdAtTimestamp | String    | denotes the time the trade was executed by the exchange                                      |
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TATrade",
+      "data": [
+        {
+          "tradeId": "100014000000000118",
+          "orderId": "392883006043848705",
+          "symbol": "BTCUSD",
+          "price": "66858.2000",
+          "quantity": "2.00000000",
+          "baseFee": "0.00000000",
+          "quoteFee": "66.8582",
+          "side": "BUY",
+          "isTaker": false,
+          "createdAtDatetime": "2022-01-10T20:03:43.224Z",
+          "createdAtTimestamp": "1641845023224"
+        }
+      ]
+    }
+    ```
+
+
+    #### positions response
+
+    | Name                       | Type      | Description                                                                                      |
+    |:---------------------------|:----------|:-------------------------------------------------------------------------------------------------|
+    | positionId                 | String    | unique position ID                                                                               |
+    | symbol                     | String    | market symbol                                                                                    |
+    | leverage                   | String    | leverage                                                                                         |
+    | maxLeverage                | String    | max leverage                                                                                     |
+    | utilisation                | String    | utilisation                                                                                      |
+    | quantity                   | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format                      |
+    | baseLoanAmount             | String    | base loan amount, see [asset value](#overview--price-and-quantity-precision) format              |
+    | quoteLoanAmount            | String    | quote loan amount, see [asset value](#overview--price-and-quantity-precision) format             |
+    | baseAccruedInterestAmount  | String    | base accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format  |
+    | quoteAccruedInterestAmount | String    | quote accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format |
+    | liquidationRisk            | Enum      | Allowed: LOW┃MEDIUM┃HIGH                                                                          |
+    | liquidationPrice           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                     |
+    | positionType               | Enum      | Allowed: LONG┃SHORT                                                                               |
+    | updatedAtDatetime          | date-time | the time the position was retrieved, ISO 8601 with millisecond as string                         |
+    | updatedAtTimestamp         | String    | The time the position was retrieved                                                              |
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TAPosition",
+      "data": [
+        {
+          "positionId": "10000",
+          "symbol": "BTCUSD",
+          "leverage": "-0.00",
+          "maxLeverage": "3.00",
+          "utilisation": "-0.50",
+          "quantity": "-33.33333333",
+          "baseLoanAmount": "56.55555555",
+          "quoteLoanAmount": "34.3300",
+          "baseAccruedInterestAmount": "-54.55554445",
+          "quoteAccruedInterestAmount": "-854.5500",
+          "liquidationRisk": "LOW",
+          "liquidationPrice": null,
+          "positionType": "SHORT",
+          "updatedAtDatetime": "2019-01-01T01:01:01.000Z",
+          "updatedAtTimestamp": "1546304461000"
+        }
+      ]
+    }
+    ```
+
+    #### spotAccounts response
+
+    | Name      | Type   | Description                                                                                                  |
+    |:----------|:-------|:-------------------------------------------------------------------------------------------------------------|
+    | accountId | String | unique spot account ID                                                                                       |
+    | symbol    | String | asset symbol                                                                                                 |
+    | total     | String | total, `free + used`, see [asset value](#overview--price-and-quantity-precision) format                      |
+    | free      | String | money available for trading, see [asset value](#overview--price-and-quantity-precision) format               |
+    | used      | String | money on hold, locked, frozen, or pending, see [asset value](#overview--price-and-quantity-precision) format |
+
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TASpotAccount",
+      "data": [
+        {
+          "accountId": "1",
+          "symbol": "BTC",
+          "total": "4.00000000",
+          "free": "4.00000000",
+          "used": "0.00000000",
+        }
+      ]
+    }
+    ```
+
+    #### marginAccounts response
+
+    | Name           | Type   | Description                                                                         |
+    |:---------------|:-------|:------------------------------------------------------------------------------------|
+    | accountId      | String | unique spot account ID                                                              |
+    | symbol         | String | asset symbol                                                                        |
+    | baseFree       | String | base free, see [asset value](#overview--price-and-quantity-precision) format        |
+    | quoteFree      | String | quote free, see [asset value](#overview--price-and-quantity-precision) format       |
+    | baseUsed       | String | base used, see [asset value](#overview--price-and-quantity-precision) format        |
+    | quoteUsed      | String | quote used, see [asset value](#overview--price-and-quantity-precision) format       |
+    | baseTotal      | String | base total, see [asset value](#overview--price-and-quantity-precision) format       |
+    | quoteTotal     | String | quote total, see [asset value](#overview--price-and-quantity-precision) format      |
+    | baseDebt       | String | base debt, see [asset value](#overview--price-and-quantity-precision) format        |
+    | quoteDebt      | String | quote debt, see [asset value](#overview--price-and-quantity-precision) format       |
+    | baseCallPrice  | String | base call price, see [asset value](#overview--price-and-quantity-precision) format  |
+    | quoteCallPrice | String | quote call price, see [asset value](#overview--price-and-quantity-precision) format |
+    | basePrincipal  | String | base principal, see [asset value](#overview--price-and-quantity-precision) format   |
+    | quotePrincipal | String | quote principal, see [asset value](#overview--price-and-quantity-precision) format  |
+
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TAMarginAccount",
+      "data": [
+        {
+          "accountId": "10000",
+          "symbol": "BTCUSD",
+          "baseFree": "2.66530069",
+          "quoteFree": "110483.3983",
+          "baseUsed": "0.00000000",
+          "quoteUsed": "0.0000",
+          "baseTotal": "2.66530069",
+          "quoteTotal": "110483.3983",
+          "baseDebt": "0.00000000",
+          "quoteDebt": "0.0000",
+          "baseCallPrice": "0.00000000",
+          "quoteCallPrice": "0.0000",
+          "quotePrincipal": "0.0000",
+          "basePrincipal": "0.00000000",
+        }
+      ]
+    }
+    ```
+
+    See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/private_data_web_socket.py) for a sample Python script.
 
     # Quickly Try The API
 
@@ -607,7 +1042,7 @@ paths:
         500:
           description: Internal Server Error
       security:
-        - jwtTokenAuth: []
+        - jwtTokenAuth: [ ]
   /accounts/margin:
     get:
       tags:
@@ -805,7 +1240,7 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateOrderRequest'
       security:
-        - jwtTokenAuth: []
+        - jwtTokenAuth: [ ]
     delete:
       tags:
         - orders
@@ -1153,6 +1588,16 @@ paths:
             $ref: '#/components/schemas/MarketSymbol'
           required: true
           description: symbol to get
+        - name: depth
+          in: query
+          description: depth controls the number of bids/asks returned from the mid price
+          required: false
+          schema:
+            enum: [ 200, 100, 50, 10 ]
+            type: integer
+            format: int32
+            nullable: true
+          example: 10
       tags:
         - market-data
       summary: Get Market Order Book
@@ -1182,11 +1627,12 @@ paths:
           description: symbol to get
       tags:
         - market-data
-      summary: Get Market Trades
+      summary: Get Latest Market Trades
       description: |
-        Get Trades by Market Symbol.
-        - return top 100
-      operationId: market-data-get-trades-by-market-symbol
+        Get Market Trades by Market Symbol.
+        - return 100 most recent trades
+        - lookup from local cache
+      operationId: market-data-get-anonymous-trades-by-market-symbol
       responses:
         200:
           description: OK
@@ -1195,9 +1641,42 @@ paths:
               schema:
                 type: array
                 minItems: 0
-                maxItems: 10
+                maxItems: 100
                 items:
                   $ref: '#/components/schemas/ObfuscatedTrade'
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /history/markets/{symbol}/trades:
+    get:
+      parameters:
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: true
+          description: symbol to get
+      tags:
+        - market-data
+      summary: Get Historical Market Trades
+      description: |
+        Get Historical Market Trades by Market Symbol.
+        - [supports pagination](#overview--pagination)
+      operationId: market-data-get-historical-anonymous-trades-by-market-symbol
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/ObfuscatedTradeWithId'
         404:
           description: Resource Not Found
         429:
@@ -1238,7 +1717,9 @@ paths:
       tags:
         - market-data
       summary: Get Market Candle
-      description: Get Current OHLCV Candle by Market Symbol
+      description: |
+        Get Current OHLCV Candle by Market Symbol
+        - [supports pagination](#overview--pagination)
       operationId: market-data-current-candle-by-market-symbol
       parameters:
         - in: path
@@ -1272,7 +1753,7 @@ paths:
               schema:
                 type: array
                 minItems: 1
-                maxItems: 30
+                maxItems: 25
                 items:
                   $ref: '#/components/schemas/OHLCVCandle'
         404:
@@ -1329,7 +1810,7 @@ components:
       example: BUY
     OrderTimeInForceAsString:
       type: string
-      description: time in force can have the following string values `"GTC"`
+      description: time in force can have the following string values `"GTC"`, `"FOK"`, `"IOC"`, see [details](#overview--order-timeinforce)
     OrderStatusAsString:
       type: string
       description: order status can have the following string values `"OPEN"`, `"CLOSED"`, `"CANCELLED"`, `"REJECTED"`
@@ -1355,7 +1836,7 @@ components:
       example: "297735387747975680"
     RequestID:
       type: string
-      example: 197735387747975680
+      example: "197735387747975680"
     OrderHandle:
       description: Unique numeric identifier generated on the client side expressed as a string value
       type: string
@@ -1365,11 +1846,11 @@ components:
       example: BTCUSD
     TradeID:
       type: string
-      example: 8
+      example: "100020000000000060"
     PositionID:
       type: string
       example: BTCUSD
-    MonetaryValue:
+    AssetValue:
       description: see [asset value](#overview--price-and-quantity-precision) format
       type: string
       example: '0.00000000'
@@ -1408,15 +1889,15 @@ components:
         total:
           description: total, `free + used`, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         free:
           description: money available for trading, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         used:
           description: money on hold, locked, frozen, or pending, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
     MarginAccount:
       type: object
       required:
@@ -1446,51 +1927,51 @@ components:
         baseFree:
           description: base free, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteFree:
           description: quote free, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         baseUsed:
           description: base used, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteUsed:
           description: quote used, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         baseTotal:
           description: base total, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteTotal:
           description: quote total, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         baseDebt:
           description: base debt, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteDebt:
           description: quote debt, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         baseCallPrice:
           description: base call price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteCallPrice:
           description: quote call price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         basePrincipal:
           description: base principal, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quotePrincipal:
           description: quote principal, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
     AmendOrderRequest:
       type: object
       required:
@@ -1510,15 +1991,15 @@ components:
         price:
           description: updated price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         stopPrice:
           description: updated stop price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quantity:
           description: updated quantity, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
     CreateOrderResponse:
       type: object
       required:
@@ -1577,15 +2058,15 @@ components:
         price:
           description: price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         stopPrice:
           description: stop price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quantity:
           description: quantity, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         allowMargin:
           description: allow margin trading
           type: boolean
@@ -1671,7 +2152,6 @@ components:
         - quantity
         - baseLoanAmount
         - quoteLoanAmount
-        - dailyInterestRatePercentage
         - baseAccruedInterestAmount
         - quoteAccruedInterestAmount
         - liquidationRisk
@@ -1703,27 +2183,23 @@ components:
         quantity:
           description: quantity, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         baseLoanAmount:
           description: base loan amount, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteLoanAmount:
           description: quote loan amount, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
-        dailyInterestRatePercentage:
-          description: daily interest rate percentage, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         baseAccruedInterestAmount:
           description: base accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteAccruedInterestAmount:
           description: quote accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         liquidationRisk:
           description: liquidation risk
           allOf:
@@ -1731,7 +2207,7 @@ components:
         liquidationPrice:
           description: liquidation price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         positionType:
           description: long vs short
           allOf:
@@ -1781,15 +2257,15 @@ components:
         price:
           description: price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         averageFillPrice:
           description: average fill price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         stopPrice:
           description: stop price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         margin:
           description: is margin order
           type: boolean
@@ -1797,19 +2273,19 @@ components:
         quantity:
           description: quantity, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quantityFilled:
           description: quantity filled, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         baseFee:
           description: base fee, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteFee:
           description: quote fee, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         side:
           description: order side
           allOf:
@@ -1824,7 +2300,7 @@ components:
           description: time in force
           allOf:
             - $ref: '#/components/schemas/OrderTimeInForceAsString'
-          example: 'FOK'
+          example: 'GTC'
         status:
           description: order status
           allOf:
@@ -1835,7 +2311,7 @@ components:
           type: string
           example: "User cancelled"
         statusReasonCode:
-          description: status reason code, is the code associated to the `statusReason`. This code always stays the same whereas the `statusReason` might slightly change over time with consequent releases
+          description: status reason code, see [details](#overview--order-statusreasoncode-map)
           type: integer
           example: 1002
         createdAtDatetime:
@@ -1846,18 +2322,22 @@ components:
           description: denotes the time the order was ACK'd by the exchange
           allOf:
             - $ref: '#/components/schemas/TimeStampAsString'
-    ObfuscatedTrade:
+    ObfuscatedTradeWithId:
       type: object
       required:
+        - tradeId
         - symbol
         - price
         - quantity
         - side
-        - status
-        - type
+        - isTaker
         - createdAtTimestamp
         - createdAtDatetime
       properties:
+        tradeId:
+          description: unique trade ID
+          allOf:
+            - $ref: '#/components/schemas/TradeID'
         symbol:
           description: market symbol
           allOf:
@@ -1865,21 +2345,65 @@ components:
         price:
           description: price
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quantity:
           description: quantity
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         side:
           description: order side
           allOf:
             - $ref: '#/components/schemas/OrderSideAsString'
           example: 'BUY'
-        type:
-          description: order type
+        isTaker:
+          description: denotes whether this is a taker's trade
           allOf:
-            - $ref: '#/components/schemas/OrderTypeAsString'
-          example: 'LMT'
+            - $ref: '#/components/schemas/Boolean'
+        createdAtDatetime:
+          description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: denotes the time the trade was executed by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+    ObfuscatedTrade:
+      type: object
+      required:
+        - tradeId
+        - symbol
+        - price
+        - quantity
+        - side
+        - isTaker
+        - createdAtTimestamp
+        - createdAtDatetime
+      properties:
+        tradeId:
+          description: unique trade ID
+          allOf:
+            - $ref: '#/components/schemas/TradeID'
+        symbol:
+          description: market symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        price:
+          description: price
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quantity:
+          description: quantity
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        side:
+          description: order side
+          allOf:
+            - $ref: '#/components/schemas/OrderSideAsString'
+          example: 'BUY'
+        isTaker:
+          description: denotes whether this is a taker's trade
+          allOf:
+            - $ref: '#/components/schemas/Boolean'
         createdAtDatetime:
           description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
           allOf:
@@ -1899,6 +2423,7 @@ components:
         - baseFee
         - quoteFee
         - side
+        - isTaker
         - createdAtTimestamp
         - createdAtDatetime
       properties:
@@ -1917,24 +2442,28 @@ components:
         price:
           description: price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quantity:
           description: quantity, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         baseFee:
           description: base fee, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteFee:
           description: quote fee, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         side:
           description: order side
           allOf:
             - $ref: '#/components/schemas/OrderSideAsString'
           example: 'BUY'
+        isTaker:
+          description: denotes whether this is a taker's trade
+          allOf:
+            - $ref: '#/components/schemas/Boolean'
         createdAtDatetime:
           description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
           allOf:
@@ -1979,67 +2508,67 @@ components:
         high:
           description: highest price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         low:
           description: lowest price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         bestBid:
           description: current best bid (buy) price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         bidVolume:
           description: current best bid (buy) quantity (may be missing or undefined), see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         bestAsk:
           description: current best ask (sell) price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         askVolume:
           description: current best ask (sell) quantity (may be missing or undefined), see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         vwap:
           description: volume weighed average price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         open:
           description: opening price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         close:
           description: price of last trade (closing price for current period), see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         last:
           description: price of last trade (closing price for current period), see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         change:
           description: absolute change, `last - open`, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         percentage:
           description: relative change, `(change/open) * 100`, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         average:
           description: average price, `(last + open) / 2`, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         baseVolume:
           description: volume of base asset traded for last 24 hours, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         quoteVolume:
           description: volume of quote asset traded for last 24 hours, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         bancorPrice:
           description: current price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         lastTradeDatetime:
           description: time of the last trade on this symbol, ISO 8601 with millisecond as string
           allOf:
@@ -2051,7 +2580,7 @@ components:
         lastTradeQuantity:
           description: quantity of the last trade on this symbol, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
     MarketSymbol:
       type: string
       description: market symbol as denoted in the world
@@ -2069,10 +2598,10 @@ components:
       properties:
         price:
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         priceLevelQuantity:
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
     OrderBook:
       type: object
       required:
@@ -2185,27 +2714,27 @@ components:
         minQuantityLimit:
           description: order quantity should be > min, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         maxQuantityLimit:
           description: order quantity should be < max, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         maxPriceLimit:
           description: order price should be < max, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         minPriceLimit:
           description: order price should be > min, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         maxCostLimit:
           description: order cost, `price * quantity` should be < max, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         minCostLimit:
           description: order cost, `price * quantity` should be > min, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         timeZone:
           description: time zone
           type: string
@@ -2213,7 +2742,7 @@ components:
         tickSize:
           description: tick size, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         makerFee:
           description: maker fee in bps
           type: integer
@@ -2263,7 +2792,7 @@ components:
           example: 8
         minBalanceInterest:
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         apr:
           description: annualized percentage rate
           type: number
@@ -2271,30 +2800,30 @@ components:
         minFee:
           description: minimum fee
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
     OHLCVCandle:
       type: object
       properties:
         open:
           description: see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         high:
           description: see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         low:
           description: see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         close:
           description: see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         volume:
           description: see [asset value](#overview--price-and-quantity-precision) format
           allOf:
-            - $ref: '#/components/schemas/MonetaryValue'
+            - $ref: '#/components/schemas/AssetValue'
         createdAtTimestamp:
           allOf:
             - $ref: '#/components/schemas/TimeStampAsString'
@@ -2330,9 +2859,12 @@ components:
           type: integer
           example: 9455
     OrderTimeInForce:
+      description: time in force
       type: string
       enum:
         - GTC
+        - FOK
+        - IOC
     OrderType:
       type: string
       enum:
