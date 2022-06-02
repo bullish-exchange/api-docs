@@ -406,7 +406,10 @@ info:
     ## Send A Message Over The Web Socket
 
     Messages sent by the client to the server over a web-socket follows the
-    [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification).
+    [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification). The server then returns a response following
+    the same JSON-RPC 2.0 format. The `id` field sent by the client will be included in the response, allowing the
+    client to map the server's responses to the messages sent by the client. The client ensures the uniqueness of the
+    `id` field.
 
     Find below the message types accepted by the web-socket:
       1. [Subscription Message](#overview-subscribe-to-a-topic)
@@ -420,6 +423,10 @@ info:
       1. Subscribe by `<TOPIC>`
       2. Subscribe by `<TOPIC>` and `<SYMBOL>`
 
+    Message fields:
+      - `<TOPIC>`: subscription topic
+      - `<SYMBOL>`: market symbol
+      - `<COMMAND_ID>`: unsigned long value
 
     The subscription message would be constructed like below:
 
@@ -432,7 +439,7 @@ info:
       "params": {
           "topic": "<TOPIC>",
       },
-      "id": "<TIMESTAMP>"
+      "id": "<COMMAND_ID>"
     }
     ```
 
@@ -446,7 +453,20 @@ info:
           "topic": "<TOPIC>",
           "symbol": "<SYMBOL>",
       },
-      "id": "<TIMESTAMP>"
+      "id": "<COMMAND_ID>"
+    }
+    ```
+
+    Sample subscription message:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "orders"
+      },
+      "id": "1611082473000"
     }
     ```
 
@@ -469,12 +489,46 @@ info:
       "type": "command",
       "method": "keepalivePing",
       "params": {},
-      "id": "<TIMESTAMP>"
+      "id": "<COMMAND_ID>"
     }
     ```
 
 
     ## Receive A Message From The Web Socket
+
+    JSON-RPC responses are of the following format:
+
+    Success responses
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "id": "1650865877698",
+      "result": {
+        "responseCode": "200",
+        "responseCodeName": "OK",
+        "message": "Successfully subscribed"
+      }
+    }
+    ```
+
+    Error responses
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "id": "1650865877698",
+      "error": {
+        "code": "-32602",
+        "errorCode": "29013",
+        "errorCodeName": "INVALID_TOPIC_ERROR",
+        "message": "'a-random-topic' is not a valid topic"
+    }
+    ```
+
+    - `code`: [JSON-RPC 2.0 error code](https://www.jsonrpc.org/specification)
+    - `responseCode`/`errorCode`: unique ID for response/error code
+    - `responseCodeName`/`errorCodeName`: unique name for response/error code
+    - `message`: textual description of the `responseCode`/`errorCode`
+
 
     Snapshot responses are of the following format:
     ```json
