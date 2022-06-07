@@ -36,6 +36,7 @@ info:
     - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
     - April - add private data WebSocket API
     - April - add market data WebSocket API
+    - May - add `events` topic to private data WebSocket
 
     # Exchange Time
 
@@ -614,6 +615,7 @@ info:
     | positions         | Provides snapshot and updates on your positions. There are routine updates for positions.  | `V1TAPosition` | By `<TOPIC>` |
     | spotAccounts      | Provides snapshot and updates on assets in your spot account. | `V1TASpotAccount` | By `<TOPIC>` |
     | marginAccounts    | Provides snapshot and updates on assets in your margin account. | `V1TAMarginAccount` | By `<TOPIC>` |
+    | events            | Provides updates on generic events. | `V1TAMarginCall` | By `<TOPIC>` |
 
     #### orders response
 
@@ -823,6 +825,26 @@ info:
           "basePrincipal": "0.00000000",
         }
       ]
+    }
+    ```
+
+    ### marginCall response
+
+    | Name               | Type      | Description                                                                                  |
+    |:-------------------|:----------|:---------------------------------------------------------------------------------------------|
+    | symbol             | String    | market symbol                                                                                |
+    | createdAtDatetime  | date-time | denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string |
+    | createdAtTimestamp | String    | denotes the time the trade was executed by the exchange                                      |
+
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TAMarginCall",
+      "data": {
+        "symbol": "BTCUSD",
+        "createdAtDatetime": "2019-01-01T01:01:01.000Z",
+        "createdAtTimestamp": "1546304461000"
+      }
     }
     ```
 
@@ -2982,4 +3004,3 @@ components:
       schema:
         type: string
       type: string
-
