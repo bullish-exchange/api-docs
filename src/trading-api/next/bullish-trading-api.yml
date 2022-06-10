@@ -4,7 +4,7 @@ servers:
     description: PRODUCTION
   - url: https://api.bugbounty.bullish.com/trading-api/v1
     description: SECURITY SANDBOX
-  - url: https://api.simnext.bullish.com/trading-api/v1
+  - url: https://api.simnext.bullish-test.com/trading-api/v1
     description: API SANDBOX
 info:
   description: |
@@ -402,7 +402,7 @@ info:
 
     ## Servers
       - `wss://api.exchange.bullish.com` - PRODUCTION
-      - `wss://api.simnext.bullish.com` - SANDBOX
+      - `wss://api.simnext.bullish-test.com` - SANDBOX
 
     ## Send A Message Over The Web Socket
 
