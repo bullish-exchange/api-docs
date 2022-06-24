@@ -41,7 +41,7 @@ paths:
       tags:
         - orderbook
       summary: Get orderbook
-      description: Get orderbook of depth 100 by symbolV2
+      description: Get orderbook of depth 200 by symbolV2
       operationId: getOrderBook
       parameters:
         - name: symbolV2
