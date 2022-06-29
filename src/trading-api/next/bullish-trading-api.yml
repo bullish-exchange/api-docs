@@ -37,6 +37,8 @@ info:
     - April - add private data WebSocket API
     - April - add market data WebSocket API
     - May - add `events` topic to private data WebSocket
+    - June - orderbook default depth of `10` - `GET /markets/{symbol}/orderbook/hybrid`
+    - June - add handle field to `V1TATrade` for private data WebSocket
 
     # Exchange Time
 
@@ -94,7 +96,34 @@ info:
 
     # Rate Limits
 
-    There is a blanket rate limit across all requests for an account of 500 requests per 10 seconds (approximately 50 requests per second).
+    There is a blanket rate limit of 500 requests per 10 seconds (approximately 50 requests per second) per IP address.
+    If an IP address is rate limited, the http response status code will be `429 Too Many Requests` and the IP address
+    is blocked from making any requests for 60 seconds.
+
+    ## Rate Limits Per API Endpoint
+
+    Specific API endpoints have an additional rate limit applied, denoted by `Ratelimited: True` in its description
+    e.g. [Create Order](#post-/orders). Rate limit settings are as follows:
+    - Authenticated endpoints rate limited at 50 requests per second.
+    - Unuthenticated endpoints rate limited at 50 requests per second.
+
+
+    If rate limited, the http response status code will be `429 Too Many Requests` and the http response body will be:
+    ```json
+      {
+        "errorCode": 96000,
+        "errorCodeName": "RATE_LIMIT_EXCEEDED",
+        "message": "Rate limit exceeded"
+      }
+    ```
+
+    If rate limit is not exceeded, the response from the API endpoint will contain these headers:
+    - `x-ratelimit-limit`: Maximum number of requests allowed for specific API endpoint within time period.
+    - `x-ratelimit-remaining`: Remaining number of requests allowed for specific API endpoint within time period.
+    - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed.
+
+    ## Boosting Rate Limits
+    For more information on boosting your rate limits, please reach out to your sales representative.
 
     # Price And Quantity Precision
 
@@ -621,7 +650,7 @@ info:
 
     | Name               | Type      | Description                                                                               |
     |:-------------------|:----------|:------------------------------------------------------------------------------------------|
-    | handle             | String    | Unique numeric identifier generated on the client side expressed as a string value        |
+    | handle             | String    | unique numeric identifier generated on the client side expressed as a string value        |
     | orderId            | String    | unique order ID                                                                           |
     | symbol             | String    | market symbol                                                                             |
     | price              | Array     | price, see [asset value](#overview--price-and-quantity-precision) format                  |
@@ -677,6 +706,7 @@ info:
     |:-------------------|:----------|:---------------------------------------------------------------------------------------------|
     | tradeId            | String    | unique trade ID                                                                              |
     | orderId            | String    | unique order ID                                                                              |
+    | handle             | String    | unique numeric identifier generated on the client side expressed as a string value           |
     | symbol             | String    | market symbol                                                                                |
     | price              | String    | price, see [asset value](#overview--price-and-quantity-precision) format                     |
     | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format                  |
@@ -695,6 +725,7 @@ info:
         {
           "tradeId": "100014000000000118",
           "orderId": "392883006043848705",
+          "handle": "123456",
           "symbol": "BTCUSD",
           "price": "66858.2000",
           "quantity": "2.00000000",
@@ -724,11 +755,11 @@ info:
     | quoteLoanAmount            | String    | quote loan amount, see [asset value](#overview--price-and-quantity-precision) format             |
     | baseAccruedInterestAmount  | String    | base accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format  |
     | quoteAccruedInterestAmount | String    | quote accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format |
-    | liquidationRisk            | Enum      | Allowed: LOW┃MEDIUM┃HIGH                                                                          |
+    | liquidationRisk            | Enum      | allowed: LOW┃MEDIUM┃HIGH                                                                          |
     | liquidationPrice           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                     |
-    | positionType               | Enum      | Allowed: LONG┃SHORT                                                                               |
+    | positionType               | Enum      | allowed: LONG┃SHORT                                                                               |
     | updatedAtDatetime          | date-time | the time the position was retrieved, ISO 8601 with millisecond as string                         |
-    | updatedAtTimestamp         | String    | The time the position was retrieved                                                              |
+    | updatedAtTimestamp         | String    | the time the position was retrieved                                                              |
 
     ```json
     {
@@ -895,10 +926,6 @@ tags:
     description: Non-authenticated APIs for accessing general asset data information
   - name: market-data
     description: Non-authenticated APIs for accessing general market data information
-  - name: ohlcv
-    description: Non-authenticated APIs for reading OHLCV candle data
-  - name: fees
-    description: Non-authenticated APIs for reading fee data
   - name: account-model
     x-displayName: SpotAccount Model
     description: |
@@ -1014,7 +1041,6 @@ tags:
 x-tagGroups:
   - name: Authenticated API
     tags:
-      - users
       - accounts
       - orders
       - trades
@@ -1023,13 +1049,17 @@ x-tagGroups:
     tags:
       - market-data
       - time
+
 paths:
   /nonce:
     get:
       tags:
         - nonce
       summary: Get The Current Nonce Range
-      description: Get the current nonce range. The lower bound of nonce range is EPOCH start of day in microseconds, and upper bound of nonce range is EPOCH end of day in microseconds.
+      description: |
+        Get the current nonce range. The lower bound of nonce range is EPOCH start of day in microseconds, and upper bound of nonce range is EPOCH end of day in microseconds.
+
+        **Ratelimited:** `False`
       operationId: user-get-current-nonce-range
       responses:
         200:
@@ -1051,7 +1081,10 @@ paths:
       tags:
         - accounts
       summary: Get Spot Accounts
-      description: Gets the spot accounts, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Gets the spot accounts, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: user-get-spot-accounts
       parameters:
         - in: header
@@ -1098,7 +1131,10 @@ paths:
       tags:
         - accounts
       summary: Get Spot Account by Symbol
-      description: Gets the spot account by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Gets the spot account by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: user-get-spot-account-by-symbol
       responses:
         200:
@@ -1124,7 +1160,10 @@ paths:
       tags:
         - accounts
       summary: Get Margin Accounts
-      description: Gets the margin accounts, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Gets the margin accounts, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: user-get-margin-accounts
       parameters:
         - in: header
@@ -1171,7 +1210,10 @@ paths:
       tags:
         - accounts
       summary: Get Margin Account by Symbol
-      description: Gets the margin account by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Gets the margin account by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: user-get-margin-account-by-symbol
       responses:
         200:
@@ -1202,6 +1244,8 @@ paths:
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         - [supports pagination](#overview--pagination)
         - supports filtering on `symbol`, `handle`, `side`, `status`
+
+        **Ratelimited:** `True`
       operationId: trade-get-orders
       parameters:
         - in: header
@@ -1258,7 +1302,10 @@ paths:
       tags:
         - orders
       summary: Create Order
-      description: Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: trade-create-order
       parameters:
         - in: header
@@ -1321,7 +1368,10 @@ paths:
       tags:
         - orders
       summary: Cancel Order
-      description: Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: trade-cancel-order
       parameters:
         - in: header
@@ -1398,7 +1448,10 @@ paths:
       tags:
         - orders
       summary: Get Order by ID
-      description: Gets an order by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Gets an order by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: trade-get-order-by-id
       parameters:
         - in: header
@@ -1434,6 +1487,8 @@ paths:
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         - [supports pagination](#overview--pagination)
         - supports filtering on `symbol`, `orderId`
+
+        **Ratelimited:** `True`
       operationId: trade-get-trades
       parameters:
         - in: header
@@ -1492,7 +1547,10 @@ paths:
       tags:
         - trades
       summary: Get Trade by ID
-      description: Gets a trade by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Gets a trade by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: trade-get-trade-by-id
       responses:
         200:
@@ -1518,7 +1576,10 @@ paths:
       tags:
         - positions
       summary: Get Positions
-      description: Get the list of positions, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Get the list of positions, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: trade-get-positions
       parameters:
         - in: header
@@ -1558,7 +1619,10 @@ paths:
       tags:
         - positions
       summary: Get Positions by Symbol
-      description: Gets a position by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Gets a position by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
       operationId: trade-get-position-by-symbol
       parameters:
         - in: header
@@ -1677,7 +1741,10 @@ paths:
       tags:
         - market-data
       summary: Get Market Order Book
-      description: Get Order Book by Market Symbol
+      description: |
+        Get Order Book by Market Symbol
+
+        **Ratelimited:** `False`
       operationId: market-data-get-market-orderbook
       responses:
         200:
@@ -1708,6 +1775,8 @@ paths:
         Get Market Trades by Market Symbol.
         - return 100 most recent trades
         - lookup from local cache
+
+        **Ratelimited:** `False`
       operationId: market-data-get-anonymous-trades-by-market-symbol
       responses:
         200:
@@ -1741,6 +1810,8 @@ paths:
       description: |
         Get Historical Market Trades by Market Symbol.
         - [supports pagination](#overview--pagination)
+
+        **Ratelimited:** `False`
       operationId: market-data-get-historical-anonymous-trades-by-market-symbol
       responses:
         200:
@@ -1774,6 +1845,8 @@ paths:
       description: |
         Get Current Tick by Market Symbol.
         - return top 100
+
+        **Ratelimited:** `False`
       operationId: market-data-current-tick-by-market-symbol
       responses:
         200:
@@ -1796,6 +1869,8 @@ paths:
       description: |
         Get Current OHLCV Candle by Market Symbol
         - [supports pagination](#overview--pagination)
+
+        **Ratelimited:** `False`
       operationId: market-data-current-candle-by-market-symbol
       parameters:
         - in: path
@@ -3004,3 +3079,4 @@ components:
       schema:
         type: string
       type: string
+
