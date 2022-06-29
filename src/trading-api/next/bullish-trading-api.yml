@@ -590,6 +590,108 @@ info:
     }
     ```
 
+    ### Hybrid OrderBook WebSocket
+    **Route**
+    - `/trading-api/markets/{symbol}/orderbook/hybrid`
+
+    **Note**: This endpoint does not require subscriptions.
+
+    On connection, the client receives a snapshot of the current hybrid orderbook with depth of 10. Subsequently, the
+    client then receives a conflated update of the hybrid orderbook every 1 second. If there is a sequence number mismatch
+    between the conflated update and the snapshot, the server disconnects the client with the following error
+    message - `4003 (Try Again, sequence number miss-match between snapshot and updates)`.
+
+    #### l2Snapshot response
+
+    | Name           | Type   | Description                                                                             |
+    |----------------|--------|-----------------------------------------------------------------------------------------|
+    | bids           | Array  | even indices denotes prices, odd indices denotes current quantities                     |
+    | asks           | Array  | even indices denotes prices, odd indices denotes current quantities                     |
+    | sequenceNumber | Long   | incrementing, unique, unsigned integer that identifies a state of the orderbook         |
+    | datetime       | String | denotes the time the update was created                                                 |
+    | timestamp      | String | denotes the time the update was created, ISO 8601 with millisecond as string            |
+
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TALevel2",
+      "data": {
+        "bids": [
+          "5199.5000",
+          "110.92467647",
+          "5199.4000",
+          "20.92470365",
+          "5199.3000",
+          "0.92473034",
+          "5199.2000",
+          "0.92475701",
+          "5199.1000",
+          "0.92478369",
+          "5199.0000",
+          "0.92481038",
+          "5198.9000",
+          "0.92483705",
+          "5198.8000",
+          "0.92486375",
+          "5198.7000",
+          "0.92489042",
+          "5198.6000",
+          "0.92491712"
+        ],
+        "asks": [
+          "5199.6000",
+          "96.37848193",
+          "5199.7000",
+          "0.92465082",
+          "5199.8000",
+          "11.04464563",
+          "5199.9000",
+          "0.92459696",
+          "5200.0000",
+          "0.92457029",
+          "5200.1000",
+          "0.92454362",
+          "5200.2000",
+          "0.92451695",
+          "5200.3000",
+          "0.92449028",
+          "5200.4000",
+          "0.92446361",
+          "5200.5000",
+          "0.92443695"
+        ],
+        "sequenceNumber": 6,
+        "datetime": "2020-05-13T10:23:46.000Z",
+        "timestamp": "1589365426000"
+      }
+    }
+    ```
+
+
+    #### l2Update response
+
+    | Name                | Type   | Description                                                                                                                          |
+    |---------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------|
+    | bids                | Array  | even indices denotes prices, odd indices denotes new quantities                                                                      |
+    | asks                | Array  | even indices denotes prices, odd indices denotes new quantities                                                                      |
+    | sequenceNumberRange | Array  | first element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update |
+    | datetime            | String | denotes the time the update was created                                                                                              |
+    | timestamp           | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                         |
+
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TALevel2",
+      "data": {
+        "bids": [],
+        "asks": ["5199.7000", "101.30313224"],
+        "sequenceNumberRange": [7, 10],
+        "datetime": "2020-06-29T06:28:55.500Z",
+        "timestamp": "1593412135500"
+      }
+    }
+    ```
+
     ### Market Data WebSocket
     Route
     - `/trading-api/v1/market-data`
