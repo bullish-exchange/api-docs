@@ -39,6 +39,7 @@ info:
     - May - add `events` topic to private data WebSocket
     - June - orderbook default depth of `10` - `GET /markets/{symbol}/orderbook/hybrid`
     - June - add handle field to `V1TATrade` for private data WebSocket
+    - July - add hybrid orderbook WebSocket API
 
     # Exchange Time
 
@@ -603,13 +604,13 @@ info:
 
     #### l2Snapshot response
 
-    | Name           | Type   | Description                                                                             |
-    |----------------|--------|-----------------------------------------------------------------------------------------|
-    | bids           | Array  | even indices denotes prices, odd indices denotes current quantities                     |
-    | asks           | Array  | even indices denotes prices, odd indices denotes current quantities                     |
-    | sequenceNumber | Long   | incrementing, unique, unsigned integer that identifies a state of the orderbook         |
-    | datetime       | String | denotes the time the update was created                                                 |
-    | timestamp      | String | denotes the time the update was created, ISO 8601 with millisecond as string            |
+    | Name                | Type   | Description                                                                                                                                                                                                              |
+    |---------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | bids                | Array  | array of size 20 where even indices denote price, odd indices denote absolute quantities                                                                                                                                 |
+    | asks                | Array  | array of size 20 where even indices denote price, odd indices denote absolute quantities                                                                                                                                 |
+    | sequenceNumberRange | Array  | array of size 2 where first element denotes lower bound, second element denotes upper bound of sequence numbers <br /> lower and upper bound are equal for initial snapshot; this may differ for subsequent snapshots    |
+    | datetime            | String | denotes the time the update was created                                                                                                                                                                                  |
+    | timestamp           | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                                                                                             |
 
     ```json
     {
@@ -660,7 +661,7 @@ info:
           "5200.5000",
           "0.92443695"
         ],
-        "sequenceNumber": 6,
+        "sequenceNumberRange": [6, 6],
         "datetime": "2020-05-13T10:23:46.000Z",
         "timestamp": "1589365426000"
       }
@@ -670,13 +671,13 @@ info:
 
     #### l2Update response
 
-    | Name                | Type   | Description                                                                                                                          |
-    |---------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------|
-    | bids                | Array  | even indices denotes prices, odd indices denotes new quantities                                                                      |
-    | asks                | Array  | even indices denotes prices, odd indices denotes new quantities                                                                      |
-    | sequenceNumberRange | Array  | first element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update |
-    | datetime            | String | denotes the time the update was created                                                                                              |
-    | timestamp           | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                         |
+    | Name                | Type   | Description                                                                                                                                                |
+    |---------------------|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | bids                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
+    | asks                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
+    | sequenceNumberRange | Array  | array of size 2 where irst element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update  |
+    | datetime            | String | denotes the time the update was created                                                                                                                    |
+    | timestamp           | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                               |
 
     ```json
     {
@@ -691,6 +692,17 @@ info:
       }
     }
     ```
+
+    #### Maintaning Hybrid OrderBook
+    1. Connect to hybrid orderbook WebSocket API.
+    2. Receive initial snapshot message.
+    3. Record sequence number and create orderbook.
+    4. Compare current sequence number with that of new message. If sequence number is out of order, reconnect.
+    5. Receive update messages of price levels with new absolute quantity and update orderbook.
+       If quantity is 0, price level is removed.
+    6. Receive a subsequent snapshot message and reset existing orderbook. Create orderbook with new price levels.
+
+    See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
 
     ### Market Data WebSocket
     Route
