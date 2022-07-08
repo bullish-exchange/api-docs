@@ -597,10 +597,10 @@ info:
 
     **Note**: This endpoint does not require subscriptions.
 
-    On connection, the client receives a snapshot of the current hybrid orderbook with depth of 10. Subsequently, the
-    client then receives a conflated update of the hybrid orderbook every 1 second. If there is a sequence number mismatch
-    between the conflated update and the snapshot, the server disconnects the client with the following error
-    message - `4003 (Try Again, sequence number miss-match between snapshot and updates)`.
+    On connection, the client receives a snapshot of the current hybrid orderbook with depth of 10. Subsequently,
+    when the orderbook moves, the client then receives a conflated update of the hybrid orderbook every 1 second.
+    If there is a sequence number mismatch between the conflated update and the snapshot, the server disconnects the
+    client with the following error message - `4003 (Try Again, sequence number miss-match between snapshot and updates)`.
 
     #### l2Snapshot response
 
