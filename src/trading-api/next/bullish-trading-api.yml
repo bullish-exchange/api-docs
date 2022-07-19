@@ -39,6 +39,7 @@ info:
     - May - add `events` topic to private data WebSocket
     - June - orderbook default depth of `10` - `GET /markets/{symbol}/orderbook/hybrid`
     - June - add handle field to `V1TATrade` for private data WebSocket
+    - June - add handle field to `GET /trades` and `GET /trades/{tradeId}`
     - July - add hybrid orderbook WebSocket API
 
     # Exchange Time
