@@ -676,7 +676,7 @@ info:
     |---------------------|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
     | bids                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
     | asks                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
-    | sequenceNumberRange | Array  | array of size 2 where irst element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update  |
+    | sequenceNumberRange | Array  | array of size 2 where first element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update |
     | datetime            | String | denotes the time the update was created                                                                                                                    |
     | timestamp           | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                               |
 
@@ -720,13 +720,13 @@ info:
     - If the `sequenceNumber` of an incoming update is smaller than that of a previously received update, then the
     `sequenceNumber` is out of order. Terminate the web-socket connection and reconnect.
 
-    | Name           | Type   | Description                                                       |
-    |:---------------|:-------|:----------------------------------------------------------------- |
-    | sequenceNumber | String | incrementing, unique, unsigned integer that identifies a state of the L1-orderbook |
-    | symbol         | String | market symbol                                                     |
-    | timestamp      | String | denotes the time the update was created                           |
-    | bid            | Array  | nested array containing price and quantity of highest bid         |
-    | ask            | Array  | nested array containing price and quantity of lowest ask          |
+    | Name           | Type   | Description                                                                          |
+    |:---------------|:-------|:-----------------------------------------------------------------                    |
+    | sequenceNumber | String | incrementing, unique, unsigned integer that identifies a state of the L1-orderbook   |
+    | symbol         | String | market symbol                                                                        |
+    | timestamp      | String | denotes the time the update was created                                              |
+    | bid            | Array  | nested array containing price and quantity of highest bid                            |
+    | ask            | Array  | nested array containing price and quantity of lowest ask                             |
 
     ```json
     {
@@ -752,14 +752,14 @@ info:
     - `/v1/private` (to be deprecated in July)
 
 
-    | Topic             | Description | Data Type | Subscription Type |
-    | :--               | :-- | :--           | :--               |
-    | orders            | Provides snapshot and updates on your orders. | `V1TAOrder` |  By `<TOPIC>` |
-    | trades            | Provides snapshot and updates on your trades.  | `V1TATrade` | By `<TOPIC>` |
-    | positions         | Provides snapshot and updates on your positions. There are routine updates for positions.  | `V1TAPosition` | By `<TOPIC>` |
-    | spotAccounts      | Provides snapshot and updates on assets in your spot account. | `V1TASpotAccount` | By `<TOPIC>` |
-    | marginAccounts    | Provides snapshot and updates on assets in your margin account. | `V1TAMarginAccount` | By `<TOPIC>` |
-    | events            | Provides updates on generic events. | `V1TAMarginCall` | By `<TOPIC>` |
+    | Topic             | Description                                                                                 | Data Type           | Subscription Type |
+    | :--               | :--                                                                                         | :--                 | :--               |
+    | orders            | Provides snapshot and updates on your orders.                                               | `V1TAOrder`         | By `<TOPIC>`      |
+    | trades            | Provides snapshot and updates on your trades.                                               | `V1TATrade`         | By `<TOPIC>`      |
+    | positions         | Provides snapshot and updates on your positions. There are routine updates for positions.   | `V1TAPosition`      | By `<TOPIC>`      |
+    | spotAccounts      | Provides snapshot and updates on assets in your spot account.                               | `V1TASpotAccount`   | By `<TOPIC>`      |
+    | marginAccounts    | Provides snapshot and updates on assets in your margin account.                             | `V1TAMarginAccount` | By `<TOPIC>`      |
+    | events            | Provides updates on generic events.                                                         | `V1TAMarginCall`    | By `<TOPIC>`      |
 
     #### orders response
 
@@ -870,9 +870,9 @@ info:
     | quoteLoanAmount            | String    | quote loan amount, see [asset value](#overview--price-and-quantity-precision) format             |
     | baseAccruedInterestAmount  | String    | base accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format  |
     | quoteAccruedInterestAmount | String    | quote accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format |
-    | liquidationRisk            | Enum      | allowed: LOW┃MEDIUM┃HIGH                                                                          |
+    | liquidationRisk            | Enum      | allowed: LOW┃MEDIUM┃HIGH                                                                         |
     | liquidationPrice           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                     |
-    | positionType               | Enum      | allowed: LONG┃SHORT                                                                               |
+    | positionType               | Enum      | allowed: LONG┃SHORT                                                                              |
     | updatedAtDatetime          | date-time | the time the position was retrieved, ISO 8601 with millisecond as string                         |
     | updatedAtTimestamp         | String    | the time the position was retrieved                                                              |
 
@@ -1031,8 +1031,6 @@ tags:
     description: Authenticated APIs for reading trade data
   - name: accounts
     description: Authenticated APIs for reading account data
-  - name: markets
-    description: Non-authenticated APIs for reading market data
   - name: time
     description: Non-authenticated API for reading time data
   - name: positions
@@ -1163,6 +1161,7 @@ x-tagGroups:
   - name: Non-authenticated API
     tags:
       - market-data
+      - asset-data
       - time
 
 paths:
@@ -1484,7 +1483,8 @@ paths:
         - orders
       summary: Cancel Order
       description: |
-        Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
+        Use either the `handle` or `orderId` field in the query parameters.
 
         **Ratelimited:** `True`
       operationId: trade-cancel-order
@@ -2881,7 +2881,7 @@ components:
           description: bids
           type: array
           minItems: 0
-          maxItems: 50
+          maxItems: 10
           items:
             allOf:
               - $ref: '#/components/schemas/PriceQuantityTuple'
@@ -2889,7 +2889,7 @@ components:
           description: asks
           type: array
           minItems: 0
-          maxItems: 50
+          maxItems: 10
           items:
             allOf:
               - $ref: '#/components/schemas/PriceQuantityTuple'
@@ -2932,6 +2932,8 @@ components:
         - spotTradingEnabled
         - marginTradingEnabled
         - marketEnabled
+        - createOrderEnabled
+        - cancelOrderEnabled
       properties:
         marketId:
           description: unique market ID
@@ -3032,6 +3034,14 @@ components:
           example: true
         marketEnabled:
           description: market enabled
+          type: boolean
+          example: true
+        createOrderEnabled:
+          description: able to create order
+          type: boolean
+          example: true
+        cancelOrderEnabled:
+          description: able to cancel order
           type: boolean
           example: true
     Asset:
