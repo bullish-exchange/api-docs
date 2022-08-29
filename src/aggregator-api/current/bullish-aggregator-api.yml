@@ -50,6 +50,15 @@ paths:
           schema:
             type: string
           example: BTC-USD
+        - name: pct-depth
+          in: query
+          description: percentage-depth controls the liquidity represented by the bids/asks returned
+          schema:
+            enum: [ 2, 5, 10 ]
+            type: integer
+            nullable: true
+          examples: 5
+          required: false
       responses:
         "200":
           description: Success
