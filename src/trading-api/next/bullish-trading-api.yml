@@ -197,7 +197,7 @@ info:
 
     # Custody statusReasonCode Map
 
-    - The `statusReasonCode` is a field on an Custody API's error message which provides details on the reasoning for the current state of the order
+    - The `statusReasonCode` is a field on Custody API's withdrawal and error messages which provides details on the reasoning for the current state of the request
     - A `statusReasonCode` will never change i.e. 8305 will always refer to an assertion failure
     - The `statusReason` is a textual description of the `statusReasonCode` which may be subject to change
 
@@ -223,6 +223,8 @@ info:
     | 8332 | Bad network specified  | 
     | 8333 | Bad symbol specified | 
     | 8334 | Bad authentication type | 
+    | 8335 | Withdrawal destination does not belong to user |
+    | 8336 | Withdrawal destination not whitelisted |
     | 8399 | Unknown error |   
 
     # Authentication
@@ -1390,7 +1392,7 @@ paths:
       description: |
         Gets the orders list based on specified filters.
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-        - [supports pagination](#overview--pagination)
+        - [supports pagination](#overview--pagination-support)
         - supports filtering on `symbol`, `handle`, `side`, `status`
 
         **Ratelimited:** `True`
@@ -1634,7 +1636,7 @@ paths:
       description: |
         Get a list of trades based on specified filters.
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-        - [supports pagination](#overview--pagination)
+        - [supports pagination](#overview--pagination-support)
         - supports filtering on `symbol`, `orderId`
 
         **Ratelimited:** `True`
@@ -1725,9 +1727,9 @@ paths:
       tags:
         - custody
       summary: Get Custody Transaction History
-      description: | 
+      description: |
         Get custody transaction history requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-        - [supports pagination](#overview--pagination)
+        - [supports pagination](#overview--pagination-support)
       operationId: custody-get-history
       parameters:
         - in: header
@@ -1758,7 +1760,7 @@ paths:
       tags:
         - custody
       summary: Get Withdrawal Limits for Symbol
-      description: | 
+      description: |
         Get withdrawal limits for symbol [bearer token](#overview--add-authenticated-request-header) in authorization header
       operationId: custody-get-limits
       parameters:
@@ -1827,7 +1829,7 @@ paths:
         - custody
       summary: Get Withdrawal Instructions for Crypto
       description: |
-        Get withdrawal instructions added by the user requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Get withdrawal instructions added by the user. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header
       operationId: custody-get-withdrawal-instructions
       parameters:
         - in: path
@@ -1861,7 +1863,7 @@ paths:
       tags:
         - custody
       summary: Get Deposit Instructions for Fiat
-      description: | 
+      description: |
         Get deposit instructions requires [bearer token](#overview--add-authenticated-request-header) in authorization header
       operationId: custody-get-deposit-instructions
       parameters:
@@ -1897,8 +1899,8 @@ paths:
       tags:
         - custody
       summary: Get Withdrawal Instructions for Fiat
-      description: | 
-        Get withdrawal instructions added by the user requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+      description: |
+        Get withdrawal instructions added by the user. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website. For SEN destinations the owner of the API key must have been onboarded to SEN for the details to appear in the response. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header
       operationId: custody-get-withdrawal-instructions
       parameters:
         - in: path
@@ -1935,6 +1937,8 @@ paths:
       description: |
         Request a withdrawal challenge for signing, this can later be used to trigger a withdrawal, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         
+        > **Bullish requires you to whitelist a withdrawal destination address before submitting a withdrawal request. You may view, approve, and manage your list of destination addresses in Account Settings on the Bullish website. If you attempt a withdrawal without first whitelisting an address in Account Settings, then the withdrawal attempt will fail.**
+        
         For a full example of using the withdrawal endpoints please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/custody_withdrawals.py)
         
         The currently supported precisions for withdrawal quantities are as follows, and as with fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei) :
@@ -1943,13 +1947,11 @@ paths:
         | ---------- |---------------- |
         | USD | 2dp |
         | BTC | 8dp |
-        | EOS| 4dp |
+        | EOS | 4dp |
         | ETH | 8dp |
         | USDC | 6dp |
         | LTC | 8dp |
         | LINK | 8dp |
-
-        Bullish requires you to whitelist a withdrawal destination address before submitting a withdrawal request. You may view, approve, and manage your list of destination addresses in Account Settings on the Bullish website. If you attempt a withdrawal without first whitelisting an address in Account Settings, then the withdrawal attempt will fail.
 
       operationId: custody-withdrawal-challenge
       parameters:
@@ -1985,7 +1987,7 @@ paths:
         - custody
       summary: Assertion for Withdrawal Challenge
       description: |
-        Make assertion (send signature and effect a withdrawal) for a withdrawal challenge, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Make assertion (send signature and effect a withdrawal) for a withdrawal challenge created with the [withdrawal-challenge](#post-/wallets/withdrawal-challenge) endpoint, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
       operationId: custody-withdrawal-assertion
       parameters:
         - in: header
@@ -2252,7 +2254,7 @@ paths:
       summary: Get Historical Market Trades
       description: |
         Get Historical Market Trades by Market Symbol.
-        - [supports pagination](#overview--pagination)
+        - [supports pagination](#overview--pagination-support)
 
         **Ratelimited:** `False`
       operationId: market-data-get-historical-anonymous-trades-by-market-symbol
@@ -2311,7 +2313,7 @@ paths:
       summary: Get Market Candle
       description: |
         Get Current OHLCV Candle by Market Symbol
-        - [supports pagination](#overview--pagination)
+        - [supports pagination](#overview--pagination-support)
 
         **Ratelimited:** `False`
       operationId: market-data-current-candle-by-market-symbol
@@ -3118,7 +3120,7 @@ components:
           description: denotes the time the trade was executed by the exchange
           allOf:
             - $ref: '#/components/schemas/TimeStampAsString'
-    CustodyApiWithdrawalChallengeCommand: 
+    CustodyApiWithdrawalChallengeCommand:
       type: object
       required:
         - commandType
@@ -3176,7 +3178,7 @@ components:
         - command
       properties:
         command:
-          description: withdrawal assertion command 
+          description: withdrawal assertion command
           allOf:
             - $ref: '#/components/schemas/CustodyApiWithdrawalAssertionCommand'
     CustodyApiWithdrawalChallengeRequest:
@@ -3191,12 +3193,20 @@ components:
           description: Withdrawal nonce, independent of header nonce, recommendation re-use header nonce
           example: "1628376611"
         command:
-          description: withdrawal challenge command 
+          description: withdrawal challenge command
           allOf:
             - $ref: '#/components/schemas/CustodyApiWithdrawalChallengeCommand'
     CustodyApiWithdrawalChallengeResponse:
-      type: object 
+      type: object
       properties:
+        statusReason:
+          description: status reason, describes why withdrawal challenge is in a specific state
+          type: string
+          example: Withdrawal challenge created
+        statusReasonCode:
+          description: status reason code, see [details](#overview--custody-statusreasoncode-map)
+          type: integer
+          example: 1001
         challenge:
           description: withdrawal challenge command
           allOf:
@@ -3206,13 +3216,21 @@ components:
           allOf:
             - $ref: '#/components/schemas/CustodyTransactionID'
     CustodyApiWithdrawalAssertionResponse:
-      type: object 
+      type: object
       properties:
+        statusReason:
+          description: status reason, describes why withdrawal challenge is in a specific state
+          type: string
+          example: Withdrawal assertion accepted
+        statusReasonCode:
+          description: status reason code, see [details](#overview--custody-statusreasoncode-map)
+          type: integer
+          example: 1001
         custodyTransactionId:
           allOf:
             - $ref: '#/components/schemas/CustodyTransactionID'
     CustodyHistory:
-      type: object 
+      type: object
       properties:
         custodyTransactionId:
           allOf:
@@ -3245,7 +3263,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/CustodyTransactionDetails'
     CustodyCryptoDepositInstructions:
-      type: object 
+      type: object
       properties:
         network:
           example: 'ETH'
@@ -3259,7 +3277,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/CustodyNetworkAddress'
     CustodyCryptoWithdrawalInstructions:
-      type: object 
+      type: object
       properties:
         network:
           example: 'ETH'
@@ -3272,7 +3290,7 @@ components:
         address:
           allOf:
             - $ref: '#/components/schemas/CustodyNetworkAddress'
-        fee: 
+        fee:
           allOf:
             - $ref: '#/components/schemas/CustodyWithdrawalFee'
         memo:
@@ -3376,7 +3394,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/CustodyBankIntermediateDetails'
     CustodyLimits:
-      type: object 
+      type: object
       properties:
         symbol:
           allOf:
@@ -3917,4 +3935,3 @@ components:
       schema:
         type: string
       type: string
-
