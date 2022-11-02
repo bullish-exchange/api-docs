@@ -1061,7 +1061,10 @@ tags:
   - name: orders
     description: Authenticated APIs for interacting with orders
   - name: custody
-    description: Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/custody_basics.py)
+    description: |+
+      Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/custody_basics.py)
+      
+      Custody APIs have a limit of 20 requests per minute combined across all endpoints of type **/wallets/***
   - name: trades
     description: Authenticated APIs for reading trade data
   - name: accounts
@@ -1730,6 +1733,8 @@ paths:
       description: |
         Get custody transaction history requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         - [supports pagination](#overview--pagination-support)
+        
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-history
       parameters:
         - in: header
@@ -1762,6 +1767,8 @@ paths:
       summary: Get Withdrawal Limits for Symbol
       description: |
         Get withdrawal limits for symbol [bearer token](#overview--add-authenticated-request-header) in authorization header
+        
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-limits
       parameters:
         - in: path
@@ -1795,6 +1802,8 @@ paths:
       summary: Get Deposit Instructions for Crypto
       description: |
         Get deposit instructions requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-deposit-instructions
       parameters:
         - in: path
@@ -1830,6 +1839,8 @@ paths:
       summary: Get Withdrawal Instructions for Crypto
       description: |
         Get withdrawal instructions added by the user. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-withdrawal-instructions
       parameters:
         - in: path
@@ -1865,6 +1876,8 @@ paths:
       summary: Get Deposit Instructions for Fiat
       description: |
         Get deposit instructions requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-deposit-instructions
       parameters:
         - in: path
@@ -1901,6 +1914,8 @@ paths:
       summary: Get Withdrawal Instructions for Fiat
       description: |
         Get withdrawal instructions added by the user. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website. For SEN destinations the owner of the API key must have been onboarded to SEN for the details to appear in the response. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-withdrawal-instructions
       parameters:
         - in: path
@@ -1953,6 +1968,7 @@ paths:
         | LTC | 8dp |
         | LINK | 8dp |
 
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-withdrawal-challenge
       parameters:
         - in: header
@@ -1988,6 +2004,8 @@ paths:
       summary: Assertion for Withdrawal Challenge
       description: |
         Make assertion (send signature and effect a withdrawal) for a withdrawal challenge created with the [withdrawal-challenge](#post-/wallets/withdrawal-challenge) endpoint, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-withdrawal-assertion
       parameters:
         - in: header
@@ -2556,12 +2574,12 @@ components:
           example: b55aa5cd-baa2-4122-8c17-ae9b856ae36a
     CustodyAvailableWithdrawalLimit:
       type: string
-      example: "2000000.0"
-      description: total amount of coin or token that is available for withdrawal, in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei)
+      example: "20000.0"
+      description: remaining limit on amount of coin or token that could be withdrawn now, in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei)
     Custody24HWithdrawalLimit:
       type: string
       example: "1000000.00"
-      description: total amount of coin or token that can be withdrawn over a 24 hour period, in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei)
+      description: limit on amount of coin or token that can be withdrawn over a 24 hour period, in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei)
     CustodyCreatedAtDatetime:
       type: string
       example: "2022-09-16T07:56:15.000Z"
