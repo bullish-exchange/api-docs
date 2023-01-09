@@ -41,6 +41,8 @@ info:
     - June - add handle field to `V1TATrade` for private data WebSocket
     - June - add handle field to `GET /trades` and `GET /trades/{tradeId}`
     - July - add hybrid orderbook WebSocket API
+    - July - deprecate WebSocket API `/v1/private` and `/v1/market-data`
+    - August - add anonymous trades WebSocket API
     - October - add Custody API
 
     # Exchange Time
@@ -737,14 +739,56 @@ info:
     6. Receive a subsequent snapshot message and reset existing orderbook. Create orderbook with new price levels.
 
     See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
+    
+    ### Anonymous Trades WebSocket
+    **Route**
+    - `/trading-api/v1/market-data/trades/{symbol}`
+
+    **Note**: This endpoint does not require subscriptions.
+
+    On connection, the client receives a snapshot of the latest 100 trades, in descending order. Subsequently,
+    the client receives real-time updates of trades that have been executed. If the `tradeId` of an incoming update is 
+    smaller than that of a previously received update, then the `tradeId` is out of order. Terminate the 
+    web-socket connection and reconnect.
+
+    #### trades response
+
+    | Name               | Type      | Description                                                                               |
+    |:-------------------|:----------|:------------------------------------------------------------------------------------------|
+    | tradeId            | String    | unique trade ID                                                                           |
+    | symbol             | String    | market symbol                                                                             |
+    | price              | String    | price, see [asset value](#overview--price-and-quantity-precision) format                  |
+    | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format               |
+    | side               | String    | order side                                                                                |
+    | isTaker            | Boolean   | denotes whether this is a taker's trade                                                   |
+    | createdAtTimestamp | String    | denotes the time the order was ACK'd by the exchange                                      |
+    | createdAtDatetime  | date-time | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string |
+
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TAAnonymousTrade",
+      "data": {
+        "tradeId": "100000000000001050",
+        "symbol": "BTCUSD",
+        "price": "11528.2203",
+        "quantity": "1.00000000",
+        "side": "BUY",
+        "isTaker": true,
+        "createdAtTimestamp": "1662453438774",
+        "createdAtDatetime": "2022-09-06T08:37:18.774Z"
+      }
+    }
+    ```
+    
+    See [connect to trades web-socket](https://github.com/bullish-exchange/api-examples/blob/master/trades_web_socket.py) for a sample Python script.
 
     ### Market Data WebSocket
     Route
     - `/trading-api/v1/market-data`
-    - `/v1/market-data` (to be deprecated in July)
 
-    | Topic         |  Description  | Data Type | Subscription Type |
-    | :--           | :--           | :--           | :--               |
+    | Topic         |  Description                              | Data Type        | Subscription Type           |
+    |:--------------|:------------------------------------------|:-----------------|:----------------------------|
     | l1Orderbook   | Provides updates for Level 1 market data  | `V1TABookLevel1` | By `<TOPIC>` and `<SYMBOL>` |
 
     #### l1Orderbook response
@@ -782,17 +826,15 @@ info:
 
     Route
     - `/trading-api/v1/private-data`
-    - `/v1/private` (to be deprecated in July)
 
-
-    | Topic             | Description                                                                                 | Data Type           | Subscription Type |
-    | :--               | :--                                                                                         | :--                 | :--               |
-    | orders            | Provides snapshot and updates on your orders.                                               | `V1TAOrder`         | By `<TOPIC>`      |
-    | trades            | Provides snapshot and updates on your trades.                                               | `V1TATrade`         | By `<TOPIC>`      |
-    | positions         | Provides snapshot and updates on your positions. There are routine updates for positions.   | `V1TAPosition`      | By `<TOPIC>`      |
-    | spotAccounts      | Provides snapshot and updates on assets in your spot account.                               | `V1TASpotAccount`   | By `<TOPIC>`      |
-    | marginAccounts    | Provides snapshot and updates on assets in your margin account.                             | `V1TAMarginAccount` | By `<TOPIC>`      |
-    | events            | Provides updates on generic events.                                                         | `V1TAMarginCall`    | By `<TOPIC>`      |
+    | Topic             | Description                                                                                                                         | Data Type           | Subscription Type |
+    | :--               | :--                                                                                                                                 | :--                 | :--               |
+    | orders            | Provides snapshot and updates on your orders. The snapshot will contain all open orders and the 20 most recent closed orders.       | `V1TAOrder`         | By `<TOPIC>`      |
+    | trades            | Provides snapshot and updates on your trades. The snapshot will contain the 20 most recent trades.                                  | `V1TATrade`         | By `<TOPIC>`      |
+    | positions         | Provides snapshot and updates on your positions. There are routine updates for positions.                                           | `V1TAPosition`      | By `<TOPIC>`      |
+    | spotAccounts      | Provides snapshot and updates on assets in your spot account.                                                                       | `V1TASpotAccount`   | By `<TOPIC>`      |
+    | marginAccounts    | Provides snapshot and updates on assets in your margin account.                                                                     | `V1TAMarginAccount` | By `<TOPIC>`      |
+    | events            | Provides updates on generic events.                                                                                                 | `V1TAMarginCall`    | By `<TOPIC>`      |
 
     #### orders response
 
