@@ -27,6 +27,7 @@ info:
     Find further code examples at - https://github.com/bullish-exchange
 
     # API Change Log
+    ## 2022 Changes
     - January - add pagination support to `GET /markets/{symbol}/candle`
     - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
     - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
@@ -41,7 +42,13 @@ info:
     - June - add handle field to `V1TATrade` for private data WebSocket
     - June - add handle field to `GET /trades` and `GET /trades/{tradeId}`
     - July - add hybrid orderbook WebSocket API
+    - July - deprecate WebSocket API `/v1/private` and `/v1/market-data`
+    - August - add anonymous trades WebSocket API
     - October - add Custody API
+    - November - deprecate `/accounts/margin`, `/accounts/margin/{symbol}`, `/positions` and `/positions/{symbol}`
+    - November - deprecate subscription topics in `/private-data` - `events`, `positions` and `marginAccounts`
+    ## 2023 Changes
+    - January - add AMM instructions API
 
     # Exchange Time
 
@@ -55,7 +62,7 @@ info:
     - `_pageSize` can be one of `5, 25, 50, 100`, default value is `25`
     - `_nextPage` cursor to the next page
     - `_previousPage` cursor to the previous page
-    - `_metaData` can be false/true, if false the links are NOT part of the response. explicity set `_metaData=true` to guarantee links are returned.
+    - `_metaData` can be false/true, if false the links are NOT part of the response. explicitly set `_metaData=true` to guarantee links are returned.
 
     The paginated data is returned in the following wrapped format with generated links to the previous and next pages:
     ```json
@@ -108,7 +115,7 @@ info:
     Specific API endpoints have an additional rate limit applied, denoted by `Ratelimited: True` in its description
     e.g. [Create Order](#post-/orders). Rate limit settings are as follows:
     - Authenticated endpoints rate limited at 50 requests per second.
-    - Unuthenticated endpoints rate limited at 50 requests per second.
+    - Unauthenticated endpoints rate limited at 50 requests per second.
 
 
     If rate limited, the http response status code will be `429 Too Many Requests` and the http response body will be:
@@ -163,7 +170,7 @@ info:
     | 2003 | Invalid handle |
     | 2004 | Invalid quantity |
     | 2005 | Unknown error  |
-    | 2006 | Invalid account type, account must be from spot, margin or mms |
+    | 2006 | Invalid account type, account must be spot |
     | 2007 | Account already exist  |
     | 2008 | Invalid side, side must me from buy or sell  |
     | 2009 | Invalid market |
@@ -727,7 +734,7 @@ info:
     }
     ```
 
-    #### Maintaning Hybrid OrderBook
+    #### Maintaining Hybrid OrderBook
     1. Connect to hybrid orderbook WebSocket API.
     2. Receive initial snapshot message.
     3. Record sequence number and create orderbook.
@@ -737,14 +744,56 @@ info:
     6. Receive a subsequent snapshot message and reset existing orderbook. Create orderbook with new price levels.
 
     See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
+    
+    ### Anonymous Trades WebSocket
+    **Route**
+    - `/trading-api/v1/market-data/trades/{symbol}`
+
+    **Note**: This endpoint does not require subscriptions.
+
+    On connection, the client receives a snapshot of the latest 100 trades, in descending order. Subsequently,
+    the client receives real-time updates of trades that have been executed. If the `tradeId` of an incoming update is 
+    smaller than that of a previously received update, then the `tradeId` is out of order. Terminate the 
+    web-socket connection and reconnect.
+
+    #### trades response
+
+    | Name               | Type      | Description                                                                               |
+    |:-------------------|:----------|:------------------------------------------------------------------------------------------|
+    | tradeId            | String    | unique trade ID                                                                           |
+    | symbol             | String    | market symbol                                                                             |
+    | price              | String    | price, see [asset value](#overview--price-and-quantity-precision) format                  |
+    | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format               |
+    | side               | String    | order side                                                                                |
+    | isTaker            | Boolean   | denotes whether this is a taker's trade                                                   |
+    | createdAtTimestamp | String    | denotes the time the order was ACK'd by the exchange                                      |
+    | createdAtDatetime  | date-time | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string |
+
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TAAnonymousTrade",
+      "data": {
+        "tradeId": "100000000000001050",
+        "symbol": "BTCUSD",
+        "price": "11528.2203",
+        "quantity": "1.00000000",
+        "side": "BUY",
+        "isTaker": true,
+        "createdAtTimestamp": "1662453438774",
+        "createdAtDatetime": "2022-09-06T08:37:18.774Z"
+      }
+    }
+    ```
+    
+    See [connect to trades web-socket](https://github.com/bullish-exchange/api-examples/blob/master/trades_web_socket.py) for a sample Python script.
 
     ### Market Data WebSocket
     Route
     - `/trading-api/v1/market-data`
-    - `/v1/market-data` (to be deprecated in July)
 
-    | Topic         |  Description  | Data Type | Subscription Type |
-    | :--           | :--           | :--           | :--               |
+    | Topic         |  Description                              | Data Type        | Subscription Type           |
+    |:--------------|:------------------------------------------|:-----------------|:----------------------------|
     | l1Orderbook   | Provides updates for Level 1 market data  | `V1TABookLevel1` | By `<TOPIC>` and `<SYMBOL>` |
 
     #### l1Orderbook response
@@ -782,17 +831,12 @@ info:
 
     Route
     - `/trading-api/v1/private-data`
-    - `/v1/private` (to be deprecated in July)
 
-
-    | Topic             | Description                                                                                 | Data Type           | Subscription Type |
-    | :--               | :--                                                                                         | :--                 | :--               |
-    | orders            | Provides snapshot and updates on your orders.                                               | `V1TAOrder`         | By `<TOPIC>`      |
-    | trades            | Provides snapshot and updates on your trades.                                               | `V1TATrade`         | By `<TOPIC>`      |
-    | positions         | Provides snapshot and updates on your positions. There are routine updates for positions.   | `V1TAPosition`      | By `<TOPIC>`      |
-    | spotAccounts      | Provides snapshot and updates on assets in your spot account.                               | `V1TASpotAccount`   | By `<TOPIC>`      |
-    | marginAccounts    | Provides snapshot and updates on assets in your margin account.                             | `V1TAMarginAccount` | By `<TOPIC>`      |
-    | events            | Provides updates on generic events.                                                         | `V1TAMarginCall`    | By `<TOPIC>`      |
+    | Topic             | Description                                                                                                                         | Data Type           | Subscription Type |
+    | :--               | :--                                                                                                                                 | :--                 | :--               |
+    | orders            | Provides snapshot and updates on your orders. The snapshot will contain all open orders and the 20 most recent closed orders.       | `V1TAOrder`         | By `<TOPIC>`      |
+    | trades            | Provides snapshot and updates on your trades. The snapshot will contain the 20 most recent trades.                                  | `V1TATrade`         | By `<TOPIC>`      |
+    | spotAccounts      | Provides snapshot and updates on assets in your spot account.                                                                       | `V1TASpotAccount`   | By `<TOPIC>`      |
 
     #### orders response
 
@@ -889,52 +933,6 @@ info:
     ```
 
 
-    #### positions response
-
-    | Name                       | Type      | Description                                                                                      |
-    |:---------------------------|:----------|:-------------------------------------------------------------------------------------------------|
-    | positionId                 | String    | unique position ID                                                                               |
-    | symbol                     | String    | market symbol                                                                                    |
-    | leverage                   | String    | leverage                                                                                         |
-    | maxLeverage                | String    | max leverage                                                                                     |
-    | utilisation                | String    | utilisation                                                                                      |
-    | quantity                   | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format                      |
-    | baseLoanAmount             | String    | base loan amount, see [asset value](#overview--price-and-quantity-precision) format              |
-    | quoteLoanAmount            | String    | quote loan amount, see [asset value](#overview--price-and-quantity-precision) format             |
-    | baseAccruedInterestAmount  | String    | base accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format  |
-    | quoteAccruedInterestAmount | String    | quote accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format |
-    | liquidationRisk            | Enum      | allowed: LOW┃MEDIUM┃HIGH                                                                         |
-    | liquidationPrice           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                     |
-    | positionType               | Enum      | allowed: LONG┃SHORT                                                                              |
-    | updatedAtDatetime          | date-time | the time the position was retrieved, ISO 8601 with millisecond as string                         |
-    | updatedAtTimestamp         | String    | the time the position was retrieved                                                              |
-
-    ```json
-    {
-      "type": "snapshot",
-      "dataType": "V1TAPosition",
-      "data": [
-        {
-          "positionId": "10000",
-          "symbol": "BTCUSD",
-          "leverage": "-0.00",
-          "maxLeverage": "3.00",
-          "utilisation": "-0.50",
-          "quantity": "-33.33333333",
-          "baseLoanAmount": "56.55555555",
-          "quoteLoanAmount": "34.3300",
-          "baseAccruedInterestAmount": "-54.55554445",
-          "quoteAccruedInterestAmount": "-854.5500",
-          "liquidationRisk": "LOW",
-          "liquidationPrice": null,
-          "positionType": "SHORT",
-          "updatedAtDatetime": "2019-01-01T01:01:01.000Z",
-          "updatedAtTimestamp": "1546304461000"
-        }
-      ]
-    }
-    ```
-
     #### spotAccounts response
 
     | Name      | Type   | Description                                                                                                  |
@@ -962,70 +960,6 @@ info:
     }
     ```
 
-    #### marginAccounts response
-
-    | Name           | Type   | Description                                                                         |
-    |:---------------|:-------|:------------------------------------------------------------------------------------|
-    | accountId      | String | unique spot account ID                                                              |
-    | symbol         | String | asset symbol                                                                        |
-    | baseFree       | String | base free, see [asset value](#overview--price-and-quantity-precision) format        |
-    | quoteFree      | String | quote free, see [asset value](#overview--price-and-quantity-precision) format       |
-    | baseUsed       | String | base used, see [asset value](#overview--price-and-quantity-precision) format        |
-    | quoteUsed      | String | quote used, see [asset value](#overview--price-and-quantity-precision) format       |
-    | baseTotal      | String | base total, see [asset value](#overview--price-and-quantity-precision) format       |
-    | quoteTotal     | String | quote total, see [asset value](#overview--price-and-quantity-precision) format      |
-    | baseDebt       | String | base debt, see [asset value](#overview--price-and-quantity-precision) format        |
-    | quoteDebt      | String | quote debt, see [asset value](#overview--price-and-quantity-precision) format       |
-    | baseCallPrice  | String | base call price, see [asset value](#overview--price-and-quantity-precision) format  |
-    | quoteCallPrice | String | quote call price, see [asset value](#overview--price-and-quantity-precision) format |
-    | basePrincipal  | String | base principal, see [asset value](#overview--price-and-quantity-precision) format   |
-    | quotePrincipal | String | quote principal, see [asset value](#overview--price-and-quantity-precision) format  |
-
-
-    ```json
-    {
-      "type": "snapshot",
-      "dataType": "V1TAMarginAccount",
-      "data": [
-        {
-          "accountId": "10000",
-          "symbol": "BTCUSD",
-          "baseFree": "2.66530069",
-          "quoteFree": "110483.3983",
-          "baseUsed": "0.00000000",
-          "quoteUsed": "0.0000",
-          "baseTotal": "2.66530069",
-          "quoteTotal": "110483.3983",
-          "baseDebt": "0.00000000",
-          "quoteDebt": "0.0000",
-          "baseCallPrice": "0.00000000",
-          "quoteCallPrice": "0.0000",
-          "quotePrincipal": "0.0000",
-          "basePrincipal": "0.00000000",
-        }
-      ]
-    }
-    ```
-
-    ### marginCall response
-
-    | Name               | Type      | Description                                                                                  |
-    |:-------------------|:----------|:---------------------------------------------------------------------------------------------|
-    | symbol             | String    | market symbol                                                                                |
-    | createdAtDatetime  | date-time | denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string |
-    | createdAtTimestamp | String    | denotes the time the trade was executed by the exchange                                      |
-
-    ```json
-    {
-      "type": "update",
-      "dataType": "V1TAMarginCall",
-      "data": {
-        "symbol": "BTCUSD",
-        "createdAtDatetime": "2019-01-01T01:01:01.000Z",
-        "createdAtTimestamp": "1546304461000"
-      }
-    }
-    ```
 
     See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/private_data_web_socket.py) for a sample Python script.
 
@@ -1060,6 +994,11 @@ tags:
     description: Authenticated APIs for interacting with users
   - name: orders
     description: Authenticated APIs for interacting with orders
+  - name: amm-instructions
+    description: |+
+      Authenticated APIs for interacting with AMM instructions.
+      
+      View [Product Spec](https://github.com/bullish-exchange/api-docs/wiki) for more details on AMM.
   - name: custody
     description: |+
       Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/custody_basics.py)
@@ -1071,8 +1010,6 @@ tags:
     description: Authenticated APIs for reading account data
   - name: time
     description: Non-authenticated API for reading time data
-  - name: positions
-    description: Authenticated APIs for accessing the margin account positions
   - name: asset-data
     description: Non-authenticated APIs for accessing general asset data information
   - name: market-data
@@ -1133,10 +1070,6 @@ tags:
     x-displayName: Trade ID
     description: |
       <SchemaDefinition schemaRef="#/components/schemas/TradeID"/>
-  - name: position-id
-    x-displayName: Position ID
-    description: |
-      <SchemaDefinition schemaRef="#/components/schemas/PositionID"/>
   - name: market-id
     x-displayName: Market ID
     description: |
@@ -1194,8 +1127,8 @@ x-tagGroups:
     tags:
       - accounts
       - orders
+      - amm-instructions
       - trades
-      - positions
       - custody
   - name: Non-authenticated API
     tags:
@@ -1308,85 +1241,6 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
-  /accounts/margin:
-    get:
-      tags:
-        - accounts
-      summary: Get Margin Accounts
-      description: |
-        Gets the margin accounts, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-
-        **Ratelimited:** `True`
-      operationId: user-get-margin-accounts
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                minItems: 0
-                maxItems: 10
-                items:
-                  $ref: '#/components/schemas/MarginAccount'
-        401:
-          description: Not Authenticated
-        403:
-          description: Access Forbidden
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: []
-  /accounts/margin/{symbol}:
-    get:
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: path
-          name: symbol
-          schema:
-            $ref: '#/components/schemas/MarketSymbol'
-          required: true
-      tags:
-        - accounts
-      summary: Get Margin Account by Symbol
-      description: |
-        Gets the margin account by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-
-        **Ratelimited:** `True`
-      operationId: user-get-margin-account-by-symbol
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MarginAccount'
-        401:
-          description: Not Authenticated
-        403:
-          description: Access Forbidden
-        404:
-          description: Resource Not Found
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: []
   /orders:
     get:
       tags:
@@ -1621,6 +1475,231 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: []
+  /amm-instructions:
+    get:
+      tags:
+        - amm-instructions
+      summary: Get AMM Instructions
+      description: |
+        Gets the AMM instructions list based on specified filters.
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - [supports pagination](#overview--pagination-support)
+        - supports filtering on `symbol` and `status`
+
+        **Ratelimited:** `True`
+      operationId: trade-get-amm-instructions
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: false
+        - in: query
+          name: status
+          description: order status
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+          required: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/AMMInstruction'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+    post:
+      tags:
+        - amm-instructions
+      summary: Create AMM Instruction
+      description: |
+        Creates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
+
+        **Ratelimited:** `True`
+      operationId: trade-create-amm-instruction
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: command signature is a signature resulted from the [signed message of the `<COMMAND>`](#overview--construct-the-bx-signature-header)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: command timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: command nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+        - in: query
+          name: test
+          description: to validate integration with the `POST /amm-instructions` API pass the query parameter `test=true` e.g. `/amm-instructions?test=true`. The request will be validated but not executed.
+          schema:
+            $ref: '#/components/schemas/Boolean'
+          required: false
+      responses:
+        200:
+          description: Status OK. This means a create AMM instruction command was successfully acknowledged. It does not necessarily mean the instruction was created. To check the current status, query [Get AMM Instruction by ID](#get-/amm-instructions/-liquidityId-) using the `liquidityId` received in the response payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateAMMInstructionResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: new amm instruction
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAMMInstructionRequest'
+      security:
+        - jwtTokenAuth: [ ]
+    delete:
+      tags:
+        - amm-instructions
+      summary: Terminate AMM Instruction
+      description: |
+        Terminates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
+
+        **Ratelimited:** `True`
+      operationId: trade-terminate-amm-instruction
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: command signature is a signature resulted from the [signed message of the `<COMMAND>`](#overview--construct-the-bx-signature-header)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: command timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: command nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: true
+        - in: query
+          name: liquidityId
+          description: unique AMM instruction ID
+          schema:
+            $ref: '#/components/schemas/LiquidityID'
+          required: false
+        - in: query
+          name: test
+          description: to validate integration with the `DELETE /amm-instructions` API pass the query parameter `test=true` e.g. `/amm-instructions?test=true`. The request will be validated but not executed.
+          schema:
+            $ref: '#/components/schemas/Boolean'
+          required: false
+      responses:
+        204:
+          description: Status OK. This means an terminate AMM instruction command was successfully acknowledged. It does not necessarily mean the AMM instruction was terminated. To check the current status, query [Get AMM Instruction by ID](#get-/amm-instructions/-liquidityId-) using the `liquidityId` received in the response payload.
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+  /amm-instructions/{liquidityId}:
+    parameters:
+      - in: path
+        name: liquidityId
+        schema:
+          type: number
+        required: true
+        description: unique AMM instruction ID
+    get:
+      tags:
+        - amm-instructions
+      summary: Get AMM Instruction by ID
+      description: |
+        Gets an AMM instruction by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: trade-get-amm-instruction-by-id
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AMMInstruction'
         401:
           description: Not Authenticated
         403:
@@ -2034,90 +2113,6 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
-  /positions:
-    get:
-      tags:
-        - positions
-      summary: Get Positions
-      description: |
-        Get the list of positions, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-
-        **Ratelimited:** `True`
-      operationId: trade-get-positions
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: query
-          name: symbol
-          schema:
-            $ref: '#/components/schemas/MarketSymbol'
-          required: false
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                minItems: 0
-                maxItems: 10
-                items:
-                  $ref: '#/components/schemas/Position'
-        401:
-          description: Not Authenticated
-        403:
-          description: Access Forbidden
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: []
-  /positions/{symbol}:
-    get:
-      tags:
-        - positions
-      summary: Get Positions by Symbol
-      description: |
-        Gets a position by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-
-        **Ratelimited:** `True`
-      operationId: trade-get-position-by-symbol
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: path
-          name: symbol
-          schema:
-            $ref: '#/components/schemas/MarketSymbol'
-          required: true
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Position'
-        401:
-          description: Not Authenticated
-        403:
-          description: Access Forbidden
-        404:
-          description: Resource Not Found
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: []
   /assets:
     get:
       tags:
@@ -2442,10 +2437,10 @@ components:
     SpotAccountID:
       type: string
       example: BTC
-    MarginAccountID:
-      type: string
-      example: BTCUSD
     OrderID:
+      type: string
+      example: "297735387747975680"
+    AMMInstructionID:
       type: string
       example: "297735387747975680"
     RequestID:
@@ -2461,9 +2456,6 @@ components:
     TradeID:
       type: string
       example: "100020000000000060"
-    PositionID:
-      type: string
-      example: BTCUSD
     AssetValue:
       description: see [asset value](#overview--price-and-quantity-precision) format
       type: string
@@ -2624,80 +2616,6 @@ components:
           description: money on hold, locked, frozen, or pending, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
-    MarginAccount:
-      type: object
-      required:
-        - accountId
-        - symbol
-        - baseFree
-        - quoteFree
-        - baseUsed
-        - quoteUsed
-        - baseTotal
-        - quoteTotal
-        - baseDebt
-        - quoteDebt
-        - baseCallPrice
-        - quoteCallPrice
-        - quotePrincipal
-        - basePrincipal
-      properties:
-        accountId:
-          description: unique margin account ID
-          allOf:
-            - $ref: '#/components/schemas/MarginAccountID'
-        symbol:
-          description: symbol
-          allOf:
-            - $ref: '#/components/schemas/MarketSymbol'
-        baseFree:
-          description: base free, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        quoteFree:
-          description: quote free, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        baseUsed:
-          description: base used, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        quoteUsed:
-          description: quote used, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        baseTotal:
-          description: base total, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        quoteTotal:
-          description: quote total, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        baseDebt:
-          description: base debt, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        quoteDebt:
-          description: quote debt, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        baseCallPrice:
-          description: base call price, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        quoteCallPrice:
-          description: quote call price, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        basePrincipal:
-          description: base principal, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        quotePrincipal:
-          description: quote principal, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
     AmendOrderRequest:
       type: object
       required:
@@ -2732,6 +2650,7 @@ components:
         - message
         - requestId
         - orderId
+        - test
       properties:
         message:
           description: message
@@ -2797,6 +2716,63 @@ components:
           description: allow margin trading
           type: boolean
           example: false
+    CreateAMMInstructionResponse:
+      type: object
+      required:
+        - message
+        - requestId
+        - liquidityId
+        - test
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - AddLiquidity"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+        liquidityId:
+          description: unique AMM instruction ID
+          allOf:
+            - $ref: '#/components/schemas/AMMInstructionID'
+    CreateAMMInstructionCommand:
+      type: object
+      required:
+        - commandType
+        - symbol
+        - baseQuantity
+        - quoteQuantity
+        - upperBound
+        - lowerBound
+        - feeTierId
+      properties:
+        commandType:
+          description: The command type, it must be 'V1AddLiquidity'
+          type: string
+          example: 'V1AddLiquidity'
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        baseQuantity:
+          description: base quantity, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quoteQuantity:
+          description: quote quantity, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        upperBound:
+          type: string
+          description: upper bound of price range, in quote currency
+          example: "14000.0000"
+        lowerBound:
+          type: string
+          description: lower bound of price range, in quote currency
+          example: "12000.0000"
+        feeTierId:
+          allOf:
+            - $ref: '#/components/schemas/FeeTierId'
     CancelOrderCommand:
       type: object
       required:
@@ -2846,6 +2822,28 @@ components:
           description: the command to be executed which is sent in the request payload
           allOf:
             - $ref: '#/components/schemas/CreateOrderCommand'
+    CreateAMMInstructionRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/CreateAMMInstructionCommand'
     CancelOrderRequest:
       type: object
       required:
@@ -2868,84 +2866,6 @@ components:
           description: the command to be executed which is sent in the request payload
           allOf:
             - $ref: '#/components/schemas/CancelOrderCommand'
-    Position:
-      type: object
-      required:
-        - positionId
-        - symbol
-        - leverage
-        - maxLeverage
-        - quantity
-        - baseLoanAmount
-        - quoteLoanAmount
-        - baseAccruedInterestAmount
-        - quoteAccruedInterestAmount
-        - liquidationRisk
-        - positionType
-        - utilisation
-        - updatedAtDatetime
-        - updatedAtTimestamp
-      properties:
-        positionId:
-          description: unique position ID
-          allOf:
-            - $ref: '#/components/schemas/PositionID'
-        symbol:
-          description: symbol
-          allOf:
-            - $ref: '#/components/schemas/MarketSymbol'
-        leverage:
-          description: leverage
-          type: string
-          example: '1.00'
-        maxLeverage:
-          description: leverage
-          type: string
-          example: '1.00'
-        utilisation:
-          description: leverage
-          type: string
-          example: '1.00'
-        quantity:
-          description: quantity, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        baseLoanAmount:
-          description: base loan amount, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        quoteLoanAmount:
-          description: quote loan amount, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        baseAccruedInterestAmount:
-          description: base accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        quoteAccruedInterestAmount:
-          description: quote accrued interest amount, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        liquidationRisk:
-          description: liquidation risk
-          allOf:
-            - $ref: '#/components/schemas/LiquidationRisk'
-        liquidationPrice:
-          description: liquidation price, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        positionType:
-          description: long vs short
-          allOf:
-            - $ref: '#/components/schemas/PositionType'
-        updatedAtDatetime:
-          description: the time the position was retrieved, ISO 8601 with millisecond as string
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-        updatedAtTimestamp:
-          description: The time the position was retrieved
-          allOf:
-            - $ref: '#/components/schemas/TimeStampAsString'
     Order:
       type: object
       required:
@@ -3048,6 +2968,186 @@ components:
           description: denotes the time the order was ACK'd by the exchange
           allOf:
             - $ref: '#/components/schemas/TimeStampAsString'
+    AMMInstruction:
+      type: object
+      required:
+        - apy
+        - baseCurrentQuantity
+        - baseFee
+        - baseInvestQuantity
+        - basePrice
+        - baseWithdrawQuantity
+        - createdAtDateTime
+        - createdAtTimestamp
+        - currentValue
+        - dislocationEnabled
+        - feeTierId
+        - impermanentLoss
+        - initialBasePrice
+        - initialQuotePrice
+        - initialValue
+        - liquidityId
+        - lowerBound
+        - price
+        - quoteFee
+        - quoteInvestQuantity
+        - quotePrice
+        - quoteWithdrawQuantity
+        - requestId
+        - staticSpreadFee
+        - status
+        - statusReason
+        - statusReasonCode
+        - symbol
+        - updatedAtDateTime
+        - updatedAtTimestamp
+        - upperBound
+        - yieldEarn
+      properties:
+        liquidityId:
+          description: unique AMM instruction ID
+          allOf:
+            - $ref: '#/components/schemas/AMMInstructionID'
+        symbol:
+          description: market symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        baseFee:
+          description: base fee, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quoteFee:
+          description: quote fee, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        status:
+          description: order status
+          allOf:
+            - $ref: '#/components/schemas/OrderStatusAsString'
+          example: 'OPEN'
+        statusReason:
+          description: status reason, describes why the order is in a specific state
+          type: string
+          example: "User cancelled"
+        statusReasonCode:
+          description: status reason code, see [details](#overview--order-statusreasoncode-map)
+          type: integer
+          example: 1002
+        createdAtDatetime:
+          description: denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: denotes the time the order was ACK'd by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        24HrApy:
+          type: string
+          description: APY of the last 24 Hours, only for AMM instructions with `OPEN` status
+          example: "2.3319"
+        24HrYieldEarn:
+          type: string
+          description: amount of money earned in USD from the last 24 Hours, only for AMM instructions with `OPEN` status
+          example: "0.00"
+        apy:
+          type: string
+          description: yield generated from the time AMM instruction was created, in annualised percentage
+          example: "0.0000"
+        baseCurrentQuantity:
+          type: string
+          description: amount of base asset this AMM instruction currently holds, only for AMM instruction with `OPEN` status
+          example: "0.00000000"
+        baseInvestQuantity:
+          type: string
+          description: initial base investment
+          example: "0.00000008"
+        basePrice:
+          type: string
+          description: current price of base asset
+          example: "345.6700"
+        baseWithdrawQuantity:
+          type: string
+          description: amount of base asset returned when AMM instruction is terminated
+          example: "0.00000010"
+        currentValue:
+          type: string
+          description: value of assets (base and quote) in USD amount that this AMM instruction currently holds
+          example: "0.0000"
+        dislocationEnabled:
+          description: dislocation enabled/disabled
+          type: boolean
+          example: false
+        feeTierId:
+          allOf:
+            - $ref: '#/components/schemas/FeeTierId'
+        finalValue:
+          type: string
+          description: value of assets (base and quote) in USD amount when AMM instruction was terminated, only for AMM instruction with `CLOSED` status
+          example: "0.0001"
+        impermanentLoss:
+          type: string
+          description: impermanent loss
+          example: "0.0000"
+        initialBasePrice:
+          type: string
+          description: price of base asset when AMM instruction was created
+          example: "100.0000"
+        initialQuotePrice:
+          type: string
+          description: price of quote asset when AMM instruction was created
+          example: "0.0100"
+        initialValue:
+          type: string
+          description: value of assets (base and quote) in USD amount when AMM instruction was created
+          example: "0.0000"
+        lowerBound:
+          type: string
+          description: lower bound of price range, in quote currency
+          example: "0.0013"
+        price:
+          type: string
+          description: current price of AMM, see [Get Tick By Symbol](#get-/markets/-symbol-/tick)
+          example: "456.7800"
+        quoteCurrentQuantity:
+          type: string
+          description: amount of quote asset this AMM instruction currently holds, only for AMM instruction with `OPEN` status
+          example: "0.0000"
+        quoteInvestQuantity:
+          type: string
+          description: initial quote investment
+          example: "0.0009"
+        quotePrice:
+          type: string
+          description: current price of quote asset
+          example: "1.0000"
+        quoteWithdrawQuantity:
+          type: string
+          description: amount of quote asset returned when AMM instruction is terminated
+          example: "0.0011"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+        staticSpreadFee:
+          type: string
+          description: static spread fee, see [Get Market By Symbol](#get-/markets/-symbol-)
+          example: "0.00200000"
+        updatedAtDatetime:
+          description: denotes the time the AMM instruction was updated by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        updatedAtTimestamp:
+          description: denotes the time the AMM instruction was updated by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        upperBound:
+          type: string
+          description: upper bound of price range, in quote currency
+          example: "14000.0000"
+        yieldEarn:
+          type: string
+          description: amount of money earned in USD
+          example: "0.00"
     ObfuscatedTradeWithId:
       type: object
       required:
@@ -3507,6 +3607,7 @@ components:
         - lastTradeDatetime
         - lastTradeTimestamp
         - lastTradeQuantity
+        - ammData
       properties:
         createdAtDatetime:
           description: denotes the time of the current tick on the exchange, ISO 8601 with millisecond as string
@@ -3592,10 +3693,74 @@ components:
           description: quantity of the last trade on this symbol, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        ammData:
+          description: AMM data of all available fee tiers
+          type: array
+          minItems: 0
+          items:
+            allOf:
+              - $ref: '#/components/schemas/AmmData'
+    AmmData:
+      type: object
+      description: AMM data
+      required:
+        - feeTierId
+        - bidSpreadFee
+        - askSpreadFee
+        - baseReservesQuantity
+        - quoteReservesQuantity
+        - currentPrice
+      properties:
+        feeTierId:
+          allOf:
+            - $ref: '#/components/schemas/FeeTierId'
+        bidSpreadFee:
+          description: bid spread fee
+          type: string
+          example: "0.00040000"
+        askSpreadFee:
+          description: ask spread fee
+          type: string
+          example: "0.00040000"
+        baseReservesQuantity:
+          description: base reserves quantity
+          type: string
+          example: "245.56257825"
+        quoteReservesQuantity:
+          description: quote reserves quantity
+          type: string
+          example: "3424383.3629"
+        currentPrice:
+          description: current AMM price
+          type: string
+          example: "16856.0000"
     MarketSymbol:
       type: string
       description: market symbol as denoted in the world
       example: 'BTCUSD'
+    FeeTier:
+      type: object
+      description: unique fee tier
+      required:
+        - feeTierId
+        - staticSpreadFee
+        - isDislocationEnabled
+      properties:
+        feeTierId:
+          allOf:
+            - $ref: '#/components/schemas/FeeTierId'
+        staticSpreadFee:
+          description: static spread fee
+          type: string
+          example: "0.00040000"
+        isDislocationEnabled:
+          description: dislocation enabled/disabled
+          type: boolean
+          example: true
+    FeeTierId:
+      type: string
+      description: unique fee tier ID, see [Get Market By Symbol](#get-/markets/-symbol-)
+      example: "1"
     InstrumentId:
       type: string
       description: custody identifier for instrument
@@ -3683,6 +3848,7 @@ components:
         - marketEnabled
         - createOrderEnabled
         - cancelOrderEnabled
+        - feeTiers
       properties:
         marketId:
           description: unique market ID
@@ -3793,6 +3959,13 @@ components:
           description: able to cancel order
           type: boolean
           example: true
+        feeTiers:
+          description: all available fee tiers
+          type: array
+          minItems: 0
+          items:
+            allOf:
+              - $ref: '#/components/schemas/FeeTier'
     Asset:
       type: object
       required:
