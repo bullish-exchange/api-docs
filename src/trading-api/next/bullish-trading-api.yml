@@ -49,6 +49,7 @@ info:
     - November - deprecate subscription topics in `/private-data` - `events`, `positions` and `marginAccounts`
     ## 2023 Changes
     - January - add AMM instructions API
+    - February - deprecate `/v1/users/login`
 
     # Exchange Time
 
@@ -271,14 +272,15 @@ info:
     - Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
     - When you generate an API key you also get back the API metadata, in the next section you will learn how to use it
 
-    ## Get Your Bullish Account Id
+    ## Get Your Bullish User ID
 
     An API key additionally has a `metadata` string assoicated with it which is displayed along side the key.
-    You must base64 decode the `metadata` to extract your `account id` (example follows). You will need the `account id` in the next step.
+    You must base64 decode the `metadata` to extract your `userId` (example follows). You will need the `userId` in the next step.
+    Please note that the `accountId` field is deprecated, and will be removed along with `v1/users/login` API towards the end of Q2 2023. Clients should reference the `userId` field instead.
 
     ```shell
     echo eyJwdWJsaWNLZXkiOiJQVUJfUjFfNWNpVW52TW5rVThMOVBCWnZaa1BGcjhqdkRnUHpzcHhWNGlqOThIN1JqM1FSNzJyMkEiLCJhY2NvdW50SWQiOjIyMjAwMDAwMDAwMDAwNCwiY3JlZGVudGlhbElkIjoiMTAifQ== | base64 --decode
-    {"publicKey":"PUB_R1_5ciUnvMnkU8L9PBZvZkPFr8jvDgPzspxV4ij98H7Rj3QR72r2A","accountId":"12345","credentialId":"10"}
+    {"publicKey":"PUB_R1_5ciUnvMnkU8L9PBZvZkPFr8jvDgPzspxV4ij98H7Rj3QR72r2A","userId":"12345","accountId":"12345","credentialId":"10"}
     ```
 
     ## Add Authenticated Request Header
@@ -292,7 +294,41 @@ info:
 
     To generate/get a JWT token you will need to perform the following request:
 
-    ### POST /trading-api/v1/users/login
+    ### POST /trading-api/v2/users/login
+
+    - Body
+      - `publicKey` - bullish account public key
+      - `userId` - bullish user id corresponding to the metadata
+      - `signature` - signed JSON string encoding of `loginPayload`, see the code sample for how to get it
+      - `expirationTime` - epoch timestamp in milliseconds that is 5 minutes in the future
+      - `nonce` - epoch timestamp in milliseconds; note this login API nonce has no connection to the orders API nonce
+      - `biometricsUsed` - set to `false`
+      - `sessionKey` - set to `null`
+
+    ```json
+    {
+      "publicKey": "<PUBLIC_KEY>",
+      "signature": "<SIGNATURE>",
+      "loginPayload": {
+        "userId": "100008771"
+        "nonce": 1638776636,
+        "expirationTime": 1638776936,
+        "biometricsUsed": false,
+        "sessionKey": null
+      }
+    }
+    ```
+
+    - Response
+
+    ```json
+    {
+      "authorizer": "<AUTHORIZER>",
+      "token": "<JWT_TOKEN>"
+    }
+    ```
+
+    ### POST /trading-api/v1/users/login (Deprecated - the endpoint will be removed towards the end of Q2 2023)
 
     - Body
       - `publicKey` - bullish account public key
@@ -994,11 +1030,12 @@ tags:
     description: Authenticated APIs for interacting with users
   - name: orders
     description: Authenticated APIs for interacting with orders
-  - name: amm-instructions
+  - name: "amm instructions"
     description: |+
-      Authenticated APIs for interacting with AMM instructions.
+      Authenticated APIs that allow users to Create, View and Terminate AMM instructions.
       
-      View [Product Spec](https://github.com/bullish-exchange/api-docs/wiki) for more details on AMM.
+      Please refer to the [AMM instruction Overview Doc](https://github.com/bullish-exchange/api-docs/wiki/Automated-Market-Making-%28AMM%29-Instructions) 
+      for more details on how AMM instructions work.
   - name: custody
     description: |+
       Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/custody_basics.py)
@@ -1127,7 +1164,7 @@ x-tagGroups:
     tags:
       - accounts
       - orders
-      - amm-instructions
+      - "amm instructions"
       - trades
       - custody
   - name: Non-authenticated API
@@ -1353,7 +1390,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateOrderResponse'
         400:
-          description: Bad Request
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
         401:
           description: Not Authenticated
         403:
@@ -1363,7 +1407,7 @@ paths:
         500:
           description: Internal Server Error
       requestBody:
-        description: new order
+        description: new order request body
         required: true
         content:
           application/json:
@@ -1488,10 +1532,10 @@ paths:
   /amm-instructions:
     get:
       tags:
-        - amm-instructions
+        - "amm instructions"
       summary: Get AMM Instructions
       description: |
-        Gets the AMM instructions list based on specified filters.
+        Gets a list of AMM instructions based on applied filters.
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         - [supports pagination](#overview--pagination-support)
         - supports filtering on `symbol` and `status`
@@ -1514,7 +1558,7 @@ paths:
           name: status
           description: order status
           schema:
-            $ref: '#/components/schemas/OrderStatus'
+            $ref: '#/components/schemas/AMMInstructionStatus'
           required: false
       responses:
         200:
@@ -1539,10 +1583,11 @@ paths:
         - jwtTokenAuth: [ ]
     post:
       tags:
-        - amm-instructions
+        - "amm instructions"
       summary: Create AMM Instruction
       description: |
-        Creates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
+        Creates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) 
+        in authorization header.
 
         **Ratelimited:** `True`
       operationId: trade-create-amm-instruction
@@ -1585,7 +1630,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateAMMInstructionResponse'
         400:
-          description: Bad Request
+          description: |+
+            Bad Request
+            
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
         401:
           description: Not Authenticated
         403:
@@ -1595,7 +1647,7 @@ paths:
         500:
           description: Internal Server Error
       requestBody:
-        description: new amm instruction
+        description: new AMM instruction
         required: true
         content:
           application/json:
@@ -1605,10 +1657,10 @@ paths:
         - jwtTokenAuth: [ ]
     delete:
       tags:
-        - amm-instructions
+        - "amm instructions"
       summary: Terminate AMM Instruction
       description: |
-        Terminates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
+        Terminates a specific AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
 
         **Ratelimited:** `True`
       operationId: trade-terminate-amm-instruction
@@ -1646,8 +1698,8 @@ paths:
           name: liquidityId
           description: unique AMM instruction ID
           schema:
-            $ref: '#/components/schemas/LiquidityID'
-          required: false
+            $ref: '#/components/schemas/AMMInstructionID'
+          required: true
         - in: query
           name: test
           description: to validate integration with the `DELETE /amm-instructions` API pass the query parameter `test=true` e.g. `/amm-instructions?test=true`. The request will be validated but not executed.
@@ -1679,10 +1731,11 @@ paths:
         description: unique AMM instruction ID
     get:
       tags:
-        - amm-instructions
+        - "amm instructions"
       summary: Get AMM Instruction by ID
       description: |
-        Gets an AMM instruction by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Gets a specific AMM instruction based on the `liquidityId`, 
+        requires [bearer token](#overview--add-authenticated-request-header) in authorization header
 
         **Ratelimited:** `True`
       operationId: trade-get-amm-instruction-by-id
@@ -2572,7 +2625,7 @@ components:
       type: string
       example: "1000000.00"
       description: limit on amount of coin or token that can be withdrawn over a 24 hour period, in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei)
-    CustodyCreatedAtDatetime:
+    CustodyCreatedAtDateTime:
       type: string
       example: "2022-09-16T07:56:15.000Z"
       description: time of initial transaction
@@ -2736,6 +2789,25 @@ components:
           description: unique AMM instruction ID
           allOf:
             - $ref: '#/components/schemas/AMMInstructionID'
+    BadOrderEntryResponse:
+      type: object
+      required:
+        - message
+        - errorCode
+        - errorCodeName
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Missing signature header"
+        errorCode:
+          description: unique error code
+          type: integer
+          example: 6029
+        errorCodeName:
+          description: unique error code name
+          type: string
+          example: "MISSING_SIGNATURE_HEADER"
     CreateAMMInstructionCommand:
       type: object
       required:
@@ -3028,11 +3100,11 @@ components:
         statusReason:
           description: status reason, describes why the order is in a specific state
           type: string
-          example: "User cancelled"
+          example: "Ok"
         statusReasonCode:
           description: status reason code, see [details](#overview--order-statusreasoncode-map)
           type: integer
-          example: 1002
+          example: 1001
         createdAtDatetime:
           description: denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string
           allOf:
@@ -3356,7 +3428,7 @@ components:
         direction:
           allOf:
             - $ref: '#/components/schemas/CustodyDirection'
-        amount:
+        quantity:
           allOf:
             - $ref: '#/components/schemas/CustodyQuantity'
         symbol:
@@ -3371,9 +3443,9 @@ components:
         memo:
           allOf:
             - $ref: '#/components/schemas/CustodyDepositMemo'
-        createdAtDatetime:
+        createdAtDateTime:
           allOf:
-            - $ref: '#/components/schemas/CustodyCreatedAtDatetime'
+            - $ref: '#/components/schemas/CustodyCreatedAtDateTime'
         status:
           allOf:
             - $ref: '#/components/schemas/CustodyTransactionStatus'
@@ -3841,6 +3913,8 @@ components:
         - minCostLimit
         - timeZone
         - tickSize
+        - liquidityTickSize
+        - liquidityPrecision
         - makerFee
         - takerFee
         - spotTradingEnabled
@@ -3926,6 +4000,14 @@ components:
           description: tick size, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        liquidityTickSize:
+          description: liquidity tick size
+          type: string
+          example: "100.0000"
+        liquidityPrecision:
+          description: liquidity precision
+          type: integer
+          example: 4
         makerFee:
           description: maker fee in bps
           type: integer
@@ -4094,6 +4176,12 @@ components:
         - CLOSED
         - CANCELLED
         - REJECTED
+    AMMInstructionStatus:
+      type: string
+      example: OPEN
+      enum:
+        - OPEN
+        - CLOSED
     LiquidationRisk:
       type: string
       enum:
