@@ -2,10 +2,14 @@ openapi: 3.0.0
 servers:
   - url: https://api.exchange.bullish.com/trading-api/v1
     description: PRODUCTION
+  - url: https://registered.api.exchange.bullish.com/trading-api/v1
+    description: PRODUCTION (Cloudflare Bypass)
   - url: https://api.bugbounty.bullish.com/trading-api/v1
     description: SECURITY SANDBOX
   - url: https://api.simnext.bullish-test.com/trading-api/v1
     description: API SANDBOX
+  - url: https://registered.api.simnext.bullish-test.com/trading-api/v1
+    description: API SANDBOX (Cloudflare Bypass)
 info:
   description: |
     # Overview
@@ -509,7 +513,9 @@ info:
 
     ## Servers
       - `wss://api.exchange.bullish.com` - PRODUCTION
+      - `wss://registered.api.exchange.bullish.com` - PRODUCTION (Cloudflare Bypass)
       - `wss://api.simnext.bullish-test.com` - SANDBOX
+      - `wss://registered.api.simnext.bullish-test.com` - SANDBOX (Cloudflare Bypass)
 
     ## Send A Message Over The Web Socket
 
