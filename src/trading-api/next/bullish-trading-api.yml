@@ -53,7 +53,8 @@ info:
     - November - deprecate subscription topics in `/private-data` - `events`, `positions` and `marginAccounts`
     ## 2023 Changes
     - January - add AMM instructions API
-    - February - deprecate `/v1/users/login`
+    - February - `/v1/users/login` to be deprecated towards the end of Q2 2023
+    - February - add nonce window to `/orders` to allow out-of-order order requests to be processed
 
     # Exchange Time
 
@@ -504,6 +505,15 @@ info:
     If you wait the acknowledgement from the server side you ensure the order of
     the requests you sent and you can also verify the status of the order(s) you
     created or cancelled.
+    
+    ## How To Enable Out-Of-Order Processing of Order Requests
+    The header `BX-NONCE-WINDOW-ENABLED` is a string representation of a boolean value which enables out-of-order 
+    processing of *Create Order* or *Cancel Order* requests up to a window size of 100 from the highest previously used
+    `nonce` value (inclusive).
+    
+    The `nonce` parameter is required to be both unique and incremental, but setting `BX-NONCE-WINDOW-ENABLED` to `true` 
+    loosens this requirement such that the `nonce` is only required to be `unique`. For example, the client is able to 
+    send `nonce` values from `1...100` in any order and all the values will be valid.   
 
     # WebSockets
 
@@ -1382,6 +1392,13 @@ paths:
           schema:
             $ref: '#/components/headers/BX-NONCE'
           required: true
+        - in: header
+          name: BX-NONCE-WINDOW-ENABLED
+          description:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED/description'
+          schema:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
+          required: false
         - in: query
           name: test
           description: to validate integration with the `POST /orders` API pass the query parameter `test=true` e.g. `/orders?test=true`. The request will be validated but not executed.
@@ -1456,6 +1473,13 @@ paths:
           schema:
             $ref: '#/components/headers/BX-NONCE'
           required: true
+        - in: header
+          name: BX-NONCE-WINDOW-ENABLED
+          description:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED/description'
+          schema:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
+          required: false
         - in: query
           name: symbol
           schema:
@@ -4220,3 +4244,11 @@ components:
       schema:
         type: string
       type: string
+    BX-NONCE-WINDOW-ENABLED:
+      description: |
+        string representation of a boolean value, [enables out-of-order order requests to be processed](#overview--how-to-enable-out-of-order-processing-of-order-requests)
+      type: string
+      enum:
+        - "false"
+        - "true"
+      default: "false"
