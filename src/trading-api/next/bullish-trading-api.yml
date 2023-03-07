@@ -54,8 +54,78 @@ info:
     ## 2023 Changes
     - January - add AMM instructions API
     - February - deprecate `/v1/users/login`
-    - March - add custody SIGNET support, remove SEN support
-
+    - March 
+      - Add custody SIGNET support, remove SEN support
+      - Introduce "trading account Id" to authenticated REST API and websocket
+        - New REST API: [To retrieve all the trading account details for current user](#get-/trading-accounts) The trading account's id will be used widely.
+        - New REST API: [Get details of transfers between trading accounts:](#get-/trading-accounts/transfers) `/trading-accounts/transfers` and `/trading-accounts/transfers/{requestId}`
+        - Updated REST API: It needs to have query parameter "tradingAccountId" for the following API        
+          - [Create order](#post-/orders) update the command as following as an example:                         
+             ```json
+             "command": {
+               "commandType": "V2CreateOrder",               
+               "handle": null,
+               "symbol": "BTCUSD",
+               "type": "LMT",
+               "side": "BUY",
+               "price": "55071.5000",
+               "stopPrice": null,
+               "quantity": "1.87000000",
+               "timeInForce": "GTC",
+               "allowMargin": false,
+               "tradingAccountId": "111234567890"
+             }
+             ```
+             Old V1CreateOrder command is still supported for backwards compatibility
+             ```json
+             "command": {
+               "commandType": "V1CreateOrder",
+               "handle": null,
+               "symbol": "BTCUSD",
+               "type": "LMT",
+               "side": "BUY",
+               "price": "55071.5000",
+               "stopPrice": null,
+               "quantity": "1.87000000",
+               "timeInForce": "GTC",
+               "allowMargin": false
+             }
+             ```
+          - [Cancel order](#delete-/orders) `DELETE /v3/orders?tradingAccountId=111234567890`
+          - [Get order details](#get-/orders) `GET /v1/orders?tradingAccountId=111234567890`
+          - [Add AMM instruction](#post-/amm-instructions)
+              ```json
+              "command": {
+                "commandType": "V2AddLiquidity",
+                "symbol": "BTCUSD",
+                "baseQuantity": "10.00000000",
+                "quoteQuantity": "10.00000000",
+                "upperBound": "14000.0000",
+                "lowerBound": "12000.0000",
+                "feeTierId": "1",
+                "tradingAccountId": "111234567890"
+              }
+              ```
+            Old V1AddLiquidity command is still supported for backwards compatibility
+              ```json
+              "command": {
+                "commandType": "V1AddLiquidity",
+                "symbol": "BTCUSD",
+                "baseQuantity": "10.00000000",
+                "quoteQuantity": "10.00000000",
+                "upperBound": "14000.0000",
+                "lowerBound": "12000.0000",
+                "feeTierId": "1"
+              }
+              ```
+          - [Remove AMM instruction](#delete-/amm-instructions): `DELETE /v1/amm-instructions?tradingAccountId=111234567890`
+          - [Get AMM instruction details](#get-/amm-instructions): `GET /v1/amm-instructions?tradingAccountId=111234567890`
+          - [Get trade details](#get-/orders): `GET /v1/trades?tradingAccountId=111234567890`
+          - [Get account details](#get-/accounts/spot): `GET /v1/accounts/spot?tradingAccountId=111234567890`
+        
+        
+        - Web Socket: It needs to have query parameter "tradingAccountId", example: `/v1/private-data?tradingAccountId=111234567890`
+    
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -410,7 +480,7 @@ info:
       "nonce": "<NONCE>",
       "authorizer": "<AUTHORIZER>",
       "command": {
-        "commandType": "V1CreateOrder",
+        "commandType": "V2CreateOrder",        
         "handle": null,
         "symbol": "BTCUSD",
         "type": "LMT",
@@ -419,7 +489,8 @@ info:
         "stopPrice": null,
         "quantity": "1.87000000",
         "timeInForce": "GTC",
-        "allowMargin": false
+        "allowMargin": false,
+        "tradingAccountId": "111234567890"
       }
     }
     ```
@@ -438,10 +509,11 @@ info:
       "nonce": "<NONCE>",
       "authorizer": "<AUTHORIZER>"
       "command": {
-        "commandType": "V1CancelOrder",
+        "commandType": "V2CancelOrder",
         "orderId": "390755251743358977",
         "handle": null,
-        "symbol": "BTCUSD"
+        "symbol": "BTCUSD",
+        "tradingAccountId": "111234567890"
       }
     }
     ```
@@ -873,7 +945,7 @@ info:
     - All private data updates are realtime.
 
     Route
-    - `/trading-api/v1/private-data`
+    - `/trading-api/v1/private-data?tradingAccountId=<Id of the Trading Account>`
 
     | Topic             | Description                                                                                                                         | Data Type           | Subscription Type |
     | :--               | :--                                                                                                                                 | :--                 | :--               |
@@ -1206,6 +1278,122 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+  /trading-accounts:
+    get:
+      tags:
+        - trading-accounts
+      summary: Get all trading Accounts details
+      description: |
+        Gets all trading accounts details, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: user-get-trading-accounts
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/TradingAccountResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+  /trading-accounts/transfers:
+    get:
+      tags:
+        - trading-accounts
+      summary: Get all trading account transfer details
+      description: |
+        Gets all trading accounts transfer details, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: user-get-trading-accounts-transfers
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/TradingAccountTransfer'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+  /trading-accounts/transfers/{requestId}:
+    get:
+      tags:
+        - trading-accounts
+      summary: Get trading account transfer details for the given request id
+      description: |
+        Gets one trading accounts transfer details for the given request id. requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: user-get-trading-accounts-transfers-request-id
+      parameters:
+        - in: requestId
+          name: requestId
+          schema:
+            type: number
+          required: true
+          description: requestId
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingAccountTransfer'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /accounts/spot:
     get:
       tags:
@@ -1222,6 +1410,12 @@ paths:
           description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
           schema:
             $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
           required: true
       responses:
         200:
@@ -1257,6 +1451,12 @@ paths:
           name: symbol
           schema:
             $ref: '#/components/schemas/AssetSymbol'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
           required: true
       tags:
         - accounts
@@ -1328,6 +1528,12 @@ paths:
           schema:
             $ref: '#/components/schemas/OrderStatus'
           required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       responses:
         200:
           description: OK
@@ -1480,6 +1686,12 @@ paths:
           schema:
             $ref: '#/components/schemas/Boolean'
           required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       responses:
         204:
           description: Status OK. This means an cancel order command was successfully acknowledged. It does not necessarily mean the order was cancelled. To check the current status of the order, query [Get Order by ID](#get-/orders/-orderId-) using the `orderId`. Also consult the section [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests).
@@ -1518,6 +1730,12 @@ paths:
           description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
           schema:
             $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
           required: true
       responses:
         200:
@@ -1567,6 +1785,12 @@ paths:
           schema:
             $ref: '#/components/schemas/AMMInstructionStatus'
           required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       responses:
         200:
           description: OK
@@ -1708,6 +1932,12 @@ paths:
             $ref: '#/components/schemas/AMMInstructionID'
           required: true
         - in: query
+          name: tradingAccountId
+          description: id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+        - in: query
           name: test
           description: to validate integration with the `DELETE /amm-instructions` API pass the query parameter `test=true` e.g. `/amm-instructions?test=true`. The request will be validated but not executed.
           schema:
@@ -1801,6 +2031,12 @@ paths:
           schema:
             $ref: '#/components/schemas/OrderID'
           required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       responses:
         200:
           description: OK
@@ -1837,6 +2073,12 @@ paths:
             type: number
           required: true
           description: trade ID
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       tags:
         - trades
       summary: Get Trade by ID
@@ -2516,6 +2758,10 @@ components:
       description: Unique numeric identifier generated on the client side expressed as a string value
       type: string
       example: "187"
+    TradingAccountId:
+      description: id of the trading account.
+      type: string
+      example: "111234567890"
     MarketID:
       type: string
       example: BTCUSD
@@ -2743,11 +2989,12 @@ components:
         - quantity
         - timeInForce
         - allowMargin
+        - tradingAccountId
       properties:
         commandType:
-          description: The command type, it must be 'V1CreateOrder'
+          description: The command type, it must be 'V2CreateOrder'
           type: string
-          example: 'V1CreateOrder'
+          example: 'V2CreateOrder'
         handle:
           allOf:
             - $ref: '#/components/schemas/OrderHandle'
@@ -2782,6 +3029,60 @@ components:
           description: allow margin trading
           type: boolean
           example: false
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+    TradingAccountTransfer:
+      type: object
+      required:
+        - to
+        - from
+        - symbol
+        - quantity
+        - requestId
+        - userId
+      properties:
+        to:
+          description: Id of the trading account where the fund transferred to
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        from:
+          description: Id of the trading account where the fund sourced from
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        symbol:
+          description: The currency get transferred
+          example: BTC
+        quantity:
+          description: Amount of the asset get transferred
+          example: 1.00000000
+        requestId:
+          description: The Id of the transfer action
+          example: 123456788
+        userId:
+          description: The Id of the user who initiate the transfer
+          example: 22234567890
+    TradingAccountResponse:
+      type: object
+      required:
+        - tradingAccountId
+        - tradingAccountName
+        - tradingAccountDescription
+        - isPrimaryAccount
+      properties:
+        tradingAccountId:
+          description: Id of the trading account
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        tradingAccountName:
+          description: Name of the trading account
+          example: algo trading account
+        tradingAccountDescription:
+          description: description of the trading account
+          example: algo trading account with experimental strategy
+        isPrimaryAccount:
+          description: whether this is the primary account
+          example: true
     CreateAMMInstructionResponse:
       type: object
       required:
@@ -2831,11 +3132,12 @@ components:
         - upperBound
         - lowerBound
         - feeTierId
+        - tradingAccountId
       properties:
         commandType:
-          description: The command type, it must be 'V1AddLiquidity'
+          description: The command type, it must be 'V2AddLiquidity'
           type: string
-          example: 'V1AddLiquidity'
+          example: 'V2AddLiquidity'
         symbol:
           allOf:
             - $ref: '#/components/schemas/MarketSymbol'
@@ -2858,6 +3160,9 @@ components:
         feeTierId:
           allOf:
             - $ref: '#/components/schemas/FeeTierId'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
     CancelOrderCommand:
       type: object
       required:
@@ -2865,11 +3170,12 @@ components:
         - orderId
         - handle
         - symbol
+        - tradingAccountId
       properties:
         commandType:
-          description: The command type, it must be 'V1CancelOrder'
+          description: The command type, it must be 'V2CancelOrder'
           type: string
-          example: 'V1CancelOrder'
+          example: 'V2CancelOrder'
         orderId:
           description: unique order ID
           allOf:
@@ -2880,6 +3186,9 @@ components:
         symbol:
           allOf:
             - $ref: '#/components/schemas/MarketSymbol'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
     Authorizer:
       type: string
       format: string
@@ -2935,6 +3244,7 @@ components:
         - timestamp
         - nonce
         - authorizer
+        - tradingAccountId
         - command
       properties:
         timestamp:
@@ -2947,6 +3257,9 @@ components:
           description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
           allOf:
             - $ref: '#/components/schemas/Authorizer'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
         command:
           description: the command to be executed which is sent in the request payload
           allOf:
