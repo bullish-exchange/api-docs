@@ -54,6 +54,7 @@ info:
     ## 2023 Changes
     - January - add AMM instructions API
     - February - deprecate `/v1/users/login`
+    - March - add custody SIGNET support, remove SEN support
 
     # Exchange Time
 
@@ -2051,7 +2052,7 @@ paths:
         - custody
       summary: Get Withdrawal Instructions for Fiat
       description: |
-        Get withdrawal instructions added by the user. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website. For SEN destinations the owner of the API key must have been onboarded to SEN for the details to appear in the response. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Get withdrawal instructions added by the user. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-withdrawal-instructions
@@ -2105,6 +2106,12 @@ paths:
         | USDC | 6dp |
         | LTC | 8dp |
         | LINK | 8dp |
+        | MATIC | 8dp |
+        | UNI | 8dp |
+        | AAVE | 8dp |
+        | CRV | 8dp |
+        | MANA | 8dp |
+        | SUSHI | 8dp |
 
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-withdrawal-challenge
@@ -2578,8 +2585,8 @@ components:
       example: "9873481227"
     CustodyBankNetworkID:
       type: string
-      description: the fiat network SWIFT, ABA or SEN
-      example: SEN
+      description: the fiat network SWIFT, ABA or SIGNET
+      example: SWIFT
     CustodyBankRoutingCode:
       type: string
       description: routing code of bank
@@ -3531,7 +3538,7 @@ components:
         network:
           type: string
           example: SWIFT
-          description: the network that the account belongs to and the transaction will be performed on SWIFT, ABA or SEN
+          description: the network that the account belongs to and the transaction will be performed on SWIFT, ABA or SIGNET
         symbol:
           type: string
           example: USD
@@ -3540,7 +3547,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/CustodyBankAccountNumber'
           example: "5090022533"
-          description: the Bullish account number, varies for SWIFT/ABA and SEN
+          description: the Bullish account number, varies for SWIFT/ABA and SIGNET
         name:
           type: string
           example: Bullish (GI) Limited
