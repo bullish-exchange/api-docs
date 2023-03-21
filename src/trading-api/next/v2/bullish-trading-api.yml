@@ -56,75 +56,18 @@ info:
     - February - deprecate `/v1/users/login`
     - March 
       - Add custody SIGNET support, remove SEN support
-      - Introduce "trading account Id" to authenticated REST API and websocket
-        - New REST API: [To retrieve all the trading account details for current user](#get-/trading-accounts) The trading account's id will be used widely.
-        - Updated REST API: It needs to have query parameter "tradingAccountId" for the following API        
-          - [Create order](#post-/orders) update the command as following as an example:                         
-             ```json
-             "command": {
-               "commandType": "V2CreateOrder",               
-               "handle": null,
-               "symbol": "BTCUSD",
-               "type": "LMT",
-               "side": "BUY",
-               "price": "55071.5000",
-               "stopPrice": null,
-               "quantity": "1.87000000",
-               "timeInForce": "GTC",
-               "allowMargin": false,
-               "tradingAccountId": "111234567890"
-             }
-             ```
-             Old V1CreateOrder command is still supported for backwards compatibility
-             ```json
-             "command": {
-               "commandType": "V1CreateOrder",
-               "handle": null,
-               "symbol": "BTCUSD",
-               "type": "LMT",
-               "side": "BUY",
-               "price": "55071.5000",
-               "stopPrice": null,
-               "quantity": "1.87000000",
-               "timeInForce": "GTC",
-               "allowMargin": false
-             }
-             ```
-          - [Cancel order](#delete-/orders) `DELETE /v1/orders?tradingAccountId=111234567890`
-          - [Get order details](#get-/orders) `GET /v1/orders?tradingAccountId=111234567890`
-          - [Add AMM instruction](#post-/amm-instructions)
-              ```json
-              "command": {
-                "commandType": "V2AddLiquidity",
-                "symbol": "BTCUSD",
-                "baseQuantity": "10.00000000",
-                "quoteQuantity": "10.00000000",
-                "upperBound": "14000.0000",
-                "lowerBound": "12000.0000",
-                "feeTierId": "1",
-                "tradingAccountId": "111234567890"
-              }
-              ```
-            Old V1AddLiquidity command is still supported for backwards compatibility
-              ```json
-              "command": {
-                "commandType": "V1AddLiquidity",
-                "symbol": "BTCUSD",
-                "baseQuantity": "10.00000000",
-                "quoteQuantity": "10.00000000",
-                "upperBound": "14000.0000",
-                "lowerBound": "12000.0000",
-                "feeTierId": "1"
-              }
-              ```
-          - [Remove AMM instruction](#delete-/amm-instructions): `DELETE /v1/amm-instructions?tradingAccountId=111234567890`
-          - [Get AMM instruction details](#get-/amm-instructions): `GET /v1/amm-instructions?tradingAccountId=111234567890`
-          - [Get trade details](#get-/orders): `GET /v1/trades?tradingAccountId=111234567890`
-          - [Get account details](#get-/accounts/spot): `GET /v1/accounts/spot?tradingAccountId=111234567890`
-        
-        
-        - Web Socket: It needs to have query parameter "tradingAccountId", example: `/v1/private-data?tradingAccountId=111234567890` (old query `/v1/private-data`)
-    
+      - Introduce "trading account Id" to authenticated REST API and websocket        
+        - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/trading-accounts) The trading account's id will be used in all other REST API 
+        - Updated REST API:
+          - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
+          - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
+          - Get order details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
+          - Add AMM instruction [Current API](../v1/#post-/amm-instructions) -> [New API](../v2/#post-/amm-instructions)
+          - Remove AMM instruction [Current API](../v1/#delete-/amm-instructions) -> [New API](../v2/#delete-/amm-instructions)
+          - Get AMM instruction details [Current API](../v1/#get-/amm-instructions) -> [New API](../v2/#get-/amm-instructions)
+          - Get trade details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
+          - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
+        - Web Socket subscription: (Current query `/v1/private-data`) -> (New query `/v1/private-data?tradingAccountId=111234567890`)         
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -462,6 +405,8 @@ info:
     Find below two `<COMMAND>` examples:
     1. [Create Spot Or Margin Order](#overview--create-spot-or-margin-order-example)
     2. [Cancel Spot Or Margin Order](#overview--cancel-spot-or-margin-order-example)
+    3. [Add AMM instruction](#overview--add-amm-instruction)
+    4. [Remove AMM instruction](#overview--remove-amm-instruction)
 
     ### Create Spot Or Margin Order Example
 
@@ -516,7 +461,40 @@ info:
       }
     }
     ```
-
+    ### Add Amm instruction 
+    
+    ```json
+    {
+      "timestamp": "1621490985000",
+      "nonce": "123456789",
+      "authorizer": "03E02367E8C900000500000000000000",
+      "command": {
+        "commandType": "V2AddLiquidity",
+        "symbol": "BTCUSD",
+        "baseQuantity": "0.00000000",
+        "quoteQuantity": "0.00000000",
+        "upperBound": "14000.0000",
+        "lowerBound": "12000.0000",
+        "feeTierId": "1",
+        "tradingAccountId": "111234567890"
+      }
+    }
+    ```
+    ### Remove Amm instruction
+    ```json
+    {
+      "timestamp": "<TIMESTAMP>",
+      "nonce": "<NONCE>",
+      "authorizer": "<AUTHORIZER>"
+      "command": {
+        "commandType": "V2RemoveLiquidity",
+        "liquidityId": "557839859386417160",
+        "symbol": "BTCUSD",
+        "tradingAccountId": "111234567890"
+      }
+    }
+    ```
+    
     ## Construct The BX-SIGNATURE Header
 
     Set the `BX-SIGNATURE` header to the value resulting from signing the `<COMMAND>`.
@@ -1561,6 +1539,8 @@ paths:
       description: |
         Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
 
+        [Command Example](#overview--create-spot-or-margin-order-example)
+
         **Ratelimited:** `True`
       operationId: trade-create-order
       parameters:
@@ -1634,6 +1614,8 @@ paths:
       description: |
         Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
         Use either the `handle` or `orderId` field in the query parameters.
+
+        [Command example](#overview--cancel-spot-or-margin-order-example)
 
         **Ratelimited:** `True`
       operationId: trade-cancel-order
@@ -1818,7 +1800,9 @@ paths:
       description: |
         Creates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) 
         in authorization header.
-
+        
+        [Command Example](#overview--add-amm-instruction)
+        
         **Ratelimited:** `True`
       operationId: trade-create-amm-instruction
       parameters:
@@ -1891,7 +1875,9 @@ paths:
       summary: Terminate AMM Instruction
       description: |
         Terminates a specific AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
-
+        
+        [Command Example](#overview--remove-amm-instruction)
+        
         **Ratelimited:** `True`
       operationId: trade-terminate-amm-instruction
       parameters:
