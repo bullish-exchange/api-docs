@@ -58,7 +58,6 @@ info:
       - Add custody SIGNET support, remove SEN support
       - Introduce "trading account Id" to authenticated REST API and websocket
         - New REST API: [To retrieve all the trading account details for current user](#get-/trading-accounts) The trading account's id will be used widely.
-        - New REST API: [Get details of transfers between trading accounts:](#get-/trading-accounts/transfers) `/trading-accounts/transfers` and `/trading-accounts/transfers/{requestId}`
         - Updated REST API: It needs to have query parameter "tradingAccountId" for the following API        
           - [Create order](#post-/orders) update the command as following as an example:                         
              ```json
@@ -91,7 +90,7 @@ info:
                "allowMargin": false
              }
              ```
-          - [Cancel order](#delete-/orders) `DELETE /v3/orders?tradingAccountId=111234567890`
+          - [Cancel order](#delete-/orders) `DELETE /v1/orders?tradingAccountId=111234567890`
           - [Get order details](#get-/orders) `GET /v1/orders?tradingAccountId=111234567890`
           - [Add AMM instruction](#post-/amm-instructions)
               ```json
@@ -124,7 +123,7 @@ info:
           - [Get account details](#get-/accounts/spot): `GET /v1/accounts/spot?tradingAccountId=111234567890`
         
         
-        - Web Socket: It needs to have query parameter "tradingAccountId", example: `/v1/private-data?tradingAccountId=111234567890`
+        - Web Socket: It needs to have query parameter "tradingAccountId", example: `/v1/private-data?tradingAccountId=111234567890` (old query `/v1/private-data`)
     
     # Exchange Time
 
