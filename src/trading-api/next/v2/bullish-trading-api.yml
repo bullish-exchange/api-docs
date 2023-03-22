@@ -1293,84 +1293,7 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
-  /trading-accounts/transfers:
-    get:
-      tags:
-        - trading-accounts
-      summary: Get all trading account transfer details
-      description: |
-        Gets all trading accounts transfer details, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
 
-        **Ratelimited:** `True`
-      operationId: user-get-trading-accounts-transfers
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                minItems: 0
-                maxItems: 25
-                items:
-                  $ref: '#/components/schemas/TradingAccountTransfer'
-        401:
-          description: Not Authenticated
-        403:
-          description: Access Forbidden
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: [ ]
-  /trading-accounts/transfers/{requestId}:
-    get:
-      tags:
-        - trading-accounts
-      summary: Get trading account transfer details for the given request id
-      description: |
-        Gets one trading accounts transfer details for the given request id. requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-
-        **Ratelimited:** `True`
-      operationId: user-get-trading-accounts-transfers-request-id
-      parameters:
-        - in: requestId
-          name: requestId
-          schema:
-            type: number
-          required: true
-          description: requestId
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TradingAccountTransfer'
-        401:
-          description: Not Authenticated
-        403:
-          description: Access Forbidden
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: [ ]
   /accounts/spot:
     get:
       tags:
@@ -3017,36 +2940,7 @@ components:
         tradingAccountId:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
-    TradingAccountTransfer:
-      type: object
-      required:
-        - to
-        - from
-        - symbol
-        - quantity
-        - requestId
-        - userId
-      properties:
-        to:
-          description: Id of the trading account where the fund transferred to
-          allOf:
-            - $ref: '#/components/schemas/TradingAccountId'
-        from:
-          description: Id of the trading account where the fund sourced from
-          allOf:
-            - $ref: '#/components/schemas/TradingAccountId'
-        symbol:
-          description: The currency get transferred
-          example: BTC
-        quantity:
-          description: Amount of the asset get transferred
-          example: 1.00000000
-        requestId:
-          description: The Id of the transfer action
-          example: 123456788
-        userId:
-          description: The Id of the user who initiate the transfer
-          example: 22234567890
+
     TradingAccountResponse:
       type: object
       required:
