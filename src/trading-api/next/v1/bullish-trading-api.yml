@@ -54,8 +54,21 @@ info:
     ## 2023 Changes
     - January - add AMM instructions API
     - February - deprecate `/v1/users/login`
-    - March - add custody SIGNET support, remove SEN support
-
+    - March
+      - add custody SIGNET support, remove SEN support
+      - Introduce "trading account Id" to authenticated REST API and websocket
+        - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/trading-accounts) The trading account's id will be used in all other REST API 
+        - Updated REST API:
+          - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
+          - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
+          - Get order details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
+          - Add AMM instruction [Current API](../v1/#post-/amm-instructions) -> [New API](../v2/#post-/amm-instructions)
+          - Remove AMM instruction [Current API](../v1/#delete-/amm-instructions) -> [New API](../v2/#delete-/amm-instructions)
+          - Get AMM instruction details [Current API](../v1/#get-/amm-instructions) -> [New API](../v2/#get-/amm-instructions)
+          - Get trade details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
+          - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
+        - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
+    
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
