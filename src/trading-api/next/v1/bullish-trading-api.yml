@@ -220,6 +220,9 @@ info:
     | 6004 | Expired  |
     | 6005 | User cancelled |
     | 6007 | Self cross prevention  |
+    | 6011 | Self cross prevention amend  |
+    | 6012 | Stop limit amend  |
+    | 6013 | Partially filled  |
 
     # Custody statusReasonCode Map
 
