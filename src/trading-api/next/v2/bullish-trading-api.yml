@@ -65,7 +65,7 @@ info:
           - Add AMM instruction [Current API](../v1/#post-/amm-instructions) -> [New API](../v2/#post-/amm-instructions)
           - Remove AMM instruction [Current API](../v1/#delete-/amm-instructions) -> [New API](../v2/#delete-/amm-instructions)
           - Get AMM instruction details [Current API](../v1/#get-/amm-instructions) -> [New API](../v2/#get-/amm-instructions)
-          - Get trade details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
+          - Get trade details [Current API](../v1/#get-/trades) -> [New API](../v2/#get-/trades)
           - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
         - Web Socket subscription: (Current query `/v1/private-data`) -> (New query `/v1/private-data?tradingAccountId=111234567890`)         
     # Exchange Time
