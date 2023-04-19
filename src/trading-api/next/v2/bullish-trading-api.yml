@@ -1692,6 +1692,60 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
+
+  /command?V1CancelAllOrders:
+    post:
+      tags:
+        - orders
+      summary: Cancel All Orders
+      description: |
+        Cancel all open orders
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: trade-cancel-all-orders
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: Status OK. This means a cancel all orders command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelAllOrdersResponse'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: Cancel All Orders request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAllOrdersRequest'
+      security:
+        - jwtTokenAuth: [ ]
+
+
   /amm-instructions:
     get:
       tags:
@@ -3129,6 +3183,58 @@ components:
           description: the command to be executed which is sent in the request payload
           allOf:
             - $ref: '#/components/schemas/CreateOrderCommand'
+
+    CancelAllOrdersRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/CancelAllOrdersCommand'
+    CancelAllOrdersCommand:
+      type: object
+      required:
+        - commandType
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V1CancelAllOrders'
+          type: string
+          example: 'V1CancelAllOrders'
+        tradingAccountId:
+          description: unique trading account Id
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+    CancelAllOrdersResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - CancelAllOrders"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+
     CreateAMMInstructionRequest:
       type: object
       required:
