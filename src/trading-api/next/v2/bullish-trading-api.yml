@@ -58,7 +58,8 @@ info:
     - March - add unsolicited amend status reason code
     - March - add custody SIGNET support, remove SEN support
     - March - introduce "trading account Id" to authenticated REST API and websocket
-      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/trading-accounts) The trading account's id will be used in all other REST API 
+      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) The trading account's id will be used in all other REST API
+      - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1AssetTransfer)
       - Updated REST API:
         - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
         - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
@@ -499,6 +500,24 @@ info:
         "liquidityId": "557839859386417160",
         "symbol": "BTCUSD",
         "tradingAccountId": "111234567890"
+      }
+    }
+    ```
+    
+    ### Command for Transfer Asset 
+    `POST /trading-api/v1/command?commandType=V1TransferAsset`
+    
+    ```json
+    {
+      "timestamp": "<TIMESTAMP>",
+      "nonce": "<NONCE>",
+      "authorizer": "<AUTHORIZER>"
+      "command": {
+        "commandType": "V1TransferAsset",
+        "assetSymbol": "USD",
+        "quantity": "7.0000",
+        "fromTradingAccountId": "11123456789",
+        "toTradingAccountId": "11198765432"
       }
     }
     ```
@@ -2695,6 +2714,73 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+  /command?commandType=V1AssetTransfer:
+    post:
+      tags:
+        - trading-accounts
+      summary: Transfer Asset
+      description: |
+        Send command to transfer asset between two trading accounts.
+      operationId: command
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: command signature is a signature resulted from the [signed message of the `<COMMAND>`](#overview--construct-the-bx-signature-header)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: command timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: command nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+
+      responses:
+        200:
+          description: Status OK. This means the request was successfully acknowledged. It does not necessarily mean the command was successfully executed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingAccountTransferResponse'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: Command for action
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingAccountTransferRequest'
+      security:
+        - jwtTokenAuth: [ ]
 components:
   securitySchemes:
     jwtTokenAuth:
@@ -3163,6 +3249,72 @@ components:
       format: string
       example: "03E02367E8C900000500000000000000"
       description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+
+    TradingAccountTransferRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/TransferAssetCommand'
+    TradingAccountTransferResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - SubAccountTransfer"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+    TransferAssetCommand:
+      type: object
+      required:
+        - commandType
+        - assetSymbol
+        - quantity
+        - fromTradingAccountId
+        - toTradingAccountId
+      properties:
+        commandType:
+          description: The command type, e.g. 'V1TransferAsset'
+          type: string
+          example: 'V1TransferAsset'
+        assetSymbol:
+          description: Symbol of the asset. i.e. currency
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        quantity:
+          description: Quantity of the asset.
+          type: string
+          example: '100'
+        fromTradingAccountId:
+          description: Source of the asset transfer
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        toTradingAccountId:
+          description: Destination of the asset transfer
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
     CreateOrderRequest:
       type: object
       required:
