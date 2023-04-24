@@ -1693,7 +1693,7 @@ paths:
       security:
         - jwtTokenAuth: []
 
-  /command?V1CancelAllOrders:
+  /command?commandType=V1CancelAllOrders:
     post:
       tags:
         - orders
