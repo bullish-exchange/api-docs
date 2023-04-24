@@ -70,7 +70,9 @@ info:
         - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
       - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
     - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
-    
+    - April - added `/accounts/trading-accounts` endpoint to fetch all trading accounts
+    - April - added V1CancelAllOrders to cancel all open orders by trading account id
+   
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -1275,7 +1277,7 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
-  /trading-accounts:
+  /accounts/trading-accounts:
     get:
       tags:
         - trading-accounts
