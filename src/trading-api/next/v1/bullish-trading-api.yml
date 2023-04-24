@@ -70,6 +70,7 @@ info:
         - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
       - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
     - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
+    - April - added `/accounts/trading-accounts` endpoint to fetch all trading accounts
     - April - added V1CancelAllOrders to cancel all open orders by trading account id
     
     # Exchange Time
@@ -1240,6 +1241,46 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+
+  /accounts/trading-accounts:
+    get:
+      tags:
+        - trading-accounts
+      summary: Get all trading Accounts details
+      description: |
+        Gets all trading accounts details, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: user-get-trading-accounts
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/TradingAccountResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+
   /accounts/spot:
     get:
       tags:
@@ -2889,6 +2930,35 @@ components:
           description: allow margin trading
           type: boolean
           example: false
+    TradingAccountResponse:
+      type: object
+      required:
+        - defaultAccount
+        - primaryAccount
+        - tradingAccountId
+        - tradingAccountName
+        - tradingAccountDescription
+        - type
+      properties:
+        defaultAccount:
+          description: whether this is the default account
+          example: true
+        primaryAccount:
+          description: whether this is the primary account
+          example: true
+        tradingAccountDescription:
+          description: description of the trading account
+          example: algo trading account with experimental strategy
+        tradingAccountId:
+          description: Id of the trading account
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        tradingAccountName:
+          description: Name of the trading account
+          example: algo trading account
+        type:
+          description: the type of account
+          example: tradingAccount
     CreateAMMInstructionResponse:
       type: object
       required:
