@@ -71,7 +71,7 @@ info:
       - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
     - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
     - April - added `/accounts/trading-accounts` endpoint to fetch all trading accounts
-    - April - added V1CancelAllOrders to cancel all open orders by trading account id
+    - April - added V1CancelAllOrders to cancel all open limit orders by trading account id
     
     # Exchange Time
 
@@ -1631,13 +1631,13 @@ paths:
     post:
       tags:
         - orders
-      summary: Cancel All Orders
+      summary: Cancel All Open Limit Orders
       description: |
-        Cancel all open orders
+        Cancel all open limit orders
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
 
         **Ratelimited:** `True`
-      operationId: trade-cancel-all-orders
+      operationId: trade-cancel-all-open-limit-orders
       parameters:
         - in: header
           name: Authorization
@@ -1647,7 +1647,7 @@ paths:
           required: true
       responses:
         200:
-          description: Status OK. This means a cancel all orders command was successfully acknowledged.
+          description: Status OK. This means a cancel all open limit orders command was successfully acknowledged.
           content:
             application/json:
               schema:
@@ -1670,7 +1670,7 @@ paths:
         500:
           description: Internal Server Error
       requestBody:
-        description: Cancel All Orders request body
+        description: Cancel All Open Limit Orders request body
         required: true
         content:
           application/json:
