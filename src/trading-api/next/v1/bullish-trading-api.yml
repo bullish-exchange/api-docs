@@ -58,7 +58,8 @@ info:
     - March - add unsolicited amend status reason code
     - March - add custody SIGNET support, remove SEN support
     - March - introduce "trading account Id" to authenticated REST API and websocket
-      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/trading-accounts) The trading account's id will be used in all other REST API 
+      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) The trading account's id will be used in all other REST API
+      - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1TransferAsset) 
       - Updated REST API:
         - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
         - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
@@ -228,6 +229,7 @@ info:
     | 6012 | Stop limit amend  |
     | 6013 | Partially filled  |
     
+    
     # Custody statusReasonCode Map
 
     - The `statusReasonCode` is a field on Custody API's withdrawal and error messages which provides details on the reasoning for the current state of the request
@@ -313,7 +315,7 @@ info:
 
     Each authenticated request must include a `Authorization` header:
       - `Authorization: Bear <JWT_TOKEN>`
-
+    
     The JWT is valid for 24 hours.
 
     ## Generate A JWT Token
@@ -707,7 +709,7 @@ info:
 
     ### Hybrid OrderBook WebSocket
     **Route**
-    - `/trading-api/markets/{symbol}/orderbook/hybrid` (to be deprecated towards the end of Q2 2023)
+    - `/trading-api/markets/{symbol}/orderbook/hybrid`
     - `/trading-api/v2/market-data/orderbook/hybrid/{symbol}?depth={depth}&aggregationFactor={aggregationFactor}`
     
     **Additional notes**: 
@@ -1241,7 +1243,6 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
-
   /accounts/trading-accounts:
     get:
       tags:
@@ -1280,7 +1281,6 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
-
   /accounts/spot:
     get:
       tags:
@@ -1360,6 +1360,7 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
+
   /orders:
     get:
       tags:
@@ -1625,7 +1626,6 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
-
 
   /command?commandType=V1CancelAllOrders:
     post:
@@ -2933,22 +2933,12 @@ components:
     TradingAccountResponse:
       type: object
       required:
-        - defaultAccount
-        - primaryAccount
         - tradingAccountId
         - tradingAccountName
         - tradingAccountDescription
-        - type
+        - isPrimaryAccount
+        - rateLimitToken
       properties:
-        defaultAccount:
-          description: whether this is the default account
-          example: true
-        primaryAccount:
-          description: whether this is the primary account
-          example: true
-        tradingAccountDescription:
-          description: description of the trading account
-          example: algo trading account with experimental strategy
         tradingAccountId:
           description: Id of the trading account
           allOf:
@@ -2956,9 +2946,15 @@ components:
         tradingAccountName:
           description: Name of the trading account
           example: algo trading account
-        type:
-          description: the type of account
-          example: tradingAccount
+        tradingAccountDescription:
+          description: description of the trading account
+          example: algo trading account with experimental strategy
+        isPrimaryAccount:
+          description: whether this is the primary account
+          example: true
+        rateLimitToken:
+          description: unique rate limit token of the trading account
+          example: 97d98951b12fb11f330dd9cb1b807d888c702679ee602edcf1ebc6bac17ad63d
     CreateAMMInstructionResponse:
       type: object
       required:
@@ -3134,10 +3130,6 @@ components:
           description: the command to be executed which is sent in the request payload
           allOf:
             - $ref: '#/components/schemas/CreateOrderCommand'
-
-
-
-
     CreateAMMInstructionRequest:
       type: object
       required:
