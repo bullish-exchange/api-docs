@@ -59,7 +59,7 @@ info:
     - March - add custody SIGNET support, remove SEN support
     - March - introduce "trading account Id" to authenticated REST API and websocket
       - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) The trading account's id will be used in all other REST API
-      - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1AssetTransfer)
+      - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1TransferAsset) 
       - Updated REST API:
         - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
         - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
@@ -73,7 +73,7 @@ info:
     - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
     - April - added `/accounts/trading-accounts` endpoint to fetch all trading accounts
     - April - added V1CancelAllOrders to cancel all open limit orders by trading account id
-   
+    
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -303,6 +303,7 @@ info:
     An API key additionally has a `metadata` string assoicated with it which is displayed along side the key.
     You must base64 decode the `metadata` to extract your `userId` (example follows). You will need the `userId` in the next step.
     Please note that the `accountId` field is deprecated, and will be removed along with `v1/users/login` API towards the end of Q2 2023. Clients should reference the `userId` field instead.
+    Old `metadata` strings generated before the March 2023 upgrade will not contain the `userId` field; clients are advised to get the `metadata` from the Settings page on the UI again.
 
     ```shell
     echo eyJwdWJsaWNLZXkiOiJQVUJfUjFfNWNpVW52TW5rVThMOVBCWnZaa1BGcjhqdkRnUHpzcHhWNGlqOThIN1JqM1FSNzJyMkEiLCJhY2NvdW50SWQiOjIyMjAwMDAwMDAwMDAwNCwiY3JlZGVudGlhbElkIjoiMTAifQ== | base64 --decode
@@ -762,7 +763,7 @@ info:
 
     ### Hybrid OrderBook WebSocket
     **Route**
-    - `/trading-api/markets/{symbol}/orderbook/hybrid` (to be deprecated towards the end of Q2 2023)
+    - `/trading-api/markets/{symbol}/orderbook/hybrid`
     - `/trading-api/v2/market-data/orderbook/hybrid/{symbol}?depth={depth}&aggregationFactor={aggregationFactor}`
     
     **Additional notes**: 
@@ -1426,6 +1427,7 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
+
   /orders:
     get:
       tags:
@@ -1724,7 +1726,7 @@ paths:
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
 
         **Ratelimited:** `True`
-      operationId: trade-cancel-all-limit-orders
+      operationId: trade-cancel-all-open-limit-orders
       parameters:
         - in: header
           name: Authorization
@@ -1763,9 +1765,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CancelAllOrdersRequest'
+
       security:
         - jwtTokenAuth: [ ]
-
 
   /amm-instructions:
     get:
@@ -2714,7 +2716,7 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
-  /command?commandType=V1AssetTransfer:
+  /command?commandType=V1TransferAsset:
     post:
       tags:
         - trading-accounts
@@ -3124,6 +3126,7 @@ components:
         - tradingAccountName
         - tradingAccountDescription
         - isPrimaryAccount
+        - rateLimitToken
       properties:
         tradingAccountId:
           description: Id of the trading account
@@ -3138,6 +3141,9 @@ components:
         isPrimaryAccount:
           description: whether this is the primary account
           example: true
+        rateLimitToken:
+          description: unique rate limit token of the trading account
+          example: 97d98951b12fb11f330dd9cb1b807d888c702679ee602edcf1ebc6bac17ad63d
     CreateAMMInstructionResponse:
       type: object
       required:
@@ -3244,12 +3250,61 @@ components:
         tradingAccountId:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+    CancelAllOrdersRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/CancelAllOrdersCommand'
+    CancelAllOrdersCommand:
+      type: object
+      required:
+        - commandType
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V1CancelAllOrders'
+          type: string
+          example: 'V1CancelAllOrders'
+        tradingAccountId:
+          description: unique trading account Id
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+    CancelAllOrdersResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - CancelAllOrders"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
     Authorizer:
       type: string
       format: string
       example: "03E02367E8C900000500000000000000"
       description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
-
     TradingAccountTransferRequest:
       type: object
       required:
@@ -3281,7 +3336,7 @@ components:
         message:
           description: message
           type: string
-          example: "Command acknowledged - SubAccountTransfer"
+          example: "Command acknowledged - TransferAsset"
         requestId:
           description: unique request ID
           allOf:
@@ -3337,58 +3392,6 @@ components:
           description: the command to be executed which is sent in the request payload
           allOf:
             - $ref: '#/components/schemas/CreateOrderCommand'
-
-    CancelAllOrdersRequest:
-      type: object
-      required:
-        - timestamp
-        - nonce
-        - authorizer
-        - command
-      properties:
-        timestamp:
-          allOf:
-            - $ref: '#/components/schemas/TimeStampAsString'
-        nonce:
-          allOf:
-            - $ref: '#/components/schemas/NonceAsString'
-        authorizer:
-          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
-          allOf:
-            - $ref: '#/components/schemas/Authorizer'
-        command:
-          description: the command to be executed which is sent in the request payload
-          allOf:
-            - $ref: '#/components/schemas/CancelAllOrdersCommand'
-    CancelAllOrdersCommand:
-      type: object
-      required:
-        - commandType
-        - tradingAccountId
-      properties:
-        commandType:
-          description: The command type, it must be 'V1CancelAllOrders'
-          type: string
-          example: 'V1CancelAllOrders'
-        tradingAccountId:
-          description: unique trading account Id
-          allOf:
-            - $ref: '#/components/schemas/TradingAccountId'
-    CancelAllOrdersResponse:
-      type: object
-      required:
-        - message
-        - requestId
-      properties:
-        message:
-          description: message
-          type: string
-          example: "Command acknowledged - CancelAllOrders"
-        requestId:
-          description: unique request ID
-          allOf:
-            - $ref: '#/components/schemas/RequestID'
-
     CreateAMMInstructionRequest:
       type: object
       required:
