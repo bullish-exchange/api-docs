@@ -2,10 +2,14 @@ openapi: 3.0.0
 servers:
   - url: https://api.exchange.bullish.com/trading-api/v1
     description: PRODUCTION
+  - url: https://registered.api.exchange.bullish.com/trading-api/v1
+    description: PRODUCTION (Cloudflare Bypass)
   - url: https://api.bugbounty.bullish.com/trading-api/v1
     description: SECURITY SANDBOX
   - url: https://api.simnext.bullish-test.com/trading-api/v1
     description: API SANDBOX
+  - url: https://registered.api.simnext.bullish-test.com/trading-api/v1
+    description: API SANDBOX (Cloudflare Bypass)
 info:
   description: |
     # Overview
@@ -133,8 +137,8 @@ info:
     - `x-ratelimit-remaining`: Remaining number of requests allowed for specific API endpoint within time period.
     - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed.
 
-    ## Boosting Rate Limits
-    For more information on boosting your rate limits, please reach out to your sales representative.
+    ## Increasing Rate Limits
+    For more information on increasing your rate limits, please reach out to your sales representative.
 
     # Price And Quantity Precision
 
@@ -148,6 +152,10 @@ info:
     Consult the responses of these above two API endpoints:
     - The precision for quantity is defined by the `basePrecision`
     - The precision for price is defined by `quotePrecision`
+
+    # Numeric Identifier Contraints
+
+    Numeric identifiers such as `nonce` and `handle` should not have leading zero's. For example `009990822212000000` is invalid but `9990822212000000` is valid.
 
     # Order timeInForce
 
@@ -333,13 +341,16 @@ info:
 
     The header `BX-NONCE` value is a unique client-side 64-bit unsigned integer. It has the following characteristics:
 
-    - Each request the client sends how have incrementing `BX-NONCE` value
-    - To prevent a client to send the max value of a 64-bit unsigned integer and thus immediately exhaust all unique nonces
-    the exchange will only accept a nonce within a specified range
+    - Each request the client sends must have an incrementing `BX-NONCE` value
+    - To prevent a client sending the max value of a 64-bit unsigned integer and thus immediately exhausting all unique nonces
+    the exchange will only accept a nonce within a specified nonce range
     - The lower and upper bounds of the current nonce range are specified by nonce endpoint e.g. `GET /nonce`
-    - The nonce range is updated daily
+    - The nonce range is updated daily at midnight UTC
     - The nonce `lowerBound` is the start of day EPOCH timestamp in micro seconds
     - The nonce `upperBound` is the end of day EPOCH timestamp in micro seconds
+    - The nonce value is not based on time. It only has to hold the properties of being forever incrementing and between the `lowerBound` and `upperBound`. The size of the increment is undefined.
+    - The nonce value is expressed as a string. For example "1684108800000000" is valid but 1684108800000000 is not.
+    - Note this orders API nonce has no connection to the login API nonce.
 
     ## Construct The Command You Want To Send
 
@@ -639,10 +650,31 @@ info:
 
     **Note**: This endpoint does not require subscriptions.
 
-    On connection, the client receives a snapshot of the current hybrid orderbook with depth of 10. Subsequently,
-    when the orderbook moves, the client then receives a conflated update of the hybrid orderbook every 1 second.
-    If there is a sequence number mismatch between the conflated update and the snapshot, the server disconnects the
-    client with the following error message - `4003 (Try Again, sequence number miss-match between snapshot and updates)`.
+    On connection, the client receives a snapshot of the current hybrid orderbook with default depth of 10 (unless specified otherwise).
+    Subsequently, if the orderbook moves, the client then receives a conflated update of the hybrid orderbook periodically
+    at 300ms via our standard API and at 100ms via our registered API (Cloudflare bypass). If there is a sequence number mismatch between the
+    conflated update and the snapshot, the server disconnects the client with the following error message -
+    `4003 (Try Again, sequence number miss-match between snapshot and updates)`. The first conflated update and snapshot may be out of order.
+    This can be accounted for by using the following peudo code.
+
+    ```
+      // initial snapshot
+      first_message = messages[0]
+
+      // first conflated snapshot or update message after initial snapshot
+      second_message = messages[1]
+
+      if second_message["type"] == "snapshot"
+        snapshot_sn = max(first_message["sequenceNumberRange"])
+        conflated_snapshot_sn = min(second_message["sequenceNumberRange"])
+        assert conflated_snapshot_sn <= snapshot_sn
+        return second_message
+      else if second_message["type"] == "update"
+        // combine is a function that builds an order book based on a snapshot and update message
+        // example update message - {"type":"update","dataType":"V1TALevel2","data":{"bids":[],"asks":["16278.8000","0.00000000"],"sequenceNumberRange":[75552938,75552942],"datetime":"2022-11-14T00:59:05.436Z","timestamp":"1668387545436"}}
+        // example snapshot message - {"type":"snapshot","dataType":"V1TALevel2","data":{"bids":["16213.6000","0.00000314","16213.5000","0.00343757","16213.4000","0.00343759","16213.3000","0.00343763","16213.2000","0.00343767","16213.1000","0.00343769","16213.0000","0.00343773","16212.9000","0.00343776","16212.8000","0.00343779","16212.7000","0.00343782"],"asks":["16213.7000","0.00174117","16213.8000","0.00321939","16213.9000","0.00343748","16214.0000","0.00343744","16214.1000","0.00343742","16214.2000","0.00343738","16214.3000","0.00343735","16214.4000","0.00343732","16214.5000","0.00343728","16214.6000","0.00343726"],"sequenceNumberRange":[75552928,75552932],"datetime":"2022-11-14T00:59:03.592Z","timestamp":"1668387543592"}}
+        return combine(first_message, second_message)
+    ```
 
     #### l2Snapshot response
 
@@ -4104,11 +4136,11 @@ components:
         lowerBound:
           description: lower bound of nonce range
           type: integer
-          example: 8455
+          example: 1684108800000000
         upperBound:
           description: upper bound of nonce range
           type: integer
-          example: 9455
+          example: 1684195199999000
     OrderTimeInForce:
       description: time in force
       type: string
