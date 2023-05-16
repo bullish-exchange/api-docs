@@ -733,7 +733,7 @@ info:
     `4003 (Try Again, sequence number miss-match between snapshot and updates)`. The first conflated update and snapshot may be out of order.
     This can be accounted for by using the following peudo code.
 
-    ```
+    ```python
       // initial snapshot
       first_message = messages[0]
 
