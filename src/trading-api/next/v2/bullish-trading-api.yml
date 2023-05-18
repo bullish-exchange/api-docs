@@ -58,7 +58,7 @@ info:
     - March - add unsolicited amend status reason code
     - March - add custody SIGNET support, remove SEN support
     - March - introduce "trading account Id" to authenticated REST API and websocket
-      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) The trading account's id will be used in all other REST API
+      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) Gets details for all trading accounts accessible by the API key used in the request. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
       - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1TransferAsset) 
       - Updated REST API:
         - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
@@ -1303,8 +1303,8 @@ paths:
         - trading-accounts
       summary: Get all trading Accounts details
       description: |
-        Gets all trading accounts details, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-
+        Gets details for all trading accounts accessible by the API key used in the request. It requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
+  
         **Ratelimited:** `True`
       operationId: user-get-trading-accounts
       parameters:
