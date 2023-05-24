@@ -141,6 +141,7 @@ info:
     e.g. [Create Order](#post-/orders). Rate limit settings are as follows:
     - Authenticated endpoints rate limited at 50 requests per second.
     - Unauthenticated endpoints rate limited at 50 requests per second.
+    - Authenticated `/orders` endpoints are rate limited at 50 requests per second.
 
 
     If rate limited, the http response status code will be `429 Too Many Requests` and the http response body will be:
@@ -157,8 +158,8 @@ info:
     - `x-ratelimit-remaining`: Remaining number of requests allowed for specific API endpoint within time period.
     - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed.
 
-    ## Boosting Rate Limits
-    For more information on boosting your rate limits, please reach out to your sales representative.
+    ## Increasing Rate Limits
+    For more information on increasing your rate limits, please reach out to your sales representative.
 
     # Price And Quantity Precision
 
@@ -172,6 +173,11 @@ info:
     Consult the responses of these above two API endpoints:
     - The precision for quantity is defined by the `basePrecision`
     - The precision for price is defined by `quotePrecision`
+
+
+    # Numeric Identifier Contraints
+
+    Numeric identifiers such as `nonce` and `handle` should not have leading zero's. For example `009990822212000000` is invalid but `9990822212000000` is valid.
 
     # Order timeInForce
 
@@ -397,13 +403,16 @@ info:
 
     The header `BX-NONCE` value is a unique client-side 64-bit unsigned integer. It has the following characteristics:
 
-    - Each request the client sends how have incrementing `BX-NONCE` value
-    - To prevent a client to send the max value of a 64-bit unsigned integer and thus immediately exhaust all unique nonces
-    the exchange will only accept a nonce within a specified range
+    - Each request the client sends must have an incrementing `BX-NONCE` value
+    - To prevent a client sending the max value of a 64-bit unsigned integer and thus immediately exhausting all unique nonces
+    the exchange will only accept a nonce within a specified nonce range
     - The lower and upper bounds of the current nonce range are specified by nonce endpoint e.g. `GET /nonce`
-    - The nonce range is updated daily
+    - The nonce range is updated daily at midnight UTC
     - The nonce `lowerBound` is the start of day EPOCH timestamp in micro seconds
     - The nonce `upperBound` is the end of day EPOCH timestamp in micro seconds
+    - The nonce value is not based on time. It only has to hold the properties of being forever incrementing and between the `lowerBound` and `upperBound`. The size of the increment is undefined.
+    - The nonce value is expressed as a string. For example "1684108800000000" is valid but 1684108800000000 is not.
+    - Note this orders API nonce has no connection to the login API nonce.
 
     ## Construct The Command You Want To Send
 
@@ -537,7 +546,7 @@ info:
     
     The `nonce` parameter is required to be both unique and incremental, but setting `BX-NONCE-WINDOW-ENABLED` to `true` 
     loosens this requirement such that the `nonce` is only required to be `unique`. For example, the client is able to 
-    send `nonce` values from `1...100` in any order and all the values will be valid.   
+    send `nonce` values from `1...100` in any order and all the values will be valid.
 
     # WebSockets
 
@@ -720,9 +729,11 @@ info:
 
     On connection, the client receives a snapshot of the current hybrid orderbook with default depth of 10 (unless specified otherwise). 
     Subsequently, if the orderbook moves, the client then receives a conflated update of the hybrid orderbook periodically 
-    at 300ms with standard ingress and at 100ms with Cloudflare bypass. If there is a sequence number mismatch between the 
+    at 300ms via our standard API and at 100ms via our registered API (Cloudflare bypass). If there is a sequence number mismatch between the
     conflated update and the snapshot, the server disconnects the client with the following error message - 
-    `4003 (Try Again, sequence number miss-match between snapshot and updates)`.
+    `4003 (Try Again, sequence number miss-match between snapshot and updates)`. The first conflated update and snapshot may be out of order.
+    See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
+
 
     #### l2Snapshot response
 
@@ -4370,11 +4381,11 @@ components:
         lowerBound:
           description: lower bound of nonce range
           type: integer
-          example: 8455
+          example: 1684108800000000
         upperBound:
           description: upper bound of nonce range
           type: integer
-          example: 9455
+          example: 1684195199999000
     OrderTimeInForce:
       description: time in force
       type: string
