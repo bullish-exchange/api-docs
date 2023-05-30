@@ -190,8 +190,8 @@ info:
     - The [Get Asset By Symbol](#get-/assets/-symbol-) API endpoint for a specific asset symbol
     
     The precision of an asset is the number of decimal places used to express its value in.
-    For instance, the quantity in the market `BTCUSD` is in BTC, BTC has a precision of 8 and therefore the quantity in `BTCUSD` has 8 decimal places.
-    To express a quantity of 1 BTC in `BTCUSD` market, therefore, it has to be `1.00000000` BTC.
+    For instance, the quantity in the market `BTCUSD` is in BTC. As BTC has a precision of 8, the quantity in `BTCUSD` has 8 decimal places.
+    It follows that in order to express a quantity of 1 BTC in `BTCUSD` market, it has to be `1.00000000` BTC.
     
     Alternatively, the below market APIs can also be queried to obtain the price and quantity precisions for different markets.
     
@@ -313,8 +313,9 @@ info:
     5. [Construct The BX-NONCE Header](#overview--construct-the-bx-nonce-header)
     6. [Construct The Command You Want To Send](#overview--construct-the-command-you-want-to-send)
     7. [Construct The BX-SIGNATURE Header](#overview--construct-the-bx-signature-header)
-    8. [Send The HTTP Authenticated Request](#overview--send-the-HTTP-authenticated-request)
-    9. [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests)
+    8. [Fetch Trading Account Ids](#overview--fetch-trading-account-ids)
+    9. [Send The HTTP Authenticated Request](#overview--send-the-HTTP-authenticated-request)
+    10. [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests)
 
     ## Generate An API Key
 
@@ -532,6 +533,8 @@ info:
     ## Fetch Trading Account Ids
     
     Trading Account Ids may be required by some endpoints. They can be fetched from [Get All Trading Accounts](#get-/accounts/trading-accounts).
+    
+    An example script is available [here](https://github.com/bullish-exchange/api-examples/blob/master/get_trading_accounts.py).
 
 
 
