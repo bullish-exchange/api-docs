@@ -13,68 +13,68 @@ servers:
 info:
   description: |
     # Overview
-
-    Welcome to the _Bullish Trading API_ documentation!
+    Welcome to the _Bullish Trading API_ documentation! 
 
     This documentation provides resource descriptions and endpoints usage instructions for the API.
 
     The API:
     - follows [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) conventions
-    - endpoints fall under one of the two categories:
-      - Authenticated, they provide access to private client data e.g. [Get Orders](#get-/orders) endpoint
-      - Non-authenticated, they provide access to public data e.g. [Get Markets](#get-/markets) endpoint
-    - uses bearer based authentication
+    - has the base URL `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
+    - has endpoints under the below categories:
+      - Authenticated endpoints for private client data e.g. [Get Orders](#get-/orders) endpoint
+      - Non-authenticated endpoints for public data e.g. [Get Markets](#get-/markets) endpoint
+    - uses bearer-based authentication
     - enforces a blanket rate limit across all requests
-    - base URL is `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
+
 
     # Code Examples
     Find further code examples at - https://github.com/bullish-exchange
-
-    # API Change Log
-    ## 2022 Changes
-    - January - add pagination support to `GET /markets/{symbol}/candle`
-    - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
-    - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
-    - March - add order `statusReasonCode` map to API documentation
-    - March - add FOK time-in-force order type
-    - March - add IOC time-in-force order type
-    - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
-    - April - add private data WebSocket API
-    - April - add market data WebSocket API
-    - May - add `events` topic to private data WebSocket
-    - June - orderbook default depth of `10` - `GET /markets/{symbol}/orderbook/hybrid`
-    - June - add handle field to `V1TATrade` for private data WebSocket
-    - June - add handle field to `GET /trades` and `GET /trades/{tradeId}`
-    - July - add hybrid orderbook WebSocket API
-    - July - deprecate WebSocket API `/v1/private` and `/v1/market-data`
-    - August - add anonymous trades WebSocket API
-    - October - add Custody API
-    - November - deprecate `/accounts/margin`, `/accounts/margin/{symbol}`, `/positions` and `/positions/{symbol}`
-    - November - deprecate subscription topics in `/private-data` - `events`, `positions` and `marginAccounts`
-    ## 2023 Changes
-    - January - add AMM instructions API
-    - March - `/v1/users/login` to be deprecated towards the end of Q2 2023
-    - March - add nonce window to `/orders` to allow out-of-order order requests to be processed
-    - March - add unsolicited amend status reason code
-    - March - add custody SIGNET support, remove SEN support
-    - March - introduce "trading account Id" to authenticated REST API and websocket
-      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) Gets details for all trading accounts accessible by the API key used in the request. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
-      - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1TransferAsset) 
-      - Updated REST API:
-        - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
-        - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
-        - Get order details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
-        - Add AMM instruction [Current API](../v1/#post-/amm-instructions) -> [New API](../v2/#post-/amm-instructions)
-        - Remove AMM instruction [Current API](../v1/#delete-/amm-instructions) -> [New API](../v2/#delete-/amm-instructions)
-        - Get AMM instruction details [Current API](../v1/#get-/amm-instructions) -> [New API](../v2/#get-/amm-instructions)
-        - Get AMM Instruction by ID [Current API](../v1/#get-/amm-instructions/-liquidityId-) -> [New API](../v2/#get-/amm-instructions/-liquidityId-)
-        - Get trade details [Current API](../v1/#get-/trades) -> [New API](../v2/#get-/trades)
-        - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
-      - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
-    - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
-    - April - added `/accounts/trading-accounts` endpoint to fetch all trading accounts
-    - April - added V1CancelAllOrders to cancel all open limit orders by trading account id
     
+    # API Change Log
+    ## 2023 Changes
+    - April - add V1CancelAllOrders to cancel all open limit orders by trading account id
+    - April - add `/accounts/trading-accounts` endpoint to fetch all trading accounts
+    - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
+      - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
+      - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
+      - Get trade details [Current API](../v1/#get-/trades) -> [New API](../v2/#get-/trades)
+      - Get AMM Instruction by ID [Current API](../v1/#get-/amm-instructions/-liquidityId-) -> [New API](../v2/#get-/amm-instructions/-liquidityId-)
+      - Get AMM instruction details [Current API](../v1/#get-/amm-instructions) -> [New API](../v2/#get-/amm-instructions)
+      - Remove AMM instruction [Current API](../v1/#delete-/amm-instructions) -> [New API](../v2/#delete-/amm-instructions)
+      - Add AMM instruction [Current API](../v1/#post-/amm-instructions) -> [New API](../v2/#post-/amm-instructions)
+      - Get order details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
+      - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
+      - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
+      - Updated REST API:
+      - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1TransferAsset)
+      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) Gets details for all trading accounts accessible by the API key used in the request. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
+    - March - introduce "trading account Id" to authenticated REST API and websocket
+    - March - add custody SIGNET support, remove SEN support
+    - March - add unsolicited amend status reason code
+    - March - add nonce window to `/orders` to allow out-of-order order requests to be processed
+    - March - `/v1/users/login` to be deprecated towards the end of Q2 2023
+    - January - add AMM instructions API
+    ## 2022 Changes
+    - November - deprecate subscription topics in `/private-data` - `events`, `positions` and `marginAccounts`
+    - November - deprecate `/accounts/margin`, `/accounts/margin/{symbol}`, `/positions` and `/positions/{symbol}`
+    - October - add Custody API
+    - August - add anonymous trades WebSocket API
+    - July - deprecate WebSocket API `/v1/private` and `/v1/market-data`
+    - July - add hybrid orderbook WebSocket API
+    - June - add handle field to `GET /trades` and `GET /trades/{tradeId}`
+    - June - add handle field to `V1TATrade` for private data WebSocket
+    - June - orderbook default depth of `10` - `GET /markets/{symbol}/orderbook/hybrid`
+    - May - add `events` topic to private data WebSocket
+    - April - add market data WebSocket API
+    - April - add private data WebSocket API
+    - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
+    - March - add IOC time-in-force order type
+    - March - add FOK time-in-force order type
+    - March - add order `statusReasonCode` map to API documentation
+    - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
+    - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
+    - January - add pagination support to `GET /markets/{symbol}/candle`
+
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -85,11 +85,11 @@ info:
 
     There are 4 special query parameters used to control the pagination behaviour.
     - `_pageSize` can be one of `5, 25, 50, 100`, default value is `25`
-    - `_nextPage` cursor to the next page
-    - `_previousPage` cursor to the previous page
     - `_metaData` can be false/true, if false the links are NOT part of the response. explicitly set `_metaData=true` to guarantee links are returned.
+    - `_nextPage` cursor to the next page. It is provided in the paginated response when `_metaData=true`.
+    - `_previousPage` cursor to the previous page. It is provided in the paginated response when `_metaData=true`.
 
-    The paginated data is returned in the following wrapped format with generated links to the previous and next pages:
+    When `_metaData=True` is set, the paginated data is returned in the following wrapped format with generated links to the previous and next pages:
     ```json
     {
       "data": [
@@ -123,28 +123,39 @@ info:
     }
     ```
 
-    # How To Filter
-
-    - If specified in the API documentation, an endpoint may support filters on specific fields and values e.g. `GET /orders?status=OPEN`
-    - Filter parameters and values should match 1 to 1 with those seen in an API response, what you see is what you query on and by.
-    - Pagination query parameters start with an underscore to differentiate them from filter query parameters e.g. `GET /orders?status=OPEN&_pageSize=25`
+    # Filtering Support
+    
+    - If specified in the API documentation, an endpoint may support filters on specific fields and values e.g. `GET /orders?status=OPEN`     
+    - Only fields returned in an API response may be used as filter parameters. What you see is what you query on and by.
+    - For the fields in the API response usable as filter parameters, please consult the API endpoint of interest.
+    - By design, pagination query parameters start with an underscore. This differentiates them from filter query parameters e.g. `GET /orders?status=OPEN&_pageSize=25`
 
     # Rate Limits
-
-    There is a blanket rate limit of 500 requests per 10 seconds (approximately 50 requests per second) per IP address.
+    
+    ## Rate Limits per IP address
+    
+    Each IP address is subject to a blanket rate limit of 500 requests per 10 seconds (approximately 50 requests per second).
     If an IP address is rate limited, the http response status code will be `429 Too Many Requests` and the IP address
     is blocked from making any requests for 60 seconds.
 
-    ## Rate Limits Per API Endpoint
+    ## Rate Limits per API category
 
-    Specific API endpoints have an additional rate limit applied, denoted by `Ratelimited: True` in its description
-    e.g. [Create Order](#post-/orders). Rate limit settings are as follows:
-    - Authenticated endpoints rate limited at 50 requests per second.
-    - Unauthenticated endpoints rate limited at 50 requests per second.
-    - Authenticated `/orders` endpoints are rate limited at 50 requests per second.
+    In addition, API endpoints denoted by `Ratelimited: True` in the description are also subject to rate limits.
+    e.g. [Create Order](#post-/orders). The API endpoints fall under the below categories. The rate limit for each category is *independently* applied.
+    
+    - Unauthenticated endpoints, rate limited at 50 requests per second.
+    - Authenticated `/orders` endpoints, rate limited at 50 requests per second.
+    - Other Authenticated endpoints, rate limited at 50 requests per second.
+    
+    ## Rate Limits Info
+    
+    When rate limits are not exceeded, the http response header of the API endpoint called will contain the below:
+    - `x-ratelimit-limit`: Maximum number of requests allowed for the specific API category within time period.
+    - `x-ratelimit-remaining`: Remaining number of requests allowed for the specific API category within time period.
+    - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed for the specific API category.
 
-
-    If rate limited, the http response status code will be `429 Too Many Requests` and the http response body will be:
+    ## Exceeding Rate Limits
+    When rate limits are exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
     ```json
       {
         "errorCode": 96000,
@@ -153,26 +164,42 @@ info:
       }
     ```
 
-    If rate limit is not exceeded, the response from the API endpoint will contain these headers:
-    - `x-ratelimit-limit`: Maximum number of requests allowed for specific API endpoint within time period.
-    - `x-ratelimit-remaining`: Remaining number of requests allowed for specific API endpoint within time period.
-    - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed.
-
     ## Increasing Rate Limits
+    
+    Bullish has a tiered rate limit offering based on volume. 
+    
+    |  | Default | 30-Day Volume between $1B USD and $2B USD | 30-Day Volume over $2B USD |
+    | ---------- |---------------- |---------------- |---------------- |
+    | Cloudflare | 50 msgs/sec | same as default | same as default
+    | Cloudflare Bypass | 100 msgs/sec  | up to 200 msgs/sec | up to 500 msgs/sec
+    
     For more information on increasing your rate limits, please reach out to your sales representative.
+    
 
     # Price And Quantity Precision
-
-    The API defines the price and quantity for an asset in `asset value` format.
-    The price and quantity are decimal values thus they have defined a precision.
-    To find out the price and quantity precision, for all or one symbol, you can use any
-    of the below API endpoints.
-    - The [Get Markets](#get-/markets) API endpoint for all supported symbols
-    - The [Get Market By Symbol](#get-/markets/-symbol-) API endpoint for a specific symbol
-
-    Consult the responses of these above two API endpoints:
+    
+    A market consists of two assets, namely base asset and quote asset.
+    For instance, the `BTCUSD` market has `BTC` as base asset and `USD` as quote asset.
+    The price of a market is denominated in the quote asset, while the quantity is denominated in the base asset.
+    For instance, the price in `BTCUSD` market is in `USD` while the quantity is in `BTC`. 
+    Each asset has its own precision and that is available in the below endpoints.
+    
+    - The [Get Assets](#get-/assets) API endpoint for all supported asset symbols
+    - The [Get Asset By Symbol](#get-/assets/-symbol-) API endpoint for a specific asset symbol
+    
+    The precision of an asset is the number of decimal places used to express its value in.
+    For instance, the quantity in the market `BTCUSD` is in BTC, BTC has a precision of 8 and therefore the quantity in `BTCUSD` has 8 decimal places.
+    To express a quantity of 1 BTC in `BTCUSD` market, therefore, it has to be `1.00000000` BTC.
+    
+    Alternatively, the below market APIs can also be queried to obtain the price and quantity precisions for different markets.
+    
+    - The [Get Markets](#get-/markets) API endpoint for all supported market symbols
+    - The [Get Market By Symbol](#get-/markets/-symbol-) API endpoint for a specific market symbol
+    
+    Following the logic outlined above, 
     - The precision for quantity is defined by the `basePrecision`
     - The precision for price is defined by `quotePrecision`
+
 
     # Numeric Identifier Contraints
 
@@ -180,18 +207,21 @@ info:
 
     # Order timeInForce
 
-    The order `timeInForce` can be set to the following values:
+    The order `timeInForce` can be set to one of the following values:
     - `GTC` - good until cancelled - the order is open forever unless fully filled or cancelled
-    - `FOK` - fill or kill - if the order cannot immediately be filled in full it is cancelled
+    - `FOK` - fill or kill - if the order cannot immediately be filled in full, it is cancelled
     - `IOC` - immediate or cancel - the order is immediately filled in full or in part and any remainder is cancelled
 
+    
     # Order statusReasonCode Map
 
-    - The `statusReasonCode` is a field on an Order which provides details on the reasoning for the current state of the order
-    - A `statusReasonCode` will never change i.e. 2009 will always refer to an invalid market symbol
-    - The `statusReason` is a textual description of the `statusReasonCode` which may be subject to change
+    - The `statusReasonCode` is a field on an Order which provides details on the reasoning for the current state of the order.
+    - The `statusReason` is the textual description which explains the `statusReasonCode`.
+    - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
+    - For instance, the `statusReasonCode` 2009 will always refer to an invalid market symbol.
+    
 
-    | statusReasonCode | |
+    | statusReasonCode | statusReason |
     | ---------- |---------------- |
     | 1001 | Ok |
     | 1002 | Unable to place request  |
@@ -236,12 +266,14 @@ info:
     | 6013 | Partially filled  |
 
     # Custody statusReasonCode Map
+    
+    - The `statusReasonCode` is a field on Custody API's withdrawal and error messages which provides details on the reasoning for the current state of the request.
+    - The `statusReason` is the textual description which explains the `statusReasonCode`.
+    - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
+    - For instance, the `statusReasonCode` 8305 will always refer to an assertion failure.
 
-    - The `statusReasonCode` is a field on Custody API's withdrawal and error messages which provides details on the reasoning for the current state of the request
-    - A `statusReasonCode` will never change i.e. 8305 will always refer to an assertion failure
-    - The `statusReason` is a textual description of the `statusReasonCode` which may be subject to change
 
-    | statusReasonCode | |
+    | statusReasonCode | statusReason |
     | ---------- |---------------- |
     | 8301 | Unexpected Error |
     | 8305 | Withdraw assertion failed  | 
@@ -269,7 +301,7 @@ info:
 
     # Authentication
 
-    The API uses bearer based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
+    The API uses bearer-based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
 
     # How To Send Authenticated Requests
 
@@ -286,7 +318,7 @@ info:
 
     ## Generate An API Key
 
-    A prerequisite to generate API keys is to have a Bullish account. To generate an API key follow these steps:
+    First, make sure a bullish account has been created. Next, to generate an API key, follow these steps:
 
     1. Log in into your Bullish account
     2. Click on your account initials at the upper right corner and then click **Settings**
@@ -295,18 +327,18 @@ info:
 
     **NOTES**
 
-    - An API key is a public/private key pair
-    - The private key is what you will use to sign your requests
-    - From here on the:
-      - public key will be referred to as `PUBLIC_KEY`
-      - private key will be referred to as `PRIVATE_KEY`
-    - For information about the format of keys please review [EOS Wallet Specification](https://developers.eos.io/manuals/eos/v2.0/keosd/wallet-specification)
+    - An API key is a public/private key pair.
+    - The private key is what you will use to sign your requests.
+    - From here on,
+      - the public key will be referred to as `PUBLIC_KEY`.
+      - the private key will be referred to as `PRIVATE_KEY`.
+    - For information about the format of keys please refer to [EOS Wallet Specification](https://developers.eos.io/manuals/eos/v2.0/keosd/wallet-specification).
     - Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
     - When you generate an API key you also get back the API metadata, in the next section you will learn how to use it
 
     ## Get Your Bullish User ID
 
-    An API key additionally has a `metadata` string assoicated with it which is displayed along side the key.
+    An API key additionally has a `metadata` string associated with it which is displayed along side the key.
     You must base64 decode the `metadata` to extract your `userId` (example follows). You will need the `userId` in the next step.
     Please note that the `accountId` field is deprecated, and will be removed along with `v1/users/login` API towards the end of Q2 2023. Clients should reference the `userId` field instead.
     Old `metadata` strings generated before the March 2023 upgrade will not contain the `userId` field; clients are advised to get the `metadata` from the Settings page on the UI again.
@@ -319,7 +351,7 @@ info:
     ## Add Authenticated Request Header
 
     Each authenticated request must include a `Authorization` header:
-      - `Authorization: Bear <JWT_TOKEN>`
+      - `Authorization: Bearer <JWT_TOKEN>`
 
     The JWT is valid for 24 hours.
 
@@ -551,6 +583,10 @@ info:
     1. Encode the request JSON payload, also referred to as body, with the SHA-256 hash function and take the hexdigest
     2. Sign the hexdigest from step 1 with ECDSA P-256 using your `<PRIVATE_KEY>`
     3. Various signing examples can be found on [GitHub](https://github.com/bullish-exchange)
+
+    ## Fetch Trading Account Ids
+    
+    Trading Account Ids may be required by some endpoints. They can be fetched from [Get All Trading Accounts](#get-/accounts/trading-accounts).
 
     ## Send The HTTP Authenticated Request
 
@@ -1312,7 +1348,7 @@ paths:
     get:
       tags:
         - trading-accounts
-      summary: Get all trading Accounts details
+      summary: Get All Trading Accounts
       description: |
         Gets details for all trading accounts accessible by the API key used in the request. It requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
   
@@ -2475,6 +2511,24 @@ paths:
                 maxItems: 10
                 items:
                   $ref: '#/components/schemas/Asset'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /assets/{symbol}:
+    get:
+      tags:
+        - asset-data
+      summary: Get Asset by Symbol
+      description: Get Asset by Symbol
+      operationId: asset-data-get-asset
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
         429:
           description: Too Many Requests
         500:
