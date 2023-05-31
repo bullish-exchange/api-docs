@@ -3335,8 +3335,8 @@ components:
           example: "User cancelled"
         statusReasonCode:
           description: status reason code, see [details](#overview--order-statusreasoncode-map)
-          type: integer
-          example: 1002
+          type: string
+          example: "1002"
         createdAtDatetime:
           description: denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string
           allOf:
