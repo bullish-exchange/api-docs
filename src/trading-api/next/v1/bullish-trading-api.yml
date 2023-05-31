@@ -35,7 +35,7 @@ info:
     ## 2023 Changes
     - April - add V1CancelAllOrders to cancel all open limit orders by trading account id
     - April - add `/accounts/trading-accounts` endpoint to fetch all trading accounts
-    - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
+    - April - new hybrid orderbook WebSocket API with greater depth
       - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
       - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
       - Get trade details [Current API](../v1/#get-/trades) -> [New API](../v2/#get-/trades)
@@ -759,11 +759,10 @@ info:
     ### Hybrid OrderBook WebSocket
     **Route**
     - `/trading-api/markets/{symbol}/orderbook/hybrid`
-    - `/trading-api/v2/market-data/orderbook/hybrid/{symbol}?depth={depth}&aggregationFactor={aggregationFactor}`
+    - `/trading-api/v2/market-data/orderbook/hybrid/{symbol}?depth={depth}`
     
     **Additional notes**: 
     - Allowable depths - `[ 10, 50, 100, 200 ]`.
-    - Allowable aggregation factors - `[ 1, 5, 10 ]`.
     - This endpoint does not require subscriptions.
 
     On connection, the client receives a snapshot of the current hybrid orderbook with default depth of 10 (unless specified otherwise). 
