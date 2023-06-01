@@ -2295,17 +2295,20 @@ paths:
         | ---------- |---------------- |
         | USD | 2dp |
         | BTC | 8dp |
+        | DOGE | 8dp |
         | EOS | 4dp |
         | ETH | 8dp |
-        | USDC | 6dp |
         | LTC | 8dp |
-        | LINK | 8dp |
-        | MATIC | 8dp |
-        | UNI | 8dp |
+        | XRP | 6dp |
         | AAVE | 8dp |
         | CRV | 8dp |
+        | LINK | 8dp |
         | MANA | 8dp |
+        | MATIC | 8dp |
         | SUSHI | 8dp |
+        | UNI | 8dp |
+        | USDC | 6dp |
+        | USDT | 6dp |
 
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-withdrawal-challenge
@@ -2817,12 +2820,12 @@ components:
       description: withdrawal fee charged in units of symbol, not in smaller denominations (e.g. BTC not Satoshi, ETH not Wei)
     CustodyDepositMemo:
       type: string
-      example: MZAXEMRXA
-      description: memo used during deposit to help identify account to credit funds to
+      example: "925891241"
+      description: memo or destination tag used during deposit to help identify account to credit funds to
     CustodyWithdrawalMemo:
       type: string
       example: MZAXEMRXA
-      description: memo that will be used as a reference on transaction
+      description: memo or destination tag that will be used as a reference on transaction
     CustodyWithdrawalLabel:
       type: string
       example: Our cold wallet
@@ -3758,18 +3761,27 @@ components:
             - $ref: '#/components/schemas/CustodyTransactionDetails'
     CustodyCryptoDepositInstructions:
       type: object
+      required:
+        - network
+        - symbol
+        - address
       properties:
         network:
-          example: 'ETH'
           allOf:
             - $ref: '#/components/schemas/NetworkID'
         symbol:
-          example: 'USDC'
           allOf:
             - $ref: '#/components/schemas/CustodySymbol'
+        memo:
+          allOf:
+            - $ref: '#/components/schemas/CustodyDepositMemo'
         address:
           allOf:
             - $ref: '#/components/schemas/CustodyNetworkAddress'
+      example:
+        network: 'ETH'
+        symbol: 'USDC'
+        address: '0xb0a64d976972d87b0783eeb1ff88306cd1891f02'
     CustodyCryptoWithdrawalInstructions:
       type: object
       properties:
