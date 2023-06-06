@@ -32,6 +32,7 @@ info:
     
     # API Change Log
     ## 2023 Changes
+    - May - add V1CancelAllOrdersByMarket to cancel all open orders by trading account id and market
     - April - add V1CancelAllOrders to cancel all open limit orders by trading account id
     - April - add `/accounts/trading-accounts` endpoint to fetch all trading accounts
     - April - new hybrid orderbook WebSocket API with greater depth
@@ -1818,6 +1819,59 @@ paths:
       security:
         - jwtTokenAuth: [ ]
 
+  /command?commandType=V1CancelAllOrdersByMarket:
+    post:
+      tags:
+        - orders
+      summary: Cancel All Open Limit Orders By Market
+      description: |
+        Cancel all open orders
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        
+        **Ratelimited:** `True`
+      operationId: trade-cancel-all-open-limit-orders-by-market
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: Status OK. This means a cancel all Open Limit orders by market command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelAllOrdersByMarketResponse'
+        400:
+          description: |+
+            Bad Request
+            
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: Cancel All Open Limit Orders by market request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAllOrdersByMarketRequest'
+
+      security:
+        - jwtTokenAuth: [ ]
+
   /amm-instructions:
     get:
       tags:
@@ -3446,6 +3500,65 @@ components:
           description: Destination of the asset transfer
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+
+    CancelAllOrdersByMarketRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/CancelAllOrdersByMarketCommand'
+    CancelAllOrdersByMarketCommand:
+      type: object
+      required:
+        - commandType
+        - symbol
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V1CancelAllOrdersByMarket'
+          type: string
+          example: 'V1CancelAllOrdersByMarket'
+        symbol:
+          description: market symbol
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        tradingAccountId:
+          description: unique trading account Id
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+    CancelAllOrdersByMarketResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - CancelAllOrdersByMarket"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+
+
+
     CreateOrderRequest:
       type: object
       required:
