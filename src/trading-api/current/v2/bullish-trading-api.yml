@@ -13,8 +13,7 @@ servers:
 info:
   description: |
     # Overview
-
-    Welcome to the _Bullish Trading API_ documentation!
+    Welcome to the _Bullish Trading API_ documentation! 
 
     This documentation provides resource descriptions and endpoints usage instructions for the API.
 
@@ -27,13 +26,12 @@ info:
     - uses bearer-based authentication
     - enforces a blanket rate limit across all requests
 
+
     # Code Examples
     Find further code examples at - https://github.com/bullish-exchange
-
-
+    
     # API Change Log
     ## 2023 Changes
-    - May - add V1CancelAllOrdersByMarket to cancel all open orders by trading account id and market
     - April - add V1CancelAllOrders to cancel all open limit orders by trading account id
     - April - add `/accounts/trading-accounts` endpoint to fetch all trading accounts
     - April - new hybrid orderbook WebSocket API with greater depth
@@ -76,7 +74,7 @@ info:
     - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
     - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
     - January - add pagination support to `GET /markets/{symbol}/candle`
-    
+
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -91,7 +89,7 @@ info:
     - `_nextPage` cursor to the next page. It is provided in the paginated response when `_metaData=true`.
     - `_previousPage` cursor to the previous page. It is provided in the paginated response when `_metaData=true`.
 
-    The paginated data is returned in the following wrapped format with generated links to the previous and next pages:
+    When `_metaData=True` is set, the paginated data is returned in the following wrapped format with generated links to the previous and next pages:
     ```json
     {
       "data": [
@@ -124,7 +122,6 @@ info:
       }
     }
     ```
-
 
     # Filtering Support
     
@@ -178,14 +175,14 @@ info:
     
     For more information on increasing your rate limits, please reach out to your sales representative.
     
-    
+
     # Price And Quantity Precision
     
     A market consists of two assets, namely base asset and quote asset.
     For instance, the `BTCUSD` market has `BTC` as base asset and `USD` as quote asset.
     The price of a market is denominated in the quote asset, while the quantity is denominated in the base asset.
     For instance, the price in `BTCUSD` market is in `USD` while the quantity is in `BTC`. 
-    Each asset has its own precision. For this, the below asset APIs can be queried.
+    Each asset has its own precision and that is available in the below endpoints.
     
     - The [Get Assets](#get-/assets) API endpoint for all supported asset symbols
     - The [Get Asset By Symbol](#get-/assets/-symbol-) API endpoint for a specific asset symbol
@@ -210,17 +207,19 @@ info:
 
     # Order timeInForce
 
-    The order `timeInForce` can be set to the following values:
+    The order `timeInForce` can be set to one of the following values:
     - `GTC` - good until cancelled - the order is open forever unless fully filled or cancelled
-    - `FOK` - fill or kill - if the order cannot immediately be filled in full it is cancelled
+    - `FOK` - fill or kill - if the order cannot immediately be filled in full, it is cancelled
     - `IOC` - immediate or cancel - the order is immediately filled in full or in part and any remainder is cancelled
 
+    
     # Order statusReasonCode Map
 
     - The `statusReasonCode` is a field on an Order which provides details on the reasoning for the current state of the order.
     - The `statusReason` is the textual description which explains the `statusReasonCode`.
     - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
     - For instance, the `statusReasonCode` 2009 will always refer to an invalid market symbol.
+    
 
     | statusReasonCode | statusReason |
     | ---------- |---------------- |
@@ -265,14 +264,14 @@ info:
     | 6011 | Self cross prevention amend  |
     | 6012 | Stop limit amend  |
     | 6013 | Partially filled  |
-    
-    
-    # Custody statusReasonCode Map
 
+    # Custody statusReasonCode Map
+    
     - The `statusReasonCode` is a field on Custody API's withdrawal and error messages which provides details on the reasoning for the current state of the request.
     - The `statusReason` is the textual description which explains the `statusReasonCode`.
     - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
     - For instance, the `statusReasonCode` 8305 will always refer to an assertion failure.
+
 
     | statusReasonCode | statusReason |
     | ---------- |---------------- |
@@ -314,13 +313,13 @@ info:
     5. [Construct The BX-NONCE Header](#overview--construct-the-bx-nonce-header)
     6. [Construct The Command You Want To Send](#overview--construct-the-command-you-want-to-send)
     7. [Construct The BX-SIGNATURE Header](#overview--construct-the-bx-signature-header)
-    8. [Fetch Trading Account Ids](#overview--fetch-trading-account-ids)
+    8. [Fetch Trading Account Ids] (#overview--fetch-trading-account-ids)
     9. [Send The HTTP Authenticated Request](#overview--send-the-HTTP-authenticated-request)
     10. [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests)
 
     ## Generate An API Key
 
-    A prerequisite to generate API keys is to have a Bullish account. To generate an API key follow these steps:
+    First, make sure a bullish account has been created. Next, to generate an API key, follow these steps:
 
     1. Log in into your Bullish account
     2. Click on your account initials at the upper right corner and then click **Settings**
@@ -329,18 +328,18 @@ info:
 
     **NOTES**
 
-    - An API key is a public/private key pair
-    - The private key is what you will use to sign your requests
-    - From here on the:
-      - public key will be referred to as `PUBLIC_KEY`
-      - private key will be referred to as `PRIVATE_KEY`
-    - For information about the format of keys please review [EOS Wallet Specification](https://developers.eos.io/manuals/eos/v2.0/keosd/wallet-specification)
+    - An API key is a public/private key pair.
+    - The private key is what you will use to sign your requests.
+    - From here on,
+      - the public key will be referred to as `PUBLIC_KEY`.
+      - the private key will be referred to as `PRIVATE_KEY`.
+    - For information about the format of keys please refer to [EOS Wallet Specification](https://developers.eos.io/manuals/eos/v2.0/keosd/wallet-specification).
     - Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
     - When you generate an API key you also get back the API metadata, in the next section you will learn how to use it
 
     ## Get Your Bullish User ID
 
-    An API key additionally has a `metadata` string assoicated with it which is displayed along side the key.
+    An API key additionally has a `metadata` string associated with it which is displayed along side the key.
     You must base64 decode the `metadata` to extract your `userId` (example follows). You will need the `userId` in the next step.
     Please note that the `accountId` field is deprecated, and will be removed along with `v1/users/login` API towards the end of Q2 2023. Clients should reference the `userId` field instead.
     Old `metadata` strings generated before the March 2023 upgrade will not contain the `userId` field; clients are advised to get the `metadata` from the Settings page on the UI again.
@@ -354,7 +353,7 @@ info:
 
     Each authenticated request must include a `Authorization` header:
       - `Authorization: Bearer <JWT_TOKEN>`
-    
+
     The JWT is valid for 24 hours.
 
     ## Generate A JWT Token
@@ -458,6 +457,8 @@ info:
     Find below two `<COMMAND>` examples:
     1. [Create Spot Or Margin Order](#overview--create-spot-or-margin-order-example)
     2. [Cancel Spot Or Margin Order](#overview--cancel-spot-or-margin-order-example)
+    3. [Add AMM instruction](#overview--add-amm-instruction)
+    4. [Remove AMM instruction](#overview--remove-amm-instruction)
 
     ### Create Spot Or Margin Order Example
 
@@ -475,7 +476,7 @@ info:
       "nonce": "<NONCE>",
       "authorizer": "<AUTHORIZER>",
       "command": {
-        "commandType": "V1CreateOrder",
+        "commandType": "V2CreateOrder",        
         "handle": null,
         "symbol": "BTCUSD",
         "type": "LMT",
@@ -484,7 +485,8 @@ info:
         "stopPrice": null,
         "quantity": "1.87000000",
         "timeInForce": "GTC",
-        "allowMargin": false
+        "allowMargin": false,
+        "tradingAccountId": "111234567890"
       }
     }
     ```
@@ -503,14 +505,66 @@ info:
       "nonce": "<NONCE>",
       "authorizer": "<AUTHORIZER>"
       "command": {
-        "commandType": "V1CancelOrder",
+        "commandType": "V2CancelOrder",
         "orderId": "390755251743358977",
         "handle": null,
-        "symbol": "BTCUSD"
+        "symbol": "BTCUSD",
+        "tradingAccountId": "111234567890"
       }
     }
     ```
-
+    ### Add Amm instruction 
+    
+    ```json
+    {
+      "timestamp": "1621490985000",
+      "nonce": "123456789",
+      "authorizer": "03E02367E8C900000500000000000000",
+      "command": {
+        "commandType": "V2AddLiquidity",
+        "symbol": "BTCUSD",
+        "baseQuantity": "0.00000000",
+        "quoteQuantity": "0.00000000",
+        "upperBound": "14000.0000",
+        "lowerBound": "12000.0000",
+        "feeTierId": "1",
+        "tradingAccountId": "111234567890"
+      }
+    }
+    ```
+    ### Remove Amm instruction
+    ```json
+    {
+      "timestamp": "<TIMESTAMP>",
+      "nonce": "<NONCE>",
+      "authorizer": "<AUTHORIZER>"
+      "command": {
+        "commandType": "V2RemoveLiquidity",
+        "liquidityId": "557839859386417160",
+        "symbol": "BTCUSD",
+        "tradingAccountId": "111234567890"
+      }
+    }
+    ```
+    
+    ### Command for Transfer Asset 
+    `POST /trading-api/v1/command?commandType=V1TransferAsset`
+    
+    ```json
+    {
+      "timestamp": "<TIMESTAMP>",
+      "nonce": "<NONCE>",
+      "authorizer": "<AUTHORIZER>"
+      "command": {
+        "commandType": "V1TransferAsset",
+        "assetSymbol": "USD",
+        "quantity": "7.0000",
+        "fromTradingAccountId": "11123456789",
+        "toTradingAccountId": "11198765432"
+      }
+    }
+    ```
+    
     ## Construct The BX-SIGNATURE Header
 
     Set the `BX-SIGNATURE` header to the value resulting from signing the `<COMMAND>`.
@@ -536,8 +590,6 @@ info:
     Trading Account Ids may be required by some endpoints. They can be fetched from [Get All Trading Accounts](#get-/accounts/trading-accounts).
     
     An example script is available [here](https://github.com/bullish-exchange/api-examples/blob/master/get_trading_accounts.py).
-
-
 
     ## Send The HTTP Authenticated Request
 
@@ -767,9 +819,9 @@ info:
     - This endpoint does not require subscriptions.
 
     On connection, the client receives a snapshot of the current hybrid orderbook with default depth of 10 (unless specified otherwise). 
-    Subsequently, if the orderbook moves, the client then receives a conflated update of the hybrid orderbook periodically 
+    Subsequently, if the orderbook moves, the client then receives a conflated update of the hybrid orderbook periodically
     at 300ms via our standard API and at 100ms via our registered API (Cloudflare bypass). If there is a sequence number mismatch between the
-    conflated update and the snapshot, the server disconnects the client with the following error message - 
+    conflated update and the snapshot, the server disconnects the client with the following error message -
     `4003 (Try Again, sequence number miss-match between snapshot and updates)`. The first conflated update and snapshot may be out of order.
     See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
 
@@ -961,7 +1013,7 @@ info:
     - All private data updates are realtime.
 
     Route
-    - `/trading-api/v1/private-data`
+    - `/trading-api/v1/private-data?tradingAccountId=<Id of the Trading Account>`
 
     | Topic             | Description                                                                                                                         | Data Type           | Subscription Type |
     | :--               | :--                                                                                                                                 | :--                 | :--               |
@@ -1300,8 +1352,8 @@ paths:
         - trading-accounts
       summary: Get All Trading Accounts
       description: |
-        Gets details for all trading accounts accessible by the API key used in the request. It requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API        
-
+        Gets details for all trading accounts accessible by the API key used in the request. It requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
+  
         **Ratelimited:** `True`
       operationId: user-get-trading-accounts
       parameters:
@@ -1332,6 +1384,7 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
+
   /accounts/spot:
     get:
       tags:
@@ -1348,6 +1401,12 @@ paths:
           description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
           schema:
             $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
           required: true
       responses:
         200:
@@ -1383,6 +1442,12 @@ paths:
           name: symbol
           schema:
             $ref: '#/components/schemas/AssetSymbol'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
           required: true
       tags:
         - accounts
@@ -1455,6 +1520,12 @@ paths:
           schema:
             $ref: '#/components/schemas/OrderStatus'
           required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       responses:
         200:
           description: OK
@@ -1482,6 +1553,8 @@ paths:
       summary: Create Order
       description: |
         Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        [Command Example](#overview--create-spot-or-margin-order-example)
 
         **Ratelimited:** `True`
       operationId: trade-create-order
@@ -1564,6 +1637,8 @@ paths:
         Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
         Use either the `handle` or `orderId` field in the query parameters.
 
+        [Command example](#overview--cancel-spot-or-margin-order-example)
+
         **Ratelimited:** `True`
       operationId: trade-cancel-order
       parameters:
@@ -1621,6 +1696,12 @@ paths:
           schema:
             $ref: '#/components/schemas/Boolean'
           required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       responses:
         204:
           description: Status OK. This means an cancel order command was successfully acknowledged. It does not necessarily mean the order was cancelled. To check the current status of the order, query [Get Order by ID](#get-/orders/-orderId-) using the `orderId`. Also consult the section [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests).
@@ -1659,6 +1740,12 @@ paths:
           description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
           schema:
             $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
           required: true
       responses:
         200:
@@ -1731,60 +1818,6 @@ paths:
       security:
         - jwtTokenAuth: [ ]
 
-  /command?commandType=V1CancelAllOrdersByMarket:
-    post:
-      tags:
-        - orders
-      summary: Cancel All Open Limit Orders By Market
-      description: |
-        Cancel all open limit orders
-        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-        
-        **Ratelimited:** `True`
-      operationId: trade-cancel-all-open-limit-orders-by-market
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-      responses:
-        200:
-          description: Status OK. This means a cancel all open limit orders by market command was successfully acknowledged.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CancelAllOrdersByMarketResponse'
-        400:
-          description: |+
-            Bad Request
-            
-            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BadOrderEntryResponse'
-        401:
-          description: Not Authenticated
-        403:
-          description: Access Forbidden
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      requestBody:
-        description: Cancel All Open Limit Orders By Market request body
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CancelAllOrdersByMarketRequest'
-
-      security:
-        - jwtTokenAuth: [ ]
-
-
   /amm-instructions:
     get:
       tags:
@@ -1816,6 +1849,12 @@ paths:
           schema:
             $ref: '#/components/schemas/AMMInstructionStatus'
           required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       responses:
         200:
           description: OK
@@ -1844,7 +1883,9 @@ paths:
       description: |
         Creates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) 
         in authorization header.
-
+        
+        [Command Example](#overview--add-amm-instruction)
+        
         **Ratelimited:** `True`
       operationId: trade-create-amm-instruction
       parameters:
@@ -1917,7 +1958,9 @@ paths:
       summary: Terminate AMM Instruction
       description: |
         Terminates a specific AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
-
+        
+        [Command Example](#overview--remove-amm-instruction)
+        
         **Ratelimited:** `True`
       operationId: trade-terminate-amm-instruction
       parameters:
@@ -1957,6 +2000,12 @@ paths:
             $ref: '#/components/schemas/AMMInstructionID'
           required: true
         - in: query
+          name: tradingAccountId
+          description: id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+        - in: query
           name: test
           description: to validate integration with the `DELETE /amm-instructions` API pass the query parameter `test=true` e.g. `/amm-instructions?test=true`. The request will be validated but not executed.
           schema:
@@ -1985,6 +2034,12 @@ paths:
           type: number
         required: true
         description: unique AMM instruction ID
+      - in: query
+        name: tradingAccountId
+        description: Id of the trading account
+        schema:
+          $ref: '#/components/schemas/TradingAccountId'
+        required: true
     get:
       tags:
         - "amm instructions"
@@ -2050,6 +2105,12 @@ paths:
           schema:
             $ref: '#/components/schemas/OrderID'
           required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       responses:
         200:
           description: OK
@@ -2086,6 +2147,12 @@ paths:
             type: number
           required: true
           description: trade ID
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
       tags:
         - trades
       summary: Get Trade by ID
@@ -2725,6 +2792,73 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+  /command?commandType=V1TransferAsset:
+    post:
+      tags:
+        - trading-accounts
+      summary: Transfer Asset
+      description: |
+        Send command to transfer asset between two trading accounts.
+      operationId: command
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: command signature is a signature resulted from the [signed message of the `<COMMAND>`](#overview--construct-the-bx-signature-header)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: command timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: command nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+
+      responses:
+        200:
+          description: Status OK. This means the request was successfully acknowledged. It does not necessarily mean the command was successfully executed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingAccountTransferResponse'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: Command for action
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingAccountTransferRequest'
+      security:
+        - jwtTokenAuth: [ ]
 components:
   securitySchemes:
     jwtTokenAuth:
@@ -3017,11 +3151,12 @@ components:
         - quantity
         - timeInForce
         - allowMargin
+        - tradingAccountId
       properties:
         commandType:
-          description: The command type, it must be 'V1CreateOrder'
+          description: The command type, it must be 'V2CreateOrder'
           type: string
-          example: 'V1CreateOrder'
+          example: 'V2CreateOrder'
         handle:
           allOf:
             - $ref: '#/components/schemas/OrderHandle'
@@ -3056,6 +3191,10 @@ components:
           description: allow margin trading
           type: boolean
           example: false
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+
     TradingAccountResponse:
       type: object
       required:
@@ -3130,11 +3269,12 @@ components:
         - upperBound
         - lowerBound
         - feeTierId
+        - tradingAccountId
       properties:
         commandType:
-          description: The command type, it must be 'V1AddLiquidity'
+          description: The command type, it must be 'V2AddLiquidity'
           type: string
-          example: 'V1AddLiquidity'
+          example: 'V2AddLiquidity'
         symbol:
           allOf:
             - $ref: '#/components/schemas/MarketSymbol'
@@ -3157,6 +3297,9 @@ components:
         feeTierId:
           allOf:
             - $ref: '#/components/schemas/FeeTierId'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
     CancelOrderCommand:
       type: object
       required:
@@ -3164,11 +3307,12 @@ components:
         - orderId
         - handle
         - symbol
+        - tradingAccountId
       properties:
         commandType:
-          description: The command type, it must be 'V1CancelOrder'
+          description: The command type, it must be 'V2CancelOrder'
           type: string
-          example: 'V1CancelOrder'
+          example: 'V2CancelOrder'
         orderId:
           description: unique order ID
           allOf:
@@ -3179,6 +3323,9 @@ components:
         symbol:
           allOf:
             - $ref: '#/components/schemas/MarketSymbol'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
     CancelAllOrdersRequest:
       type: object
       required:
@@ -3234,9 +3381,7 @@ components:
       format: string
       example: "03E02367E8C900000500000000000000"
       description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
-
-
-    CancelAllOrdersByMarketRequest:
+    TradingAccountTransferRequest:
       type: object
       required:
         - timestamp
@@ -3257,27 +3402,8 @@ components:
         command:
           description: the command to be executed which is sent in the request payload
           allOf:
-            - $ref: '#/components/schemas/CancelAllOrdersByMarketCommand'
-    CancelAllOrdersByMarketCommand:
-      type: object
-      required:
-        - commandType
-        - symbol
-        - tradingAccountId
-      properties:
-        commandType:
-          description: The command type, it must be 'V1CancelAllOrdersByMarket'
-          type: string
-          example: 'V1CancelAllOrdersByMarket'
-        symbol:
-          description: market symbol
-          allOf:
-            - $ref: '#/components/schemas/MarketSymbol'
-        tradingAccountId:
-          description: unique trading account Id
-          allOf:
-            - $ref: '#/components/schemas/TradingAccountId'
-    CancelAllOrdersByMarketResponse:
+            - $ref: '#/components/schemas/TransferAssetCommand'
+    TradingAccountTransferResponse:
       type: object
       required:
         - message
@@ -3286,12 +3412,40 @@ components:
         message:
           description: message
           type: string
-          example: "Command acknowledged - CancelAllOrdersByMarket"
+          example: "Command acknowledged - TransferAsset"
         requestId:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
-
+    TransferAssetCommand:
+      type: object
+      required:
+        - commandType
+        - assetSymbol
+        - quantity
+        - fromTradingAccountId
+        - toTradingAccountId
+      properties:
+        commandType:
+          description: The command type, e.g. 'V1TransferAsset'
+          type: string
+          example: 'V1TransferAsset'
+        assetSymbol:
+          description: Symbol of the asset. i.e. currency
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        quantity:
+          description: Quantity of the asset.
+          type: string
+          example: '100'
+        fromTradingAccountId:
+          description: Source of the asset transfer
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        toTradingAccountId:
+          description: Destination of the asset transfer
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
     CreateOrderRequest:
       type: object
       required:
@@ -3342,6 +3496,7 @@ components:
         - timestamp
         - nonce
         - authorizer
+        - tradingAccountId
         - command
       properties:
         timestamp:
@@ -3354,6 +3509,9 @@ components:
           description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
           allOf:
             - $ref: '#/components/schemas/Authorizer'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
         command:
           description: the command to be executed which is sent in the request payload
           allOf:

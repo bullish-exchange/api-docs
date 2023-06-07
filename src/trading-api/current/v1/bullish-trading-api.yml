@@ -20,41 +20,62 @@ info:
 
     The API:
     - follows [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) conventions
-    - endpoints fall under one of the two categories:
-      - Authenticated, they provide access to private client data e.g. [Get Orders](#get-/orders) endpoint
-      - Non-authenticated, they provide access to public data e.g. [Get Markets](#get-/markets) endpoint
-    - uses bearer based authentication
+    - has the base URL `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
+    - has endpoints under the below categories:
+      - Authenticated endpoints for private client data e.g. [Get Orders](#get-/orders) endpoint
+      - Non-authenticated endpoints for public data e.g. [Get Markets](#get-/markets) endpoint
+    - uses bearer-based authentication
     - enforces a blanket rate limit across all requests
-    - base URL is `api.exchange.bullish.com` (unless one of the sandbox environments is being used)
 
     # Code Examples
     Find further code examples at - https://github.com/bullish-exchange
 
-    # API Change Log
-    ## 2022 Changes
-    - January - add pagination support to `GET /markets/{symbol}/candle`
-    - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
-    - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
-    - March - add order `statusReasonCode` map to API documentation
-    - March - add FOK time-in-force order type
-    - March - add IOC time-in-force order type
-    - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
-    - April - add private data WebSocket API
-    - April - add market data WebSocket API
-    - May - add `events` topic to private data WebSocket
-    - June - orderbook default depth of `10` - `GET /markets/{symbol}/orderbook/hybrid`
-    - June - add handle field to `V1TATrade` for private data WebSocket
-    - June - add handle field to `GET /trades` and `GET /trades/{tradeId}`
-    - July - add hybrid orderbook WebSocket API
-    - July - deprecate WebSocket API `/v1/private` and `/v1/market-data`
-    - August - add anonymous trades WebSocket API
-    - October - add Custody API
-    - November - deprecate `/accounts/margin`, `/accounts/margin/{symbol}`, `/positions` and `/positions/{symbol}`
-    - November - deprecate subscription topics in `/private-data` - `events`, `positions` and `marginAccounts`
-    ## 2023 Changes
-    - January - add AMM instructions API
-    - March - add custody SIGNET support, remove SEN support
 
+    # API Change Log
+    ## 2023 Changes
+    - April - add V1CancelAllOrders to cancel all open limit orders by trading account id
+    - April - add `/accounts/trading-accounts` endpoint to fetch all trading accounts
+    - April - new hybrid orderbook WebSocket API with greater depth
+      - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
+      - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
+      - Get trade details [Current API](../v1/#get-/trades) -> [New API](../v2/#get-/trades)
+      - Get AMM Instruction by ID [Current API](../v1/#get-/amm-instructions/-liquidityId-) -> [New API](../v2/#get-/amm-instructions/-liquidityId-)
+      - Get AMM instruction details [Current API](../v1/#get-/amm-instructions) -> [New API](../v2/#get-/amm-instructions)
+      - Remove AMM instruction [Current API](../v1/#delete-/amm-instructions) -> [New API](../v2/#delete-/amm-instructions)
+      - Add AMM instruction [Current API](../v1/#post-/amm-instructions) -> [New API](../v2/#post-/amm-instructions)
+      - Get order details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
+      - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
+      - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
+      - Updated REST API:
+      - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1TransferAsset)
+      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) Gets details for all trading accounts accessible by the API key used in the request. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
+    - March - introduce "trading account Id" to authenticated REST API and websocket
+    - March - add custody SIGNET support, remove SEN support
+    - March - add unsolicited amend status reason code
+    - March - add nonce window to `/orders` to allow out-of-order order requests to be processed
+    - March - `/v1/users/login` to be deprecated towards the end of Q2 2023
+    - January - add AMM instructions API
+    ## 2022 Changes
+    - November - deprecate subscription topics in `/private-data` - `events`, `positions` and `marginAccounts`
+    - November - deprecate `/accounts/margin`, `/accounts/margin/{symbol}`, `/positions` and `/positions/{symbol}`
+    - October - add Custody API
+    - August - add anonymous trades WebSocket API
+    - July - deprecate WebSocket API `/v1/private` and `/v1/market-data`
+    - July - add hybrid orderbook WebSocket API
+    - June - add handle field to `GET /trades` and `GET /trades/{tradeId}`
+    - June - add handle field to `V1TATrade` for private data WebSocket
+    - June - orderbook default depth of `10` - `GET /markets/{symbol}/orderbook/hybrid`
+    - May - add `events` topic to private data WebSocket
+    - April - add market data WebSocket API
+    - April - add private data WebSocket API
+    - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
+    - March - add IOC time-in-force order type
+    - March - add FOK time-in-force order type
+    - March - add order `statusReasonCode` map to API documentation
+    - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
+    - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
+    - January - add pagination support to `GET /markets/{symbol}/candle`
+    
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -65,9 +86,9 @@ info:
 
     There are 4 special query parameters used to control the pagination behaviour.
     - `_pageSize` can be one of `5, 25, 50, 100`, default value is `25`
-    - `_nextPage` cursor to the next page
-    - `_previousPage` cursor to the previous page
     - `_metaData` can be false/true, if false the links are NOT part of the response. explicitly set `_metaData=true` to guarantee links are returned.
+    - `_nextPage` cursor to the next page. It is provided in the paginated response when `_metaData=true`.
+    - `_previousPage` cursor to the previous page. It is provided in the paginated response when `_metaData=true`.
 
     The paginated data is returned in the following wrapped format with generated links to the previous and next pages:
     ```json
@@ -103,27 +124,40 @@ info:
     }
     ```
 
-    # How To Filter
 
-    - If specified in the API documentation, an endpoint may support filters on specific fields and values e.g. `GET /orders?status=OPEN`
-    - Filter parameters and values should match 1 to 1 with those seen in an API response, what you see is what you query on and by.
-    - Pagination query parameters start with an underscore to differentiate them from filter query parameters e.g. `GET /orders?status=OPEN&_pageSize=25`
+    # Filtering Support
+    
+    - If specified in the API documentation, an endpoint may support filters on specific fields and values e.g. `GET /orders?status=OPEN`     
+    - Only fields returned in an API response may be used as filter parameters. What you see is what you query on and by.
+    - For the fields in the API response usable as filter parameters, please consult the API endpoint of interest.
+    - By design, pagination query parameters start with an underscore. This differentiates them from filter query parameters e.g. `GET /orders?status=OPEN&_pageSize=25`
 
     # Rate Limits
-
-    There is a blanket rate limit of 500 requests per 10 seconds (approximately 50 requests per second) per IP address.
+    
+    ## Rate Limits per IP address
+    
+    Each IP address is subject to a blanket rate limit of 500 requests per 10 seconds (approximately 50 requests per second).
     If an IP address is rate limited, the http response status code will be `429 Too Many Requests` and the IP address
     is blocked from making any requests for 60 seconds.
 
-    ## Rate Limits Per API Endpoint
+    ## Rate Limits per API category
 
-    Specific API endpoints have an additional rate limit applied, denoted by `Ratelimited: True` in its description
-    e.g. [Create Order](#post-/orders). Rate limit settings are as follows:
-    - Authenticated endpoints rate limited at 50 requests per second.
-    - Unauthenticated endpoints rate limited at 50 requests per second.
+    In addition, API endpoints denoted by `Ratelimited: True` in the description are also subject to rate limits.
+    e.g. [Create Order](#post-/orders). The API endpoints fall under the below categories. The rate limit for each category is *independently* applied.
+    
+    - Unauthenticated endpoints, rate limited at 50 requests per second.
+    - Authenticated `/orders` endpoints, rate limited at 50 requests per second.
+    - Other Authenticated endpoints, rate limited at 50 requests per second.
+    
+    ## Rate Limits Info
+    
+    When rate limits are not exceeded, the http response header of the API endpoint called will contain the below:
+    - `x-ratelimit-limit`: Maximum number of requests allowed for the specific API category within time period.
+    - `x-ratelimit-remaining`: Remaining number of requests allowed for the specific API category within time period.
+    - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed for the specific API category.
 
-
-    If rate limited, the http response status code will be `429 Too Many Requests` and the http response body will be:
+    ## Exceeding Rate Limits
+    When rate limits are exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
     ```json
       {
         "errorCode": 96000,
@@ -132,26 +166,42 @@ info:
       }
     ```
 
-    If rate limit is not exceeded, the response from the API endpoint will contain these headers:
-    - `x-ratelimit-limit`: Maximum number of requests allowed for specific API endpoint within time period.
-    - `x-ratelimit-remaining`: Remaining number of requests allowed for specific API endpoint within time period.
-    - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed.
-
     ## Increasing Rate Limits
+    
+    Bullish has a tiered rate limit offering based on volume. 
+    
+    |  | Default | 30-Day Volume between $1B USD and $2B USD | 30-Day Volume over $2B USD |
+    | ---------- |---------------- |---------------- |---------------- |
+    | Cloudflare | 50 msgs/sec | same as default | same as default
+    | Cloudflare Bypass | 100 msgs/sec  | up to 200 msgs/sec | up to 500 msgs/sec
+    
     For more information on increasing your rate limits, please reach out to your sales representative.
-
+    
+    
     # Price And Quantity Precision
-
-    The API defines the price and quantity for an asset in `asset value` format.
-    The price and quantity are decimal values thus they have defined a precision.
-    To find out the price and quantity precision, for all or one symbol, you can use any
-    of the below API endpoints.
-    - The [Get Markets](#get-/markets) API endpoint for all supported symbols
-    - The [Get Market By Symbol](#get-/markets/-symbol-) API endpoint for a specific symbol
-
-    Consult the responses of these above two API endpoints:
+    
+    A market consists of two assets, namely base asset and quote asset.
+    For instance, the `BTCUSD` market has `BTC` as base asset and `USD` as quote asset.
+    The price of a market is denominated in the quote asset, while the quantity is denominated in the base asset.
+    For instance, the price in `BTCUSD` market is in `USD` while the quantity is in `BTC`. 
+    Each asset has its own precision. For this, the below asset APIs can be queried.
+    
+    - The [Get Assets](#get-/assets) API endpoint for all supported asset symbols
+    - The [Get Asset By Symbol](#get-/assets/-symbol-) API endpoint for a specific asset symbol
+    
+    The precision of an asset is the number of decimal places used to express its value in.
+    For instance, the quantity in the market `BTCUSD` is in BTC. As BTC has a precision of 8, the quantity in `BTCUSD` has 8 decimal places.
+    It follows that in order to express a quantity of 1 BTC in `BTCUSD` market, it has to be `1.00000000` BTC.
+    
+    Alternatively, the below market APIs can also be queried to obtain the price and quantity precisions for different markets.
+    
+    - The [Get Markets](#get-/markets) API endpoint for all supported market symbols
+    - The [Get Market By Symbol](#get-/markets/-symbol-) API endpoint for a specific market symbol
+    
+    Following the logic outlined above, 
     - The precision for quantity is defined by the `basePrecision`
     - The precision for price is defined by `quotePrecision`
+
 
     # Numeric Identifier Contraints
 
@@ -166,11 +216,12 @@ info:
 
     # Order statusReasonCode Map
 
-    - The `statusReasonCode` is a field on an Order which provides details on the reasoning for the current state of the order
-    - A `statusReasonCode` will never change i.e. 2009 will always refer to an invalid market symbol
-    - The `statusReason` is a textual description of the `statusReasonCode` which may be subject to change
+    - The `statusReasonCode` is a field on an Order which provides details on the reasoning for the current state of the order.
+    - The `statusReason` is the textual description which explains the `statusReasonCode`.
+    - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
+    - For instance, the `statusReasonCode` 2009 will always refer to an invalid market symbol.
 
-    | statusReasonCode | |
+    | statusReasonCode | statusReason |
     | ---------- |---------------- |
     | 1001 | Ok |
     | 1002 | Unable to place request  |
@@ -210,14 +261,19 @@ info:
     | 6004 | Expired  |
     | 6005 | User cancelled |
     | 6007 | Self cross prevention  |
-
+    | 6011 | Self cross prevention amend  |
+    | 6012 | Stop limit amend  |
+    | 6013 | Partially filled  |
+    
+    
     # Custody statusReasonCode Map
 
-    - The `statusReasonCode` is a field on Custody API's withdrawal and error messages which provides details on the reasoning for the current state of the request
-    - A `statusReasonCode` will never change i.e. 8305 will always refer to an assertion failure
-    - The `statusReason` is a textual description of the `statusReasonCode` which may be subject to change
+    - The `statusReasonCode` is a field on Custody API's withdrawal and error messages which provides details on the reasoning for the current state of the request.
+    - The `statusReason` is the textual description which explains the `statusReasonCode`.
+    - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
+    - For instance, the `statusReasonCode` 8305 will always refer to an assertion failure.
 
-    | statusReasonCode | |
+    | statusReasonCode | statusReason |
     | ---------- |---------------- |
     | 8301 | Unexpected Error |
     | 8305 | Withdraw assertion failed  | 
@@ -245,7 +301,7 @@ info:
 
     # Authentication
 
-    The API uses bearer based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
+    The API uses bearer-based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
 
     # How To Send Authenticated Requests
 
@@ -257,8 +313,9 @@ info:
     5. [Construct The BX-NONCE Header](#overview--construct-the-bx-nonce-header)
     6. [Construct The Command You Want To Send](#overview--construct-the-command-you-want-to-send)
     7. [Construct The BX-SIGNATURE Header](#overview--construct-the-bx-signature-header)
-    8. [Send The HTTP Authenticated Request](#overview--send-the-HTTP-authenticated-request)
-    9. [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests)
+    8. [Fetch Trading Account Ids](#overview--fetch-trading-account-ids)
+    9. [Send The HTTP Authenticated Request](#overview--send-the-HTTP-authenticated-request)
+    10. [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests)
 
     ## Generate An API Key
 
@@ -280,28 +337,64 @@ info:
     - Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
     - When you generate an API key you also get back the API metadata, in the next section you will learn how to use it
 
-    ## Get Your Bullish Account Id
+    ## Get Your Bullish User ID
 
     An API key additionally has a `metadata` string assoicated with it which is displayed along side the key.
-    You must base64 decode the `metadata` to extract your `account id` (example follows). You will need the `account id` in the next step.
+    You must base64 decode the `metadata` to extract your `userId` (example follows). You will need the `userId` in the next step.
+    Please note that the `accountId` field is deprecated, and will be removed along with `v1/users/login` API towards the end of Q2 2023. Clients should reference the `userId` field instead.
+    Old `metadata` strings generated before the March 2023 upgrade will not contain the `userId` field; clients are advised to get the `metadata` from the Settings page on the UI again.
 
     ```shell
     echo eyJwdWJsaWNLZXkiOiJQVUJfUjFfNWNpVW52TW5rVThMOVBCWnZaa1BGcjhqdkRnUHpzcHhWNGlqOThIN1JqM1FSNzJyMkEiLCJhY2NvdW50SWQiOjIyMjAwMDAwMDAwMDAwNCwiY3JlZGVudGlhbElkIjoiMTAifQ== | base64 --decode
-    {"publicKey":"PUB_R1_5ciUnvMnkU8L9PBZvZkPFr8jvDgPzspxV4ij98H7Rj3QR72r2A","accountId":"12345","credentialId":"10"}
+    {"publicKey":"PUB_R1_5ciUnvMnkU8L9PBZvZkPFr8jvDgPzspxV4ij98H7Rj3QR72r2A","userId":"12345","accountId":"12345","credentialId":"10"}
     ```
 
     ## Add Authenticated Request Header
 
     Each authenticated request must include a `Authorization` header:
-      - `Authorization: Bear <JWT_TOKEN>`
-
+      - `Authorization: Bearer <JWT_TOKEN>`
+    
     The JWT is valid for 24 hours.
 
     ## Generate A JWT Token
 
     To generate/get a JWT token you will need to perform the following request:
 
-    ### POST /trading-api/v1/users/login
+    ### POST /trading-api/v2/users/login
+
+    - Body
+      - `publicKey` - bullish account public key
+      - `userId` - bullish user id corresponding to the metadata
+      - `signature` - signed JSON string encoding of `loginPayload`, see the code sample for how to get it
+      - `expirationTime` - epoch timestamp in milliseconds that is 5 minutes in the future
+      - `nonce` - epoch timestamp in milliseconds; note this login API nonce has no connection to the orders API nonce
+      - `biometricsUsed` - set to `false`
+      - `sessionKey` - set to `null`
+
+    ```json
+    {
+      "publicKey": "<PUBLIC_KEY>",
+      "signature": "<SIGNATURE>",
+      "loginPayload": {
+        "userId": "100008771"
+        "nonce": 1638776636,
+        "expirationTime": 1638776936,
+        "biometricsUsed": false,
+        "sessionKey": null
+      }
+    }
+    ```
+
+    - Response
+
+    ```json
+    {
+      "authorizer": "<AUTHORIZER>",
+      "token": "<JWT_TOKEN>"
+    }
+    ```
+
+    ### POST /trading-api/v1/users/login (Deprecated - the endpoint will be removed towards the end of Q2 2023)
 
     - Body
       - `publicKey` - bullish account public key
@@ -437,6 +530,14 @@ info:
     2. Sign the hexdigest from step 1 with ECDSA P-256 using your `<PRIVATE_KEY>`
     3. Various signing examples can be found on [GitHub](https://github.com/bullish-exchange)
 
+    ## Fetch Trading Account Ids
+    
+    Trading Account Ids may be required by some endpoints. They can be fetched from [Get All Trading Accounts](#get-/accounts/trading-accounts).
+    
+    An example script is available [here](https://github.com/bullish-exchange/api-examples/blob/master/get_trading_accounts.py).
+
+
+
     ## Send The HTTP Authenticated Request
 
     See [create an order](https://github.com/bullish-exchange/api-examples/blob/master/create_order.py) for a sample Python script.
@@ -476,6 +577,15 @@ info:
     If you wait the acknowledgement from the server side you ensure the order of
     the requests you sent and you can also verify the status of the order(s) you
     created or cancelled.
+    
+    ## How To Enable Out-Of-Order Processing of Order Requests
+    The header `BX-NONCE-WINDOW-ENABLED` is a string representation of a boolean value which enables out-of-order 
+    processing of *Create Order* or *Cancel Order* requests up to a window size of 100 from the highest previously used
+    `nonce` value (inclusive).
+    
+    The `nonce` parameter is required to be both unique and incremental, but setting `BX-NONCE-WINDOW-ENABLED` to `true` 
+    loosens this requirement such that the `nonce` is only required to be `unique`. For example, the client is able to 
+    send `nonce` values from `1...100` in any order and all the values will be valid.
 
     # WebSockets
 
@@ -485,7 +595,9 @@ info:
 
     ## Servers
       - `wss://api.exchange.bullish.com` - PRODUCTION
+      - `wss://registered.api.exchange.bullish.com` - PRODUCTION (Cloudflare Bypass)
       - `wss://api.simnext.bullish-test.com` - SANDBOX
+      - `wss://registered.api.simnext.bullish-test.com` - SANDBOX (Cloudflare Bypass)
 
     ## Send A Message Over The Web Socket
 
@@ -647,13 +759,16 @@ info:
     ### Hybrid OrderBook WebSocket
     **Route**
     - `/trading-api/markets/{symbol}/orderbook/hybrid`
+    - `/trading-api/v2/market-data/orderbook/hybrid/{symbol}?depth={depth}`
+    
+    **Additional notes**: 
+    - Allowable depths - `[ 10, 50, 100, 200 ]`.
+    - This endpoint does not require subscriptions.
 
-    **Note**: This endpoint does not require subscriptions.
-
-    On connection, the client receives a snapshot of the current hybrid orderbook with default depth of 10 (unless specified otherwise).
-    Subsequently, if the orderbook moves, the client then receives a conflated update of the hybrid orderbook periodically
+    On connection, the client receives a snapshot of the current hybrid orderbook with default depth of 10 (unless specified otherwise). 
+    Subsequently, if the orderbook moves, the client then receives a conflated update of the hybrid orderbook periodically 
     at 300ms via our standard API and at 100ms via our registered API (Cloudflare bypass). If there is a sequence number mismatch between the
-    conflated update and the snapshot, the server disconnects the client with the following error message -
+    conflated update and the snapshot, the server disconnects the client with the following error message - 
     `4003 (Try Again, sequence number miss-match between snapshot and updates)`. The first conflated update and snapshot may be out of order.
     See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
 
@@ -662,8 +777,8 @@ info:
 
     | Name                | Type   | Description                                                                                                                                                                                                              |
     |---------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-    | bids                | Array  | array of size 20 where even indices denote price, odd indices denote absolute quantities                                                                                                                                 |
-    | asks                | Array  | array of size 20 where even indices denote price, odd indices denote absolute quantities                                                                                                                                 |
+    | bids                | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
+    | asks                | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
     | sequenceNumberRange | Array  | array of size 2 where first element denotes lower bound, second element denotes upper bound of sequence numbers <br /> lower and upper bound are equal for initial snapshot; this may differ for subsequent snapshots    |
     | datetime            | String | denotes the time the update was created                                                                                                                                                                                  |
     | timestamp           | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                                                                                             |
@@ -1178,6 +1293,44 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+  /accounts/trading-accounts:
+    get:
+      tags:
+        - trading-accounts
+      summary: Get All Trading Accounts
+      description: |
+        Gets details for all trading accounts accessible by the API key used in the request. It requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API        
+
+        **Ratelimited:** `True`
+      operationId: user-get-trading-accounts
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/TradingAccountResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /accounts/spot:
     get:
       tags:
@@ -1257,6 +1410,7 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
+
   /orders:
     get:
       tags:
@@ -1355,6 +1509,13 @@ paths:
           schema:
             $ref: '#/components/headers/BX-NONCE'
           required: true
+        - in: header
+          name: BX-NONCE-WINDOW-ENABLED
+          description:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED/description'
+          schema:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
+          required: false
         - in: query
           name: test
           description: to validate integration with the `POST /orders` API pass the query parameter `test=true` e.g. `/orders?test=true`. The request will be validated but not executed.
@@ -1429,6 +1590,13 @@ paths:
           schema:
             $ref: '#/components/headers/BX-NONCE'
           required: true
+        - in: header
+          name: BX-NONCE-WINDOW-ENABLED
+          description:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED/description'
+          schema:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
+          required: false
         - in: query
           name: symbol
           schema:
@@ -1508,6 +1676,60 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
+
+  /command?commandType=V1CancelAllOrders:
+    post:
+      tags:
+        - orders
+      summary: Cancel All Open Limit Orders
+      description: |
+        Cancel all open limit orders
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: trade-cancel-all-open-limit-orders
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: Status OK. This means a cancel all open limit orders command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelAllOrdersResponse'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: Cancel All Open Limit Orders request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAllOrdersRequest'
+
+      security:
+        - jwtTokenAuth: [ ]
+
   /amm-instructions:
     get:
       tags:
@@ -2073,17 +2295,20 @@ paths:
         | ---------- |---------------- |
         | USD | 2dp |
         | BTC | 8dp |
+        | DOGE | 8dp |
         | EOS | 4dp |
         | ETH | 8dp |
-        | USDC | 6dp |
         | LTC | 8dp |
-        | LINK | 8dp |
-        | MATIC | 8dp |
-        | UNI | 8dp |
+        | XRP | 6dp |
         | AAVE | 8dp |
         | CRV | 8dp |
+        | LINK | 8dp |
         | MANA | 8dp |
+        | MATIC | 8dp |
         | SUSHI | 8dp |
+        | UNI | 8dp |
+        | USDC | 6dp |
+        | USDT | 6dp |
 
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-withdrawal-challenge
@@ -2169,6 +2394,24 @@ paths:
                 maxItems: 10
                 items:
                   $ref: '#/components/schemas/Asset'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+  /assets/{symbol}:
+    get:
+      tags:
+        - asset-data
+      summary: Get Asset by Symbol
+      description: Get Asset by Symbol
+      operationId: asset-data-get-asset
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
         429:
           description: Too Many Requests
         500:
@@ -2488,6 +2731,10 @@ components:
       description: Unique numeric identifier generated on the client side expressed as a string value
       type: string
       example: "187"
+    TradingAccountId:
+      description: id of the trading account.
+      type: string
+      example: "111234567890"
     MarketID:
       type: string
       example: BTCUSD
@@ -2573,12 +2820,12 @@ components:
       description: withdrawal fee charged in units of symbol, not in smaller denominations (e.g. BTC not Satoshi, ETH not Wei)
     CustodyDepositMemo:
       type: string
-      example: MZAXEMRXA
-      description: memo used during deposit to help identify account to credit funds to
+      example: "925891241"
+      description: memo or destination tag used during deposit to help identify account to credit funds to
     CustodyWithdrawalMemo:
       type: string
       example: MZAXEMRXA
-      description: memo that will be used as a reference on transaction
+      description: memo or destination tag that will be used as a reference on transaction
     CustodyWithdrawalLabel:
       type: string
       example: Our cold wallet
@@ -2754,6 +3001,31 @@ components:
           description: allow margin trading
           type: boolean
           example: false
+    TradingAccountResponse:
+      type: object
+      required:
+        - tradingAccountId
+        - tradingAccountName
+        - tradingAccountDescription
+        - isPrimaryAccount
+        - rateLimitToken
+      properties:
+        tradingAccountId:
+          description: Id of the trading account
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        tradingAccountName:
+          description: Name of the trading account
+          example: algo trading account
+        tradingAccountDescription:
+          description: description of the trading account
+          example: algo trading account with experimental strategy
+        isPrimaryAccount:
+          description: whether this is the primary account
+          example: true
+        rateLimitToken:
+          description: unique rate limit token of the trading account
+          example: 97d98951b12fb11f330dd9cb1b807d888c702679ee602edcf1ebc6bac17ad63d
     CreateAMMInstructionResponse:
       type: object
       required:
@@ -2852,6 +3124,56 @@ components:
         symbol:
           allOf:
             - $ref: '#/components/schemas/MarketSymbol'
+    CancelAllOrdersRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/CancelAllOrdersCommand'
+    CancelAllOrdersCommand:
+      type: object
+      required:
+        - commandType
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V1CancelAllOrders'
+          type: string
+          example: 'V1CancelAllOrders'
+        tradingAccountId:
+          description: unique trading account Id
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+    CancelAllOrdersResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - CancelAllOrders"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
     Authorizer:
       type: string
       format: string
@@ -3015,8 +3337,8 @@ components:
           example: "User cancelled"
         statusReasonCode:
           description: status reason code, see [details](#overview--order-statusreasoncode-map)
-          type: integer
-          example: 1002
+          type: string
+          example: "1002"
         createdAtDatetime:
           description: denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string
           allOf:
@@ -3439,18 +3761,27 @@ components:
             - $ref: '#/components/schemas/CustodyTransactionDetails'
     CustodyCryptoDepositInstructions:
       type: object
+      required:
+        - network
+        - symbol
+        - address
       properties:
         network:
-          example: 'ETH'
           allOf:
             - $ref: '#/components/schemas/NetworkID'
         symbol:
-          example: 'USDC'
           allOf:
             - $ref: '#/components/schemas/CustodySymbol'
+        memo:
+          allOf:
+            - $ref: '#/components/schemas/CustodyDepositMemo'
         address:
           allOf:
             - $ref: '#/components/schemas/CustodyNetworkAddress'
+      example:
+        network: 'ETH'
+        symbol: 'USDC'
+        address: '0xb0a64d976972d87b0783eeb1ff88306cd1891f02'
     CustodyCryptoWithdrawalInstructions:
       type: object
       properties:
@@ -4199,3 +4530,11 @@ components:
       schema:
         type: string
       type: string
+    BX-NONCE-WINDOW-ENABLED:
+      description: |
+        string representation of a boolean value, [enables out-of-order order requests to be processed](#overview--how-to-enable-out-of-order-processing-of-order-requests)
+      type: string
+      enum:
+        - "false"
+        - "true"
+      default: "false"
