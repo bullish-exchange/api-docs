@@ -130,6 +130,11 @@ info:
     - If specified in the API documentation, an endpoint may support filters on specific fields and values e.g. `GET /orders?status=OPEN`     
     - Only fields returned in an API response may be used as filter parameters. What you see is what you query on and by.
     - For the fields in the API response usable as filter parameters, please consult the API endpoint of interest.
+    - Datetime and timestamp filters require additional keywords from this list - `[ gte, lte, gt, lt ]`. A few examples are provided below.
+      - `/trading-api/v1/trades?createdAtTimestamp[gte]=1686447835000` queries for trades with `createdAtTimestamp`
+      greater than or equal to `1686447835000`.
+      - `/trading-api/v1/trades?createdAtDatetime[gte]=2023-04-06T00:00:00.000Z&createdAtDatetime[lte]=2023-06-07T00:00:00.000Z`
+      queries for trades with `createdAtDatetime` greater than or equal to `2023-04-06T00:00:00.000Z` but less than or equal to `2023-06-07T00:00:00.000Z`
     - By design, pagination query parameters start with an underscore. This differentiates them from filter query parameters e.g. `GET /orders?status=OPEN&_pageSize=25`
 
     # Rate Limits
@@ -170,13 +175,18 @@ info:
     
     Bullish has a tiered rate limit offering based on volume. 
     
-    |  | Default | 30-Day Volume between $1B USD and $2B USD | 30-Day Volume over $2B USD |
-    | ---------- |---------------- |---------------- |---------------- |
-    | Cloudflare | 50 msgs/sec | same as default | same as default
-    | Cloudflare Bypass | 100 msgs/sec  | up to 200 msgs/sec | up to 500 msgs/sec
+    |                   | Default       | 30-Day Volume between $1B USD and $2B USD | 30-Day Volume over $2B USD |
+    | ----------------- |-------------- |------------------------------------------ |--------------------------- |
+    | Cloudflare        | 50 msgs/sec   | same as default                           | same as default            |
+    | Cloudflare Bypass | 100 msgs/sec  | up to 200 msgs/sec                        | up to 500 msgs/sec         |
     
     For more information on increasing your rate limits, please reach out to your sales representative.
     
+    ## Obtaining Your Rate Limit Token
+    
+    Each trading account has a unique rate limit token that can be obtained by querying [Get Trading Accounts](#get-/accounts/trading-accounts).
+    The rate limit token must be provided in the HTTP request header `BX-RATELIMIT-TOKEN` to enjoy higher tiers of rate limits 
+    else the default of 50 msgs/sec is applied.
     
     # Price And Quantity Precision
     
@@ -599,6 +609,14 @@ info:
       - `wss://api.simnext.bullish-test.com` - SANDBOX
       - `wss://registered.api.simnext.bullish-test.com` - SANDBOX (Cloudflare Bypass)
 
+    ## Max Open WebSocket Connections
+    
+    Each WebSocket category has a maximum number of open connections. Once it is reached, new WebSocket requests will be rejected. 
+    The WebSocket connections fall under the below categories.
+    
+    - Unauthenticated WebSockets, maximum of 100 open connections per IP address.
+    - Authenticated WebSockets, maximum of 10 open connections per API key.
+    
     ## Send A Message Over The Web Socket
 
     Messages sent by the client to the server over a web-socket follows the
@@ -756,7 +774,7 @@ info:
     }
     ```
 
-    ### Hybrid OrderBook WebSocket
+    ### Hybrid OrderBook WebSocket (unauthenticated)
     **Route**
     - `/trading-api/markets/{symbol}/orderbook/hybrid`
     - `/trading-api/v2/market-data/orderbook/hybrid/{symbol}?depth={depth}`
@@ -875,7 +893,7 @@ info:
 
     See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
     
-    ### Anonymous Trades WebSocket
+    ### Anonymous Trades WebSocket (unauthenticated)
     **Route**
     - `/trading-api/v1/market-data/trades/{symbol}`
 
@@ -918,7 +936,7 @@ info:
     
     See [connect to trades web-socket](https://github.com/bullish-exchange/api-examples/blob/master/trades_web_socket.py) for a sample Python script.
 
-    ### Market Data WebSocket
+    ### Market Data WebSocket (authenticated)
     Route
     - `/trading-api/v1/market-data`
 
@@ -956,7 +974,7 @@ info:
 
     See [connect to market data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/market_data_web_socket.py) for a sample Python script.
 
-    ### Private Data WebSocket
+    ### Private Data WebSocket (authenticated)
     - All private data updates are realtime.
 
     Route
@@ -1420,7 +1438,7 @@ paths:
         Gets the orders list based on specified filters.
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         - [supports pagination](#overview--pagination-support)
-        - supports filtering on `symbol`, `handle`, `side`, `status`
+        - supports filtering on `symbol`, `handle`, `side`, `status`, `createdAtDatetime`, `createdAtTimestamp`
 
         **Ratelimited:** `True`
       operationId: trade-get-orders
@@ -1973,7 +1991,7 @@ paths:
         Get a list of trades based on specified filters.
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         - [supports pagination](#overview--pagination-support)
-        - supports filtering on `symbol`, `orderId`
+        - supports filtering on `symbol`, `orderId`, `createdAtDatetime`, `createdAtTimestamp`
 
         **Ratelimited:** `True`
       operationId: trade-get-trades
