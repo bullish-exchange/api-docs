@@ -3270,27 +3270,56 @@ components:
     TradingAccountResponse:
       type: object
       required:
+        - isBorrowing
+        - isLending
+        - isPrimaryAccount
+        - makerFee
+        - maxInitialLeverage
+        - rateLimitToken
+        - takerFee
+        - tradingAccountDescription
         - tradingAccountId
         - tradingAccountName
-        - tradingAccountDescription
-        - isPrimaryAccount
-        - rateLimitToken
       properties:
+        isBorrowing:
+          description: Whether the trading account is borrowing
+          type: string
+          example: "false"
+        isLending:
+          description: Whether the trading account is lending
+          type: string
+          example: "false"
+        makerFee:
+          description: Maker Fee
+          type: string
+          example: "0.00050000"
+        takerFee:
+          description: Taker Fee
+          type: string
+          example: "0.00050000"
+        maxInitialLeverage:
+          description: Max Initial Leverage
+          type: string
+          example: "1"
         tradingAccountId:
           description: Id of the trading account
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
         tradingAccountName:
           description: Name of the trading account
+          type: string
           example: algo trading account
         tradingAccountDescription:
           description: description of the trading account
+          type: string
           example: algo trading account with experimental strategy
         isPrimaryAccount:
           description: whether this is the primary account
-          example: true
+          type: string
+          example: "false"
         rateLimitToken:
           description: unique rate limit token of the trading account
+          type: string
           example: 97d98951b12fb11f330dd9cb1b807d888c702679ee602edcf1ebc6bac17ad63d
     CreateAMMInstructionResponse:
       type: object
