@@ -3054,10 +3054,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/OrderSideAsString'
           example: 'BUY'
-        timeInForce:
-          allOf:
-            - $ref: '#/components/schemas/OrderTimeInForceAsString'
-          example: 'GTC'
         price:
           description: price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
@@ -3070,6 +3066,10 @@ components:
           description: quantity, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        timeInForce:
+          allOf:
+            - $ref: '#/components/schemas/OrderTimeInForceAsString'
+          example: 'GTC'
         allowMargin:
           description: allow margin trading
           type: boolean
