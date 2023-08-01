@@ -26,17 +26,25 @@ info:
       - Non-authenticated endpoints for public data e.g. [Get Markets](#get-/markets) endpoint
     - uses bearer-based authentication
     - enforces a blanket rate limit across all requests
-
+    
+    
     # Code Examples
     Find further code examples at - https://github.com/bullish-exchange
 
 
     # API Change Log
     ## 2023 Changes
+    - July - Margin related REST and WS changes
+      - `borrowedQuantity` and `isLiquidation` fields added to `GET /orders` and `WS /private-data` orders topic
+      - Calculation for `free` and `used` fields changed in `GET /accounts/spot`, `GET /accounts/spot/{symbol}` and `WS /private-data` `spotAccounts` topic
+      - New `GET /accounts/asset` and `GET /accounts/asset/{symbol}`
+      - New `assetAccounts` and `tradingAccounts` topics in `WS /private-data`
+      - `isLending`, `isBorrowing`, `isDefaulted`, `maxInitialLeverage`, `makerFee` and `takerFee` fields added to `GET /accounts/trading-accounts`
+      - `collateralRating` and `maxBorrow` fields added to `/assets`
     - May - add V1CancelAllOrdersByMarket to cancel all open orders by trading account id and market
     - April - add V1CancelAllOrders to cancel all open limit orders by trading account id
     - April - add `/accounts/trading-accounts` endpoint to fetch all trading accounts
-    - April - new hybrid orderbook WebSocket API with greater depth
+    - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
       - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
       - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
       - Get trade details [Current API](../v1/#get-/trades) -> [New API](../v2/#get-/trades)
@@ -132,10 +140,10 @@ info:
     - Only fields returned in an API response may be used as filter parameters. What you see is what you query on and by.
     - For the fields in the API response usable as filter parameters, please consult the API endpoint of interest.
     - Datetime and timestamp filters require additional keywords from this list - `[ gte, lte, gt, lt ]`. A few examples are provided below.
-      - `/trading-api/v1/trades?createdAtTimestamp[gte]=1686447835000` queries for trades with `createdAtTimestamp`
-      greater than or equal to `1686447835000`.
-      - `/trading-api/v1/trades?createdAtDatetime[gte]=2023-04-06T00:00:00.000Z&createdAtDatetime[lte]=2023-06-07T00:00:00.000Z`
-      queries for trades with `createdAtDatetime` greater than or equal to `2023-04-06T00:00:00.000Z` but less than or equal to `2023-06-07T00:00:00.000Z`
+      - `/trading-api/v1/trades?createdAtTimestamp[gte]=1686447835000` queries for trades with `createdAtTimestamp` 
+        greater than or equal to `1686447835000`.
+      - `/trading-api/v1/trades?createdAtDatetime[gte]=2023-04-06T00:00:00.000Z&createdAtDatetime[lte]=2023-06-07T00:00:00.000Z` 
+        queries for trades with `createdAtDatetime` greater than or equal to `2023-04-06T00:00:00.000Z` but less than or equal to `2023-06-07T00:00:00.000Z`
     - By design, pagination query parameters start with an underscore. This differentiates them from filter query parameters e.g. `GET /orders?status=OPEN&_pageSize=25`
 
     # Rate Limits
@@ -188,7 +196,7 @@ info:
     Each trading account has a unique rate limit token that can be obtained by querying [Get Trading Accounts](#get-/accounts/trading-accounts).
     The rate limit token must be provided in the HTTP request header `BX-RATELIMIT-TOKEN` to enjoy higher tiers of rate limits 
     else the default of 50 msgs/sec is applied.
-    
+
     # Price And Quantity Precision
     
     A market consists of two assets, namely base asset and quote asset.
@@ -224,14 +232,15 @@ info:
     - `GTC` - good until cancelled - the order is open forever unless fully filled or cancelled
     - `FOK` - fill or kill - if the order cannot immediately be filled in full it is cancelled
     - `IOC` - immediate or cancel - the order is immediately filled in full or in part and any remainder is cancelled
-
+    
     # Order statusReasonCode Map
 
     - The `statusReasonCode` is a field on an Order which provides details on the reasoning for the current state of the order.
     - The `statusReason` is the textual description which explains the `statusReasonCode`.
     - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
     - For instance, the `statusReasonCode` 2009 will always refer to an invalid market symbol.
-
+    
+    
     | statusReasonCode | statusReason |
     | ---------- |---------------- |
     | 1001 | Ok |
@@ -275,15 +284,15 @@ info:
     | 6011 | Self cross prevention amend  |
     | 6012 | Stop limit amend  |
     | 6013 | Partially filled  |
-    
-    
+
     # Custody statusReasonCode Map
 
     - The `statusReasonCode` is a field on Custody API's withdrawal and error messages which provides details on the reasoning for the current state of the request.
     - The `statusReason` is the textual description which explains the `statusReasonCode`.
     - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
     - For instance, the `statusReasonCode` 8305 will always refer to an assertion failure.
-
+    
+    
     | statusReasonCode | statusReason |
     | ---------- |---------------- |
     | 8301 | Unexpected Error |
@@ -312,7 +321,7 @@ info:
 
     # Authentication
 
-    The API uses bearer-based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
+    The API uses bearer based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
 
     # How To Send Authenticated Requests
 
@@ -364,7 +373,7 @@ info:
 
     Each authenticated request must include a `Authorization` header:
       - `Authorization: Bearer <JWT_TOKEN>`
-    
+
     The JWT is valid for 24 hours.
 
     ## Generate A JWT Token
@@ -445,16 +454,13 @@ info:
 
     The header `BX-NONCE` value is a unique client-side 64-bit unsigned integer. It has the following characteristics:
 
-    - Each request the client sends must have an incrementing `BX-NONCE` value
-    - To prevent a client sending the max value of a 64-bit unsigned integer and thus immediately exhausting all unique nonces
-    the exchange will only accept a nonce within a specified nonce range
+    - Each request the client sends how have incrementing `BX-NONCE` value
+    - To prevent a client to send the max value of a 64-bit unsigned integer and thus immediately exhaust all unique nonces
+    the exchange will only accept a nonce within a specified range
     - The lower and upper bounds of the current nonce range are specified by nonce endpoint e.g. `GET /nonce`
-    - The nonce range is updated daily at midnight UTC
+    - The nonce range is updated daily
     - The nonce `lowerBound` is the start of day EPOCH timestamp in micro seconds
     - The nonce `upperBound` is the end of day EPOCH timestamp in micro seconds
-    - The nonce value is not based on time. It only has to hold the properties of being forever incrementing and between the `lowerBound` and `upperBound`. The size of the increment is undefined.
-    - The nonce value is expressed as a string. For example "1684108800000000" is valid but 1684108800000000 is not.
-    - Note this orders API nonce has no connection to the login API nonce.
 
     ## Construct The Command You Want To Send
 
@@ -545,9 +551,7 @@ info:
     
     Trading Account Ids may be required by some endpoints. They can be fetched from [Get All Trading Accounts](#get-/accounts/trading-accounts).
     
-    An example script is available [here](https://github.com/bullish-exchange/api-examples/blob/master/get_trading_accounts.py).
-
-
+    See an API example [Here](https://github.com/bullish-exchange/api-examples/blob/master/get_trading_accounts.py).
 
     ## Send The HTTP Authenticated Request
 
@@ -596,7 +600,7 @@ info:
     
     The `nonce` parameter is required to be both unique and incremental, but setting `BX-NONCE-WINDOW-ENABLED` to `true` 
     loosens this requirement such that the `nonce` is only required to be `unique`. For example, the client is able to 
-    send `nonce` values from `1...100` in any order and all the values will be valid.
+    send `nonce` values from `1...100` in any order and all the values will be valid.   
 
     # WebSockets
 
@@ -778,19 +782,18 @@ info:
     ### Hybrid OrderBook WebSocket (unauthenticated)
     **Route**
     - `/trading-api/markets/{symbol}/orderbook/hybrid`
-    - `/trading-api/v2/market-data/orderbook/hybrid/{symbol}?depth={depth}`
+    - `/trading-api/v2/market-data/orderbook/hybrid/{symbol}?depth={depth}&aggregationFactor={aggregationFactor}`
     
     **Additional notes**: 
     - Allowable depths - `[ 10, 50, 100, 200 ]`.
+    - Allowable aggregation factors - `[ 1, 5, 10 ]`.
     - This endpoint does not require subscriptions.
 
     On connection, the client receives a snapshot of the current hybrid orderbook with default depth of 10 (unless specified otherwise). 
     Subsequently, if the orderbook moves, the client then receives a conflated update of the hybrid orderbook periodically 
-    at 300ms via our standard API and at 100ms via our registered API (Cloudflare bypass). If there is a sequence number mismatch between the
+    at 300ms with standard ingress and at 100ms with Cloudflare bypass. If there is a sequence number mismatch between the 
     conflated update and the snapshot, the server disconnects the client with the following error message - 
-    `4003 (Try Again, sequence number miss-match between snapshot and updates)`. The first conflated update and snapshot may be out of order.
-    See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
-
+    `4003 (Try Again, sequence number miss-match between snapshot and updates)`.
 
     #### l2Snapshot response
 
@@ -866,8 +869,8 @@ info:
     | bids                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
     | asks                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
     | sequenceNumberRange | Array  | array of size 2 where first element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update |
-    | datetime            | String | denotes the time the update was created                                                                                                                    |
-    | timestamp           | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                               |
+    | datetime            | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                               |
+    | timestamp           | String | denotes the time the update was created                                                                                                                    |
 
     ```json
     {
@@ -916,7 +919,7 @@ info:
     | side               | String    | order side                                                                                |
     | isTaker            | Boolean   | denotes whether this is a taker's trade                                                   |
     | createdAtTimestamp | String    | denotes the time the order was ACK'd by the exchange                                      |
-    | createdAtDatetime  | date-time | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string |
+    | createdAtDatetime  | String    | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string |
 
     ```json
     {
@@ -985,31 +988,35 @@ info:
     | :--               | :--                                                                                                                                 | :--                 | :--               |
     | orders            | Provides snapshot and updates on your orders. The snapshot will contain all open orders and the 20 most recent closed orders.       | `V1TAOrder`         | By `<TOPIC>`      |
     | trades            | Provides snapshot and updates on your trades. The snapshot will contain the 20 most recent trades.                                  | `V1TATrade`         | By `<TOPIC>`      |
-    | spotAccounts      | Provides snapshot and updates on assets in your spot account.                                                                       | `V1TASpotAccount`   | By `<TOPIC>`      |
+    | spotAccounts      | (Deprecated) Provides snapshot and updates on assets in your account.                                                               | `V1TASpotAccount`   | By `<TOPIC>`      |
+    | assetAccounts     | Provides snapshot and updates on assets in your account.                                                                            | `V1TAAssetAccount`  | By `<TOPIC>`      |
+    | tradingAccounts   | Provides snapshot and updates on your trading account summary.                                                                      | `V1TATradingAccount`| By `<TOPIC>`      |
 
     #### orders response
 
-    | Name               | Type      | Description                                                                               |
-    |:-------------------|:----------|:------------------------------------------------------------------------------------------|
-    | handle             | String    | unique numeric identifier generated on the client side expressed as a string value        |
-    | orderId            | String    | unique order ID                                                                           |
-    | symbol             | String    | market symbol                                                                             |
-    | price              | Array     | price, see [asset value](#overview--price-and-quantity-precision) format                  |
-    | averageFillPrice   | Array     | average fill price, see [asset value](#overview--price-and-quantity-precision) format     |
-    | stopPrice          | String    | stop price, see [asset value](#overview--price-and-quantity-precision) format             |
-    | margin             | Boolean   | is margin order                                                                           |
-    | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format               |
-    | quantityFilled     | String    | quantity filled, see [asset value](#overview--price-and-quantity-precision) format        |
-    | baseFee            | String    | base fee, see [asset value](#overview--price-and-quantity-precision) format               |
-    | quoteFee           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format              |
-    | side               | String    | order side                                                                                |
-    | type               | String    | order type                                                                                |
-    | timeInForce        | String    | time in force                                                                             |
-    | status             | String    | order status                                                                              |
-    | statusReason       | String    | status reason, describes why the order is in a specific state                             |
-    | statusReasonCode   | Integer   | status reason code, see [details](#overview--order-statusreasoncode-map)                  |
-    | createdAtDatetime  | date-time | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string |
-    | createdAtTimestamp | String    | denotes the time the order was ACK'd by the exchange                                      |
+    | Name               | Type      | Description                                                                                                                             |
+    |:-------------------|:----------|:------------------------------------------------------------------------------------------                                              |
+    | handle             | String    | unique numeric identifier generated on the client side expressed as a string value                                                      |
+    | orderId            | String    | unique order ID                                                                                                                         |
+    | symbol             | String    | market symbol                                                                                                                           |
+    | price              | String    | price, see [asset value](#overview--price-and-quantity-precision) format                                                                |
+    | averageFillPrice   | String    | average fill price, see [asset value](#overview--price-and-quantity-precision) format                                                   |
+    | stopPrice          | String    | stop price, see [asset value](#overview--price-and-quantity-precision) format                                                           |
+    | margin             | Boolean   | indicates if the order was allowed to borrow (does not indicate that borrowing occurred)                                                |
+    | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format                                                             |
+    | quantityFilled     | String    | quantity filled, see [asset value](#overview--price-and-quantity-precision) format                                                      |
+    | baseFee            | String    | base fee, see [asset value](#overview--price-and-quantity-precision) format                                                             |
+    | quoteFee           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                                                            |
+    | borrowedQuantity   | String    | quantity borrowed, see [asset value](#overview--price-and-quantity-precision) format - BUY order borrows quote, SELL order borrows base |
+    | isLiquidation      | Boolean   | indicates if the order was executed as a liquidation order                                                                              |
+    | side               | String    | order side                                                                                                                              |
+    | type               | String    | order type                                                                                                                              |
+    | timeInForce        | String    | time in force                                                                                                                           |
+    | status             | String    | order status                                                                                                                            |
+    | statusReason       | String    | status reason, describes why the order is in a specific state                                                                           |
+    | statusReasonCode   | Integer   | status reason code, see [details](#overview--order-statusreasoncode-map)                                                                |
+    | createdAtDatetime  | String    | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string                                               |
+    | createdAtTimestamp | String    | denotes the time the order was ACK'd by the exchange                                                                                    |
 
     ```json
     {
@@ -1029,6 +1036,8 @@ info:
           "baseFee": "0.00000000",
           "quoteFee": "0.0005",
           "side": "BUY",
+          "borrowedQuantity": "0.0010",
+          "isLiquidation": false,
           "type": "LMT",
           "timeInForce": "GTC",
           "status": "CLOSED",
@@ -1055,7 +1064,7 @@ info:
     | quoteFee           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                 |
     | side               | String    | order side                                                                                   |
     | isTaker            | Boolean   | denotes whether this is a taker's trade                                                      |
-    | createdAtDatetime  | date-time | denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string |
+    | createdAtDatetime  | String    | denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string |
     | createdAtTimestamp | String    | denotes the time the trade was executed by the exchange                                      |
 
     ```json
@@ -1083,14 +1092,17 @@ info:
 
 
     #### spotAccounts response
+    
+    - `V1TAAssetAccount` provides a more granular view of the assets in your trading account compared to `V1TASpotAccount`. The *Formula* colummn below shows how the fields in `V1TASpotAccount` are calculated.
 
-    | Name      | Type   | Description                                                                                                  |
-    |:----------|:-------|:-------------------------------------------------------------------------------------------------------------|
-    | accountId | String | unique spot account ID                                                                                       |
-    | symbol    | String | asset symbol                                                                                                 |
-    | total     | String | total, `free + used`, see [asset value](#overview--price-and-quantity-precision) format                      |
-    | free      | String | money available for trading, see [asset value](#overview--price-and-quantity-precision) format               |
-    | used      | String | money on hold, locked, frozen, or pending, see [asset value](#overview--price-and-quantity-precision) format |
+    | Name      | Type   | Description                                                                                                                                                                         |  Formula <br> (expressed in `assetAccounts` response fields)        |
+    |:----------|:-------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------|
+    | accountId | String | unique spot account ID                                                                                                                                                              |                                                                     |
+    | symbol    | String | asset symbol                                                                                                                                                                        |                                                                     |
+    | type      | String | type of account                                                                                                                                                                     |                                                                     |
+    | total     | String | total is `free` + `used` assets within the account, see [asset value](#overview--price-and-quantity-precision) format                                                               |   =max(0, availableQuantity - borrowedQuantity) + lockedQuantity    |
+    | free      | String | refers to the assets that are available to use on the account excluding borrowed assets, see [asset value](#overview--price-and-quantity-precision) format.                         |   =max(0, availableQuantity - borrowedQuantity)                     |
+    | used      | String | refers to the assets that are locked in orders, see [asset value](#overview--price-and-quantity-precision) format                                                                   |   =lockedQuantity                                                   |
 
 
     ```json
@@ -1100,6 +1112,7 @@ info:
       "data": [
         {
           "accountId": "1",
+          "type": "spot",
           "symbol": "BTC",
           "total": "4.00000000",
           "free": "4.00000000",
@@ -1108,7 +1121,86 @@ info:
       ]
     }
     ```
-
+    
+    #### assetAccounts response
+    
+    - `V1TAAssetAccount` provides a more granular view of the assets in your trading account compared to `V1TASpotAccount`. 
+    
+    | Name               | Type      | Description                                                                                                                                                                                  |
+    |--------------------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------                                          | 
+    | tradingAccountId   | String    | id of the trading account                                                                                                                                                                    |
+    | assetId            | String    | asset ID                                                                                                                                                                                     |
+    | assetSymbol        | String    | asset symbol                                                                                                                                                                                 |
+    | availableQuantity  | String    | the assets that are available to use on the account including borrowed assets, see [asset value](#overview--price-and-quantity-precision) format                                             |
+    | borrowedQuantity   | String    | the assets on the account that are borrowed, including interest charged but excluding defaulted amount,  see [asset value](#overview--price-and-quantity-precision) format                   |
+    | lockedQuantity     | String    | the assets on the account that are locked in open orders,  see [asset value](#overview--price-and-quantity-precision) format                                                                 |
+    | loanedQuantity     | String    | the assets on the account that are in open loan instructions, including interest earned but excluding defaulted amount, see [asset value](#overview--price-and-quantity-precision) format    |
+    | updatedAtDatetime  | String    | denotes the time the asset account was updated by the exchange, ISO 8601 with millisecond as string                                                                                          |
+    | updatedAtTimestamp | String    | denotes the time the asset account was updated by the exchange                                                                                                                               |
+    
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TAAssetAccount",
+      "data": [
+        {
+          "tradingAccountId": "1111",
+          "assetId": "1",
+          "assetSymbol": "BTC",
+          "availableQuantity": "4.00000000",
+          "borrowedQuantity": "20.00000000",
+          "lockedQuantity": "0.00000000",
+          "loanedQuantity": "10.00000000",
+          "updatedAtDatetime": "2022-01-10T20:03:43.224Z",
+          "updatedAtTimestamp": "1641845023224"
+        },
+        {
+          "tradingAccountId": "1111",
+          "assetId": "2",
+          "assetSymbol": "USD",
+          "availableQuantity": "229016.0734",
+          "borrowedQuantity": "20000.0000",
+          "lockedQuantity": "0.0000",
+          "loanedQuantity": "10000.0000",
+          "updatedAtDatetime": "2022-01-10T20:03:43.224Z",
+          "updatedAtTimestamp": "1641845023224"
+        }
+      ]
+    }
+    ```
+    
+    #### tradingAccounts response
+    
+    -  Provides a summary of the total borrowed and total collateral values on your trading account ID. 
+    `totalBorrowedQuantity` and `totalCollateralQuantity` do not represent the absolute quantity of the borrowed assets and 
+    are notional values represented in the reference asset.
+    -  `snapshot` contains a list with a single entry corresponding to your trading account.
+    
+    | Name                    | Type      | Description                                                                                           |
+    |-------------------------|-----------|-------------------------------------------------------------------------------------------------------|
+    | tradingAccountId        | String    | id of the trading account                                                                             |
+    | totalBorrowedQuantity   | String    | total borrowed across all assets in this trading account displayed in the reference asset             |
+    | totalCollateralQuantity | String    | total collateral across all assets in this trading account displayed in the reference asset           |
+    | referenceAssetSymbol    | String    | asset symbol                                                                                          |
+    | updatedAtDatetime       | String    | denotes the time the trading account was updated by the exchange, ISO 8601 with millisecond as string |
+    | updatedAtTimestamp      | String    | denotes the time the trading account was updated by the exchange                                      |
+    
+    ````json
+    {
+      "type": "snapshot",
+      "dataType": "V1TATradingAccount",
+      "data": [
+        {
+          "tradingAccountId": "1111",
+          "totalBorrowedQuantity": "12.0000",
+          "totalCollateralQuantity": "13.0000",
+          "referenceAssetSymbol": "USD",
+          "updatedAtDatetime": "2020-10-01T00:00:00.000Z",
+          "updatedAtTimestamp": "1601510400000"
+        }
+      ]
+    }
+    ````
 
     See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/private_data_web_socket.py) for a sample Python script.
 
@@ -1316,9 +1408,9 @@ paths:
     get:
       tags:
         - trading-accounts
-      summary: Get All Trading Accounts
+      summary: Get all trading Accounts details
       description: |
-        Gets details for all trading accounts accessible by the API key used in the request. It requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API        
+        Gets details for all trading accounts accessible by the API key used in the request. It requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
 
         **Ratelimited:** `True`
       operationId: user-get-trading-accounts
@@ -1350,12 +1442,15 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
+
   /accounts/spot:
     get:
       tags:
         - accounts
       summary: Get Spot Accounts
       description: |
+        (Deprecated. Please use the [/accounts/asset](#get-/accounts/asset) endpoint instead.)
+        
         Gets the spot accounts, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
 
         **Ratelimited:** `True`
@@ -1406,6 +1501,8 @@ paths:
         - accounts
       summary: Get Spot Account by Symbol
       description: |
+        (Deprecated. Please use the [/accounts/asset/{symbol}](#get-/accounts/asset/-symbol-) endpoint instead)
+        
         Gets the spot account by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
 
         **Ratelimited:** `True`
@@ -1429,7 +1526,85 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
+  /accounts/asset:
+    get:
+      tags:
+        - accounts
+      summary: Get Asset Accounts
+      description: |
+        Gets the asset accounts, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
 
+        **Ratelimited:** `True`
+      operationId: user-get-asset-accounts
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/AssetAccount'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+  /accounts/asset/{symbol}:
+    get:
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/AssetSymbol'
+          required: true
+      tags:
+        - accounts
+      summary: Get Asset Account by Symbol
+      description: |
+        Gets the asset account by symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: user-get-asset-account-by-symbol
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetAccount'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /orders:
     get:
       tags:
@@ -1500,6 +1675,8 @@ paths:
       summary: Create Order
       description: |
         Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        [Command Example](#overview--create-spot-or-margin-order-example)
 
         **Ratelimited:** `True`
       operationId: trade-create-order
@@ -1581,6 +1758,8 @@ paths:
       description: |
         Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
         Use either the `handle` or `orderId` field in the query parameters.
+
+        [Command example](#overview--cancel-spot-or-margin-order-example)
 
         **Ratelimited:** `True`
       operationId: trade-cancel-order
@@ -1755,7 +1934,7 @@ paths:
         - orders
       summary: Cancel All Open Limit Orders By Market
       description: |
-        Cancel all open limit orders
+        Cancel all open orders
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         
         **Ratelimited:** `True`
@@ -1769,7 +1948,7 @@ paths:
           required: true
       responses:
         200:
-          description: Status OK. This means a cancel all open limit orders by market command was successfully acknowledged.
+          description: Status OK. This means a cancel all Open Limit orders by market command was successfully acknowledged.
           content:
             application/json:
               schema:
@@ -1792,7 +1971,7 @@ paths:
         500:
           description: Internal Server Error
       requestBody:
-        description: Cancel All Open Limit Orders By Market request body
+        description: Cancel All Open Limit Orders by market request body
         required: true
         content:
           application/json:
@@ -1801,7 +1980,6 @@ paths:
 
       security:
         - jwtTokenAuth: [ ]
-
 
   /amm-instructions:
     get:
@@ -2790,7 +2968,7 @@ components:
       description: the nonce is a client side incremented unsigned 64 bit integer expressed as string
     SpotAccountID:
       type: string
-      example: BTC
+      example: "1"
     OrderID:
       type: string
       example: "297735387747975680"
@@ -2944,7 +3122,7 @@ components:
       type: object
       required:
         - accountId
-        - currency
+        - type
         - symbol
         - total
         - free
@@ -2954,26 +3132,76 @@ components:
           description: unique spot account ID
           allOf:
             - $ref: '#/components/schemas/SpotAccountID'
-        currency:
-          description: asset symbol
+        type:
+          description: Spot Account
           allOf:
-            - $ref: '#/components/schemas/AssetSymbol'
+            - type: string
+              description: Type of Account
+              example: spot
         symbol:
           description: asset symbol
           allOf:
             - $ref: '#/components/schemas/AssetSymbol'
         total:
-          description: total, `free + used`, see [asset value](#overview--price-and-quantity-precision) format
+          description: total is `free` + `used` assets within the account, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         free:
-          description: money available for trading, see [asset value](#overview--price-and-quantity-precision) format
+          description: refers to the assets that are available to use on the account excluding borrowed assets, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         used:
-          description: money on hold, locked, frozen, or pending, see [asset value](#overview--price-and-quantity-precision) format
+          description: refers to the assets that are locked in orders ,loans and AMM instructions, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+    AssetAccount:
+      type: object
+      required:
+        - tradingAccountId
+        - assetId
+        - assetSymbol
+        - availableQuantity
+        - borrowedQuantity
+        - lockedQuantity
+        - loanedQuantity
+        - updatedAtDatetime
+        - updatedAtTimestamp
+      properties:
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        assetId:
+          description: asset ID
+          allOf:
+            - $ref: '#/components/schemas/AssetID'
+        assetSymbol:
+          description: asset symbol
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        availableQuantity:
+          description: the assets that are available to use on the account including borrowed assets, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        borrowedQuantity:
+          description: the assets on the account that are borrowed, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        lockedQuantity:
+          description: the assets on the account that are locked in orders ,loans and AMM instructions, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        loanedQuantity:
+          description: the assets on the account that are being loaned, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        updatedAtDatetime:
+          description: denotes the time the AMM instruction was updated by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        updatedAtTimestamp:
+          description: denotes the time the AMM instruction was updated by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
     AmendOrderRequest:
       type: object
       required:
@@ -3071,7 +3299,7 @@ components:
             - $ref: '#/components/schemas/OrderTimeInForceAsString'
           example: 'GTC'
         allowMargin:
-          description: allow margin trading
+          description: allows to borrow on the order
           type: boolean
           example: false
     TradingAccountResponse:
@@ -3087,33 +3315,34 @@ components:
         - tradingAccountDescription
         - tradingAccountId
         - tradingAccountName
+        - isDefaulted
       properties:
         isBorrowing:
-          description: Whether the trading account is borrowing
+          description: whether the trading account is borrowing
           type: string
           example: "false"
         isLending:
-          description: Whether the trading account is lending
+          description: whether the trading account is lending
           type: string
           example: "false"
         makerFee:
-          description: Maker Fee
+          description: maker fee
           type: string
           example: "0.00050000"
         takerFee:
-          description: Taker Fee
+          description: taker fee
           type: string
           example: "0.00050000"
         maxInitialLeverage:
-          description: Max Initial Leverage
+          description: max initial leverage
           type: string
           example: "1"
         tradingAccountId:
-          description: Id of the trading account
+          description: id of the trading account
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
         tradingAccountName:
-          description: Name of the trading account
+          description: name of the trading account
           type: string
           example: algo trading account
         tradingAccountDescription:
@@ -3128,6 +3357,10 @@ components:
           description: unique rate limit token of the trading account
           type: string
           example: 97d98951b12fb11f330dd9cb1b807d888c702679ee602edcf1ebc6bac17ad63d
+        isDefaulted:
+          description: whether the trading account is defaulted
+          type: String
+          example: "false"
     CreateAMMInstructionResponse:
       type: object
       required:
@@ -3281,8 +3514,6 @@ components:
       format: string
       example: "03E02367E8C900000500000000000000"
       description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
-
-
     CancelAllOrdersByMarketRequest:
       type: object
       required:
@@ -3338,7 +3569,6 @@ components:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
-
     CreateOrderRequest:
       type: object
       required:
@@ -3419,6 +3649,8 @@ components:
         - quantityFilled
         - baseFee
         - quoteFee
+        - borrowedQuantity
+        - isLiquidation
         - side
         - type
         - timeInForce
@@ -3452,7 +3684,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         margin:
-          description: is margin order
+          description: indicates if the order was allowed to borrow (does not indicate that borrowing occurred)
           type: boolean
           example: false
         quantity:
@@ -3471,6 +3703,14 @@ components:
           description: quote fee, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        borrowedQuantity:
+          description: quantity borrowed, see [asset value](#overview--price-and-quantity-precision) format - BUY order borrows quote, SELL order borrows base
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        isLiquidation:
+          description: indicates if the order was executed as a liquidation order
+          type: boolean
+          example: false
         side:
           description: order side
           allOf:
@@ -4320,7 +4560,7 @@ components:
     AssetID:
       type: string
       description: unique asset ID
-      example: 1
+      example: "1"
     PriceQuantityTuple:
       type: object
       properties:
@@ -4531,8 +4771,10 @@ components:
         - symbol
         - precision
         - minBalanceInterest
-        - apr
         - minFee
+        - apr
+        - collateralRating
+        - maxBorrow
       properties:
         assetId:
           description: unique asset ID
@@ -4544,19 +4786,27 @@ components:
             - $ref: '#/components/schemas/AssetSymbol'
         precision:
           description: number of decimal digits 'after the dot' for asset amount
-          type: integer
-          example: 8
+          type: string
+          example: "8"
         minBalanceInterest:
           allOf:
             - $ref: '#/components/schemas/AssetValue'
-        apr:
-          description: annualized percentage rate
-          type: number
-          example: 12.5
         minFee:
           description: minimum fee
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        apr:
+          description: annualized percentage rate
+          type: String
+          example: "12.50"
+        collateralRating:
+          description: collateral rating applied to this asset, a value of 100.00 indicates 100%
+          type: String
+          example: "95.00"
+        maxBorrow:
+          description: maximum quantity that can be borrowed for this asset
+          type: String
+          example: "10.00000000"
     OHLCVCandle:
       type: object
       properties:
@@ -4609,11 +4859,11 @@ components:
         lowerBound:
           description: lower bound of nonce range
           type: integer
-          example: 1684108800000000
+          example: 8455
         upperBound:
           description: upper bound of nonce range
           type: integer
-          example: 1684195199999000
+          example: 9455
     OrderTimeInForce:
       description: time in force
       type: string
