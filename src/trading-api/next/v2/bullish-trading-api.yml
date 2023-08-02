@@ -26,12 +26,11 @@ info:
       - Non-authenticated endpoints for public data e.g. [Get Markets](#get-/markets) endpoint
     - uses bearer-based authentication
     - enforces a blanket rate limit across all requests
-    
+    - may add new fields to existing response payloads. Please do not use strict deserialisation as it may cause compatibility issues.
     
     # Code Examples
     Find further code examples at - https://github.com/bullish-exchange
-
-
+    
     # API Change Log
     ## 2023 Changes
     - July - Margin related REST and WS changes
@@ -386,8 +385,8 @@ info:
       - `publicKey` - bullish account public key
       - `userId` - bullish user id corresponding to the metadata
       - `signature` - signed JSON string encoding of `loginPayload`, see the code sample for how to get it
-      - `expirationTime` - epoch timestamp in milliseconds that is 5 minutes in the future
-      - `nonce` - epoch timestamp in milliseconds; note this login API nonce has no connection to the orders API nonce
+      - `expirationTime` - epoch timestamp in seconds that is 5 minutes in the future
+      - `nonce` - epoch timestamp in seconds; note this login API nonce has no connection to the orders API nonce
       - `biometricsUsed` - set to `false`
       - `sessionKey` - set to `null`
 
@@ -472,14 +471,13 @@ info:
       - The fields must be specified and encoded in the order presented in this documentation
 
     Find below two `<COMMAND>` examples:
-    1. [Create Spot Or Margin Order](#overview--create-spot-or-margin-order-example)
-    2. [Cancel Spot Or Margin Order](#overview--cancel-spot-or-margin-order-example)
-    3. [Add AMM instruction](#overview--add-amm-instruction)
-    4. [Remove AMM instruction](#overview--remove-amm-instruction)
+    1. [Create Spot Order](#overview--create-spot-order-example)
+    2. [Create Margin Order](#overview--create-margin-order-example)
+    2. [Cancel Order](#overview--cancel-order-example)
 
-    ### Create Spot Or Margin Order Example
+    ### Create Spot Order Example
 
-    To create a buy limit order:
+    To create a Spot buy limit order:
     - for the BTCUSD market
     - at a price of `55071.5000`
     - for a quantity of `1.87000000`
@@ -493,7 +491,7 @@ info:
       "nonce": "<NONCE>",
       "authorizer": "<AUTHORIZER>",
       "command": {
-        "commandType": "V2CreateOrder",        
+        "commandType": "V1CreateOrder",
         "handle": null,
         "symbol": "BTCUSD",
         "type": "LMT",
@@ -502,13 +500,18 @@ info:
         "stopPrice": null,
         "quantity": "1.87000000",
         "timeInForce": "GTC",
-        "allowMargin": false,
-        "tradingAccountId": "111234567890"
+        "allowMargin": false
       }
     }
     ```
+    
+    ### Create Margin Order Example
+    
+    With reference to the same payload in [Create Spot Order](#overview--create-spot-order-example), setting the field `allowMargin` to `true` will make it a margin order.
+    
+    Documentation is available [here](https://github.com/bullish-exchange/api-docs/blob/master/src/trading-api/next/v2/websocket-private-data-update-messages-for-borrowers.pdf) on what happens in the event of liquidation.
 
-    ### Cancel Spot Or Margin Order Example
+    ### Cancel Order Example
 
     To cancel a buy limit order:
     - for the BTCUSD market
@@ -1762,7 +1765,9 @@ paths:
         - orders
       summary: Create Order
       description: |
-        Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
+        
+        Requires strict field ordering in the request body.
 
         [Command Example](#overview--create-spot-or-margin-order-example)
 
@@ -1845,7 +1850,10 @@ paths:
       summary: Cancel Order
       description: |
         Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
-        Use either the `handle` or `orderId` field in the query parameters.
+        
+        Requires strict field ordering in the JSON request payload.
+        
+        Please use either the `handle` or `orderId` field in the query parameters.
 
         [Command example](#overview--cancel-spot-or-margin-order-example)
 
@@ -1981,8 +1989,11 @@ paths:
         - orders
       summary: Cancel All Open Limit Orders
       description: |
-        Cancel all open limit orders
-        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Cancels all open limit orders
+        
+        Requires
+        - strict field ordering in the JSON request payload.
+        - [bearer token](#overview--add-authenticated-request-header) in authorization header
 
         **Ratelimited:** `True`
       operationId: trade-cancel-all-open-limit-orders
@@ -2034,8 +2045,11 @@ paths:
         - orders
       summary: Cancel All Open Limit Orders By Market
       description: |
-        Cancel all open orders
-        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Cancels all open orders by market
+        
+        Requires
+        - strict field ordering in the JSON request payload.
+        - [bearer token](#overview--add-authenticated-request-header) in authorization header
         
         **Ratelimited:** `True`
       operationId: trade-cancel-all-open-limit-orders-by-market
@@ -2150,6 +2164,8 @@ paths:
         Creates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) 
         in authorization header.
         
+        Requires strict field ordering in the JSON request payload.
+        
         [Command Example](#overview--add-amm-instruction)
         
         **Ratelimited:** `True`
@@ -2224,6 +2240,8 @@ paths:
       summary: Terminate AMM Instruction
       description: |
         Terminates a specific AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
+        
+        Requires strict field ordering in the JSON request payload.
         
         [Command Example](#overview--remove-amm-instruction)
         
