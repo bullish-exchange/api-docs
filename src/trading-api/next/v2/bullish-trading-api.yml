@@ -1307,7 +1307,7 @@ tags:
     description: |+
       Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/custody_basics.py)
       
-      Custody APIs have a limit of 20 requests per minute combined across all endpoints of type **/wallets/***
+      Custody APIs have a limit of 40 requests per minute combined across all endpoints of type **/wallets/***
   - name: trades
     description: Authenticated APIs for reading trade data
   - name: accounts
