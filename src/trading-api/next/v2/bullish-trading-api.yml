@@ -168,6 +168,7 @@ info:
     - `x-ratelimit-limit`: Maximum number of requests allowed for the specific API category within time period.
     - `x-ratelimit-remaining`: Remaining number of requests allowed for the specific API category within time period.
     - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed for the specific API category.
+    - `x-ratelimit-global-breach`: true/false, indicating whether the global limit has been breached.
 
     ## Exceeding Rate Limits
     When rate limits are exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
@@ -176,6 +177,16 @@ info:
         "errorCode": 96000,
         "errorCodeName": "RATE_LIMIT_EXCEEDED",
         "message": "Rate limit exceeded"
+      }
+    ```
+
+    ## Exceeding Global Rate Limits
+    When global rate limit is exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
+    ```json
+      {
+        "errorCode": 96001,
+        "errorCodeName": "GLOBAL_RATE_LIMIT_EXCEEDED",
+        "message": "Global rate limit exceeded"
       }
     ```
 
