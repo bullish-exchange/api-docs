@@ -2112,6 +2112,115 @@ paths:
       security:
         - jwtTokenAuth: [ ]
 
+  /command?commandType=V1DelayedCancelAllOrders:
+    post:
+      tags:
+        - orders
+      summary: Cancel All Open Limit Orders after Delay
+      description: |
+        Cancel All Open Limit Orders after Delay
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - provides a “Dead Man’s Switch” mechanism to protect customers from network malfunction. 
+          The customer can send a request with a delay (in seconds), that will start a countdown timer 
+          which cancels all open limit orders for a specific trading account when the timer expires.
+        - can be disabled by another command type: V1UnsetDelayedCancelAllOrders
+        
+        **Ratelimited:** `True`
+      operationId: trade-delayed-cancel-all-open-limit-orders
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      requestBody:
+        description: Cancel All Open Limit Orders after Delay request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DelayedCancelAllOrdersRequest'
+      responses:
+        200:
+          description: Status OK. This means a cancel all open limit orders command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelayedCancelAllOrdersResponse'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+  /command?commandType=V1UnsetDelayedCancelAllOrders:
+    post:
+      tags:
+        - orders
+      summary: Cancel All Open Limit Orders after Delay Disable
+      description: |
+        Cancel All Open Limit Orders after Delay Disable
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - Disable the delay set on a trading account that initiates cancelling all open limit orders
+          (i.e. disable the previous V1DelayedCancelAllOrders command)
+        
+        **Ratelimited:** `True`
+      operationId: trade-unset-delayed-cancel-all-open-limit-orders
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      requestBody:
+        description: Cancel All Open Limit Orders after Delay Disable request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersRequest'
+      responses:
+        200:
+          description: Status OK. This means a cancel all open limit orders command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersResponse'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+
 
 
 
@@ -3760,6 +3869,112 @@ components:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
+    DelayedCancelAllOrdersRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/DelayedCancelAllOrdersCommand'
+    DelayedCancelAllOrdersCommand:
+      type: object
+      required:
+        - commandType
+        - delayBySeconds
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V1DelayedCancelAllOrders'
+          type: string
+          example: 'V1DelayedCancelAllOrders'
+        cancelId:
+          allOf:
+            - $ref: '#/components/schemas/CancelId'
+        delayBySeconds:
+          description: 'Delay of the cancel-all-order in seconds'
+          allOf:
+            - $ref: '#/components/schemas/DelayBySeconds'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+    DelayedCancelAllOrdersResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - DelayedCancelAllOrders"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+    UnsetDelayedCancelAllOrdersRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersCommand'
+    UnsetDelayedCancelAllOrdersCommand:
+      type: object
+      required:
+        - commandType
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V1UnsetDelayedCancelAllOrders'
+          type: string
+          example: 'V1UnsetDelayedCancelAllOrders'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+    UnsetDelayedCancelAllOrdersResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - UnsetDelayedCancelAllOrders"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
     Authorizer:
       type: string
       format: string
@@ -5241,6 +5456,23 @@ components:
       enum:
         - LONG
         - SHORT
+    DelayBySeconds:
+      description: Delay the cancel-all-orders request by (seconds) as a timeout mechanism
+      type: string
+      enum:
+        - 5
+        - 10
+        - 15
+        - 20
+        - 25
+        - 30
+        - 40
+        - 50
+        - 60
+    CancelId:
+      description: Unique id for this cancel request which is an unsigned 64 bit integer expressed as string
+      type: string
+      example: "123456789"
   headers:
     Authorization:
       description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
