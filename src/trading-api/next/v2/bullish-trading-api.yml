@@ -5460,15 +5460,15 @@ components:
       description: Delay the cancel-all-orders request by (seconds) as a timeout mechanism
       type: string
       enum:
-        - 5
-        - 10
-        - 15
-        - 20
-        - 25
-        - 30
-        - 40
-        - 50
-        - 60
+        - "5"
+        - "10"
+        - "15"
+        - "20"
+        - "25"
+        - "30"
+        - "40"
+        - "50"
+        - "60"
     CancelId:
       description: Unique id for this cancel request which is an unsigned 64 bit integer expressed as string
       type: string
