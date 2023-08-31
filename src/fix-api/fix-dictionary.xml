@@ -393,4 +393,5 @@
         <field number="8005" name="MarginEnabled" type="BOOLEAN"/>
         <field number="8006" name="BorrowedQtyCurr" type="CURRENCY"/>
     </fields>
+    <components />
 </fix>
