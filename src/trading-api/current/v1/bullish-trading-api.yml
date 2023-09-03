@@ -35,6 +35,8 @@ info:
 
     # API Change Log
     ## 2023 Changes
+    - August - New `/v1/users/logout` API
+    - August - New `Get /history/borrow-interest`
     - July - Margin related REST and WS changes
       - `borrowedQuantity` and `isLiquidation` fields added to `GET /orders` and `WS /private-data` orders topic
       - Calculation for `free` and `used` fields changed in `GET /accounts/spot`, `GET /accounts/spot/{symbol}` and `WS /private-data` `spotAccounts` topic
@@ -170,6 +172,7 @@ info:
     - `x-ratelimit-limit`: Maximum number of requests allowed for the specific API category within time period.
     - `x-ratelimit-remaining`: Remaining number of requests allowed for the specific API category within time period.
     - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed for the specific API category.
+    - `x-ratelimit-global-breach`: true/false, indicating whether the global limit has been breached.
 
     ## Exceeding Rate Limits
     When rate limits are exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
@@ -178,6 +181,16 @@ info:
         "errorCode": 96000,
         "errorCodeName": "RATE_LIMIT_EXCEEDED",
         "message": "Rate limit exceeded"
+      }
+    ```
+
+    ## Exceeding Global Rate Limits
+    When global rate limit is exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
+    ```json
+      {
+        "errorCode": 96001,
+        "errorCodeName": "GLOBAL_RATE_LIMIT_EXCEEDED",
+        "message": "Global rate limit exceeded"
       }
     ```
 
@@ -322,7 +335,8 @@ info:
 
     # Authentication
 
-    The API uses bearer based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
+    The API uses bearer based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token). 
+    Sessions are currently tracked per user, and each user is allowed to create a maximum of 500 concurrent sessions. If a user exceeds this limit, an error (MAX_SESSION_COUNT_REACHED) is returned on the subsequent login requests. In order to free up unused sessions, users must logout, see - [Logout using a JWT Token](#overview--logout-using-a-jwt-token).  
 
     # How To Send Authenticated Requests
 
@@ -450,7 +464,10 @@ info:
     ```
 
     See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt.py) for a sample Python script.
-
+    
+    ## Logout using a JWT Token
+    Users can better manage their sessions by logging out of unused sessions. This can be done by calling the `GET /trading-api/v1/users/logout` endpoint with the JWT Token in the header - see [Add Authenticated Request Header](#overview--add-authenticated-request-header).
+    
     ## Construct The BX-NONCE Header
 
     The header `BX-NONCE` value is a unique client-side 64-bit unsigned integer. It has the following characteristics:
@@ -805,14 +822,15 @@ info:
 
     #### l2Snapshot response
 
-    | Name                | Type   | Description                                                                                                                                                                                                              |
-    |---------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-    | bids                | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
-    | asks                | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
-    | sequenceNumberRange | Array  | array of size 2 where first element denotes lower bound, second element denotes upper bound of sequence numbers <br /> lower and upper bound are equal for initial snapshot; this may differ for subsequent snapshots    |
-    | datetime            | String | denotes the time the update was created                                                                                                                                                                                  |
-    | timestamp           | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                                                                                             |
-
+    | Name                    | Type   | Description                                                                                                                                                                                                              |
+    |---------------------    |--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | bids                    | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
+    | asks                    | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
+    | sequenceNumberRange     | Array  | array of size 2 where first element denotes lower bound, second element denotes upper bound of sequence numbers <br /> lower and upper bound are equal for initial snapshot; this may differ for subsequent snapshots    |
+    | datetime                | String | denotes the time the update was created by the engine, ISO 8601 with millisecond as string                                                                                                                               |
+    | timestamp               | String | denotes the time the update was created by the engine                                                                                                                                                                    |
+    | publishedAtTimestamp    | String | denotes the time the update was broadcasted to connected websockets                                                                                                                                                      |
+    
     ```json
     {
       "type": "snapshot",
@@ -864,7 +882,8 @@ info:
         ],
         "sequenceNumberRange": [6, 6],
         "datetime": "2020-05-13T10:23:46.000Z",
-        "timestamp": "1589365426000"
+        "timestamp": "1589365426000",
+        "publishedAtTimestamp": "1589365426100",
       }
     }
     ```
@@ -872,13 +891,14 @@ info:
 
     #### l2Update response
 
-    | Name                | Type   | Description                                                                                                                                                |
-    |---------------------|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-    | bids                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
-    | asks                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
-    | sequenceNumberRange | Array  | array of size 2 where first element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update |
-    | datetime            | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                               |
-    | timestamp           | String | denotes the time the update was created                                                                                                                    |
+    | Name                  | Type   | Description                                                                                                                                                |
+    |---------------------  |--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | bids                  | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
+    | asks                  | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
+    | sequenceNumberRange   | Array  | array of size 2 where first element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update |
+    | datetime              | String | denotes the time the update was created by the engine, ISO 8601 with millisecond as string                                                                 |
+    | timestamp             | String | denotes the time the update was created by the engine                                                                                                      |
+    | publishedAtTimestamp  | String | denotes the time the update was broadcasted to connected websockets                                                                                        |
 
     ```json
     {
@@ -889,7 +909,8 @@ info:
         "asks": ["5199.7000", "101.30313224"],
         "sequenceNumberRange": [7, 10],
         "datetime": "2020-06-29T06:28:55.500Z",
-        "timestamp": "1593412135500"
+        "timestamp": "1593412135500",
+        "publishedAtTimestamp": "1593412135600",
       }
     }
     ```
@@ -1253,7 +1274,7 @@ tags:
     description: |+
       Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/custody_basics.py)
       
-      Custody APIs have a limit of 20 requests per minute combined across all endpoints of type **/wallets/***
+      Custody APIs have a limit of 40 requests per minute combined across all endpoints of type **/wallets/***
   - name: trades
     description: Authenticated APIs for reading trade data
   - name: accounts
@@ -2926,6 +2947,39 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+  /history/borrow-interest:
+    get:
+      tags:
+        - orders
+      summary: Get Historical Hourly Borrow Interest
+      description: |
+        Get Historical Hourly Borrow Interest. Each entry denotes the hourly quantities for the specific asset. 
+        Total borrowed quantity is inclusive of interest. `interest = totalBorrowedQuantity - borrowedQuantity` 
+        which denotes the interest charged in the particular hour for the asset.   
+        - [supports pagination](#overview--pagination-support)
+        - supports filtering on `assetSymbol`, `createdAtDatetime`, `createdAtTimestamp`
+
+        **Ratelimited:** `True`
+      operationId: market-data-get-historical-borrow-interest
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/BorrowInterest'
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /time:
     get:
       tags:
@@ -3018,7 +3072,7 @@ components:
     AssetValue:
       description: see [asset value](#overview--price-and-quantity-precision) format
       type: string
-      example: '0.00000000'
+      example: '1.00000000'
     DateTime:
       type: string
       format: date-time
@@ -4860,6 +4914,42 @@ components:
           description: date and time of the candle, ISO 8601 with millisecond as string
           allOf:
             - $ref: '#/components/schemas/DateTime'
+    BorrowInterest:
+      type: object
+      required:
+        - assetId
+        - assetSymbol
+        - borrowedQuantity
+        - totalBorrowedQuantity
+        - createdAtDatetime
+        - createdAtTimestamp
+      properties:
+        assetId:
+          description: unique asset ID
+          allOf:
+            - $ref: '#/components/schemas/AssetID'
+        assetSymbol:
+          description: asset symbol
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        borrowedQuantity:
+          description: the principal borrowed quantity
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        totalBorrowedQuantity:
+          description: the sum of the principal borrowed quantity and the interest charged
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        createdAtDatetime:
+          description: denotes the hour in which the principal quantity was borrowed or when the interest was charged, ISO 8601 with millisecond as string
+          type: string
+          format: date-time
+          example: "2020-08-21T08:00:00.000Z"
+        createdAtTimestamp:
+          description: denotes the hour in which the principal quantity was borrowed or when the interest was charged
+          type: string
+          format: string
+          example: "1621490985000"
     CurrentExchangeTimeResponse:
       type: object
       required:

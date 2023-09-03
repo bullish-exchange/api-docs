@@ -29,60 +29,27 @@ info:
     - may add new fields to existing response payloads. Please do not use strict deserialisation as it may cause compatibility issues.
     
     # Code Examples
+    
     Find further code examples at - https://github.com/bullish-exchange
     
-    # API Change Log
-    ## 2023 Changes
-    - July - Margin related REST and WS changes
-      - `borrowedQuantity` and `isLiquidation` fields added to `GET /orders` and `WS /private-data` orders topic
-      - Calculation for `free` and `used` fields changed in `GET /accounts/spot`, `GET /accounts/spot/{symbol}` and `WS /private-data` `spotAccounts` topic
-      - New `GET /accounts/asset` and `GET /accounts/asset/{symbol}`
-      - New `assetAccounts` and `tradingAccounts` topics in `WS /private-data`
-      - `isLending`, `isBorrowing`, `isDefaulted`, `maxInitialLeverage`, `makerFee` and `takerFee` fields added to `GET /accounts/trading-accounts`
-      - `collateralRating` and `maxBorrow` fields added to `/assets`
-    - May - add V1CancelAllOrdersByMarket to cancel all open orders by trading account id and market
-    - April - add V1CancelAllOrders to cancel all open limit orders by trading account id
-    - April - add `/accounts/trading-accounts` endpoint to fetch all trading accounts
-    - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
-      - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
-      - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
-      - Get trade details [Current API](../v1/#get-/trades) -> [New API](../v2/#get-/trades)
-      - Get AMM Instruction by ID [Current API](../v1/#get-/amm-instructions/-liquidityId-) -> [New API](../v2/#get-/amm-instructions/-liquidityId-)
-      - Get AMM instruction details [Current API](../v1/#get-/amm-instructions) -> [New API](../v2/#get-/amm-instructions)
-      - Remove AMM instruction [Current API](../v1/#delete-/amm-instructions) -> [New API](../v2/#delete-/amm-instructions)
-      - Add AMM instruction [Current API](../v1/#post-/amm-instructions) -> [New API](../v2/#post-/amm-instructions)
-      - Get order details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
-      - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
-      - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
-      - Updated REST API:
-      - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1TransferAsset)
-      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) Gets details for all trading accounts accessible by the API key used in the request. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
-    - March - introduce "trading account Id" to authenticated REST API and websocket
-    - March - add custody SIGNET support, remove SEN support
-    - March - add unsolicited amend status reason code
-    - March - add nonce window to `/orders` to allow out-of-order order requests to be processed
-    - March - `/v1/users/login` to be deprecated towards the end of Q2 2023
-    - January - add AMM instructions API
-    ## 2022 Changes
-    - November - deprecate subscription topics in `/private-data` - `events`, `positions` and `marginAccounts`
-    - November - deprecate `/accounts/margin`, `/accounts/margin/{symbol}`, `/positions` and `/positions/{symbol}`
-    - October - add Custody API
-    - August - add anonymous trades WebSocket API
-    - July - deprecate WebSocket API `/v1/private` and `/v1/market-data`
-    - July - add hybrid orderbook WebSocket API
-    - June - add handle field to `GET /trades` and `GET /trades/{tradeId}`
-    - June - add handle field to `V1TATrade` for private data WebSocket
-    - June - orderbook default depth of `10` - `GET /markets/{symbol}/orderbook/hybrid`
-    - May - add `events` topic to private data WebSocket
-    - April - add market data WebSocket API
-    - April - add private data WebSocket API
-    - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
-    - March - add IOC time-in-force order type
-    - March - add FOK time-in-force order type
-    - March - add order `statusReasonCode` map to API documentation
-    - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
-    - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
-    - January - add pagination support to `GET /markets/{symbol}/candle`
+    # FIX API
+    
+    The FIX API is available to institutional clients for testing in early September and production ready late September.
+    
+    The FIX API will only be available through an AWS or GCP private connection:
+    - AWS PrivateLink
+      - It provides private connectivity between VPCs, AWS service without exposing your traffic to the public internet. 
+      Bullish will provide the published service IDs for this service. You will be able to connect to our FIX service endpoint once the connection has been successfully established.
+    - GCP Private Service Connect
+      - It allows customers to access managed services privately from inside their VPC network.
+      Bullish will provide the published service IDs for this service. You will be able to connect to our
+      FIX service endpoint once the connection has been successfully established.
+    
+    
+    For more details please refer to the full specification:
+    - [Bullish FIX Protocol Specification](../../../fix-api/Bullish%20FIX%20Protocol%20Specification%20v1.0.2.pdf) 
+    - [Bullish FIX Protocol Dictionary](../../../fix-api/fix-dictionary.xml)
+    
     
     # Exchange Time
 
@@ -153,6 +120,11 @@ info:
     If an IP address is rate limited, the http response status code will be `429 Too Many Requests` and the IP address
     is blocked from making any requests for 60 seconds.
 
+    ## Global Rate Limit
+    
+    The global rate limit is an additional rate limit specific to the exchange. It is used to help limit the flow of orders into the exchange. It affects all clients fairly. 
+    When the global rate limit is breached the `x-ratelimit-global-breach` header value will be set to `true` else `false`.
+    
     ## Rate Limits per API category
 
     In addition, API endpoints denoted by `Ratelimited: True` in the description are also subject to rate limits.
@@ -168,6 +140,7 @@ info:
     - `x-ratelimit-limit`: Maximum number of requests allowed for the specific API category within time period.
     - `x-ratelimit-remaining`: Remaining number of requests allowed for the specific API category within time period.
     - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed for the specific API category.
+    - `x-ratelimit-global-breach`: true/false, indicating whether the global limit has been breached.
 
     ## Exceeding Rate Limits
     When rate limits are exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
@@ -176,6 +149,16 @@ info:
         "errorCode": 96000,
         "errorCodeName": "RATE_LIMIT_EXCEEDED",
         "message": "Rate limit exceeded"
+      }
+    ```
+
+    ## Exceeding The Global Rate Limit
+    When the global rate limit is exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
+    ```json
+      {
+        "errorCode": 96001,
+        "errorCodeName": "GLOBAL_RATE_LIMIT_EXCEEDED",
+        "message": "Global rate limit exceeded"
       }
     ```
 
@@ -232,91 +215,9 @@ info:
     - `FOK` - fill or kill - if the order cannot immediately be filled in full it is cancelled
     - `IOC` - immediate or cancel - the order is immediately filled in full or in part and any remainder is cancelled
     
-    # Order statusReasonCode Map
+    # Error & Rejection Codes
 
-    - The `statusReasonCode` is a field on an Order which provides details on the reasoning for the current state of the order.
-    - The `statusReason` is the textual description which explains the `statusReasonCode`.
-    - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
-    - For instance, the `statusReasonCode` 2009 will always refer to an invalid market symbol.
-    
-    
-    | statusReasonCode | statusReason |
-    | ---------- |---------------- |
-    | 1001 | Ok |
-    | 1002 | Unable to place request  |
-    | 2001 | Bad incoming request |
-    | 2002 | Invalid user's client id |
-    | 2003 | Invalid handle |
-    | 2004 | Invalid quantity |
-    | 2005 | Unknown error  |
-    | 2006 | Invalid account type, account must be spot |
-    | 2007 | Account already exist  |
-    | 2008 | Invalid side, side must me from buy or sell  |
-    | 2009 | Invalid market |
-    | 2010 | Account doesn't exist  |
-    | 2011 | Account types are different  |
-    | 2012 | Invalid price  |
-    | 2013 | Invalid order type, type must be from limit, market, stop-limit  |
-    | 2015 | Exceeded maximum amount of allowed open margin orders  |
-    | 2016 | Unknown request type |
-    | 2017 | Invalid order id |
-    | 2018 | Unknown time in force option |
-    | 2020 | Margin trading is not allowed  |
-    | 2021 | Exceeded maximum amount of allowed open spot orders  |
-    | 2029 | Invalid request id |
-    | 2035 | Invalid nonce  |
-    | 3001 | Account doesn't have sufficient balance  |
-    | 3002 | Order is not found |
-    | 3003 | Borrowing is unavailable |
-    | 3007 | Duplicated order id  |
-    | 3020 | Unsolicited cancel |
-    | 3021 | Forced cancel  |
-    | 3023 | Duplicated order handle  |
-    | 3031 | Price is out of range  |
-    | 3032 | Order is either closed or rejected |
-    | 6001 | Open |
-    | 6002 | Executed |
-    | 6003 | Matured  |
-    | 6004 | Expired  |
-    | 6005 | User cancelled |
-    | 6007 | Self cross prevention  |
-    | 6011 | Self cross prevention amend  |
-    | 6012 | Stop limit amend  |
-    | 6013 | Partially filled  |
-
-    # Custody statusReasonCode Map
-
-    - The `statusReasonCode` is a field on Custody API's withdrawal and error messages which provides details on the reasoning for the current state of the request.
-    - The `statusReason` is the textual description which explains the `statusReasonCode`.
-    - While the exact wording of the `statusReason` may change, `statusReasonCode` always refers to the same `statusReason` in a general sense.
-    - For instance, the `statusReasonCode` 8305 will always refer to an assertion failure.
-    
-    
-    | statusReasonCode | statusReason |
-    | ---------- |---------------- |
-    | 8301 | Unexpected Error |
-    | 8305 | Withdraw assertion failed  | 
-    | 8306 | Custody bad user  | 
-    | 8307 | Unexpected withdraw exception  | 
-    | 8310 | Cannot find withdrawal destination  | 
-    | 8311 | Missing fields in withdraw  | 
-    | 8313 | Unsupported coin  | 
-    | 8315 | Crypto deposit not found  | 
-    | 8316 | Unable to allocate deposit address  | 
-    | 8317 | Swift code is on the restricted list  | 
-    | 8318 | Unsupported operation  | 
-    | 8319 | Custody operation has been disabled  | 
-    | 8320 | Address failed validation  | 
-    | 8322 | Bad withdrawal amount  | 
-    | 8327 | Invalid Login  | 
-    | 8329 | Unexpected destination exception  | 
-    | 8331 | Invalid Destination  | 
-    | 8332 | Bad network specified  | 
-    | 8333 | Bad symbol specified | 
-    | 8334 | Bad authentication type | 
-    | 8335 | Withdrawal destination does not belong to user |
-    | 8336 | Withdrawal destination not whitelisted |
-    | 8399 | Unknown error |   
+    Details of `statusReasonCode` and `statusReason` can be referenced from [Error & Rejection Codes](https://github.com/bullish-exchange/api-docs/wiki/Error-&-Rejection-Codes) 
 
     # Authentication
 
@@ -504,7 +405,7 @@ info:
         "tradingAccountId": "111234567890" 
       }
     }
-    ```    
+    ```
     
     ### Create Margin Order Example
     
@@ -609,7 +510,7 @@ info:
     ## Fetch Trading Account Ids
     
     Trading Account Ids may be required by some endpoints. They can be fetched from [Get All Trading Accounts](#get-/accounts/trading-accounts).
-    
+      
     See an API example [Here](https://github.com/bullish-exchange/api-examples/blob/master/get_trading_accounts.py).
 
     ## Send The HTTP Authenticated Request
@@ -856,13 +757,14 @@ info:
 
     #### l2Snapshot response
 
-    | Name                | Type   | Description                                                                                                                                                                                                              |
-    |---------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-    | bids                | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
-    | asks                | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
-    | sequenceNumberRange | Array  | array of size 2 where first element denotes lower bound, second element denotes upper bound of sequence numbers <br /> lower and upper bound are equal for initial snapshot; this may differ for subsequent snapshots    |
-    | datetime            | String | denotes the time the update was created                                                                                                                                                                                  |
-    | timestamp           | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                                                                                             |
+    | Name                    | Type   | Description                                                                                                                                                                                                              |
+    |---------------------    |--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | bids                    | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
+    | asks                    | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
+    | sequenceNumberRange     | Array  | array of size 2 where first element denotes lower bound, second element denotes upper bound of sequence numbers <br /> lower and upper bound are equal for initial snapshot; this may differ for subsequent snapshots    |
+    | datetime                | String | denotes the time the update was created by the engine, ISO 8601 with millisecond as string                                                                                                                               |
+    | timestamp               | String | denotes the time the update was created by the engine                                                                                                                                                                    |
+    | publishedAtTimestamp    | String | denotes the time the update was broadcasted to connected websockets                                                                                                                                                      |
 
     ```json
     {
@@ -915,7 +817,8 @@ info:
         ],
         "sequenceNumberRange": [6, 6],
         "datetime": "2020-05-13T10:23:46.000Z",
-        "timestamp": "1589365426000"
+        "timestamp": "1589365426000",
+        "publishedAtTimestamp": "1589365426100",
       }
     }
     ```
@@ -923,13 +826,14 @@ info:
 
     #### l2Update response
 
-    | Name                | Type   | Description                                                                                                                                                |
-    |---------------------|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-    | bids                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
-    | asks                | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
-    | sequenceNumberRange | Array  | array of size 2 where first element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update |
-    | datetime            | String | denotes the time the update was created, ISO 8601 with millisecond as string                                                                               |
-    | timestamp           | String | denotes the time the update was created                                                                                                                    |
+    | Name                  | Type   | Description                                                                                                                                                |
+    |---------------------  |--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | bids                  | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
+    | asks                  | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
+    | sequenceNumberRange   | Array  | array of size 2 where first element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update |
+    | datetime              | String | denotes the time the update was created by the engine, ISO 8601 with millisecond as string                                                                 |
+    | timestamp             | String | denotes the time the update was created by the engine                                                                                                      |
+    | publishedAtTimestamp  | String | denotes the time the update was broadcasted to connected websockets                                                                                        |
 
     ```json
     {
@@ -940,7 +844,8 @@ info:
         "asks": ["5199.7000", "101.30313224"],
         "sequenceNumberRange": [7, 10],
         "datetime": "2020-06-29T06:28:55.500Z",
-        "timestamp": "1593412135500"
+        "timestamp": "1593412135500",
+        "publishedAtTimestamp": "1593412135600",
       }
     }
     ```
@@ -1011,7 +916,7 @@ info:
     
     -
     
-    
+
     - Level 1 market data updates are realtime.
     - If the `sequenceNumber` of an incoming update is smaller than that of a previously received update, then the
     `sequenceNumber` is out of order. Terminate the web-socket connection and reconnect.
@@ -1285,6 +1190,62 @@ info:
     2. Fill in the input parameters
     2. Click the `TRY` green button
     3. Inspect the results
+    
+    # API Change Log
+    ## 2023 Changes
+    - September - New FIX API - The FIX API is available to institutional clients for testing in early September and production ready late September.
+    - August - New REST API - `Get /history/borrow-interest`
+      - New REST API - `Cancel All Open Limit Orders after Delay` - `/command?commandType=V1DelayedCancelAllOrders` 
+    - July - Margin related REST and WS changes
+      - `borrowedQuantity` and `isLiquidation` fields added to `GET /orders` and `WS /private-data` orders topic
+      - Calculation for `free` and `used` fields changed in `GET /accounts/spot`, `GET /accounts/spot/{symbol}` and `WS /private-data` `spotAccounts` topic
+      - New `GET /accounts/asset` and `GET /accounts/asset/{symbol}`
+      - New `assetAccounts` and `tradingAccounts` topics in `WS /private-data`
+      - `isLending`, `isBorrowing`, `isDefaulted`, `maxInitialLeverage`, `makerFee` and `takerFee` fields added to `GET /accounts/trading-accounts`
+      - `collateralRating` and `maxBorrow` fields added to `/assets`
+    - May - add V1CancelAllOrdersByMarket to cancel all open orders by trading account id and market
+    - April - add V1CancelAllOrders to cancel all open limit orders by trading account id
+    - April - add `/accounts/trading-accounts` endpoint to fetch all trading accounts
+    - April - new hybrid orderbook WebSocket API with greater depth and aggregation factor
+      - Private Data WebSocket [Current API](../v1/#overview--private-data-websocket) `/v1/private-data` -> [New API](../v2/#overview--private-data-websocket) `/v1/private-data?tradingAccountId=111234567890`
+      - Get account details [Current API](../v1/#get-/accounts/spot) -> [New API](../v2/#get-/accounts/spot)
+      - Get trade details [Current API](../v1/#get-/trades) -> [New API](../v2/#get-/trades)
+      - Get AMM Instruction by ID [Current API](../v1/#get-/amm-instructions/-liquidityId-) -> [New API](../v2/#get-/amm-instructions/-liquidityId-)
+      - Get AMM instruction details [Current API](../v1/#get-/amm-instructions) -> [New API](../v2/#get-/amm-instructions)
+      - Remove AMM instruction [Current API](../v1/#delete-/amm-instructions) -> [New API](../v2/#delete-/amm-instructions)
+      - Add AMM instruction [Current API](../v1/#post-/amm-instructions) -> [New API](../v2/#post-/amm-instructions)
+      - Get order details [Current API](../v1/#get-/orders) -> [New API](../v2/#get-/orders)
+      - Cancel order [Current API](../v1/#delete-/orders) ->   [New API](../v2/#delete-/orders)
+      - Create order [Current API](../v1/#post-/orders) ->   [New API](../v2/#post-/orders)
+      - Updated REST API:
+      - New REST API: [To transfer asset between two trading accounts ](../v2/#post-/command-commandType-V1TransferAsset)
+      - New REST API: [To retrieve all the trading account details for current user](../v2/#get-/accounts/trading-accounts) Gets details for all trading accounts accessible by the API key used in the request. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header. The trading account's id will be used in all other REST API
+    - March - introduce "trading account Id" to authenticated REST API and websocket
+    - March - add custody SIGNET support, remove SEN support
+    - March - add unsolicited amend status reason code
+    - March - add nonce window to `/orders` to allow out-of-order order requests to be processed
+    - March - `/v1/users/login` to be deprecated towards the end of Q2 2023
+    - January - add AMM instructions API
+    ## 2022 Changes
+    - November - deprecate subscription topics in `/private-data` - `events`, `positions` and `marginAccounts`
+    - November - deprecate `/accounts/margin`, `/accounts/margin/{symbol}`, `/positions` and `/positions/{symbol}`
+    - October - add Custody API
+    - August - add anonymous trades WebSocket API
+    - July - deprecate WebSocket API `/v1/private` and `/v1/market-data`
+    - July - add hybrid orderbook WebSocket API
+    - June - add handle field to `GET /trades` and `GET /trades/{tradeId}`
+    - June - add handle field to `V1TATrade` for private data WebSocket
+    - June - orderbook default depth of `10` - `GET /markets/{symbol}/orderbook/hybrid`
+    - May - add `events` topic to private data WebSocket
+    - April - add market data WebSocket API
+    - April - add private data WebSocket API
+    - March - add optional `depth` parameter to `GET /markets/{symbol}/orderbook/hybrid?depth=10`
+    - March - add IOC time-in-force order type
+    - March - add FOK time-in-force order type
+    - March - add order `statusReasonCode` map to API documentation
+    - March - add historical anonymous trades API - `GET /history/markets/{symbol}/trades`
+    - February - add filter by status=CANCELLED to `GET /orders?status=CANCELLED`
+    - January - add pagination support to `GET /markets/{symbol}/candle`
 
   version: 1.0.0
   title: Bullish Trading API
@@ -1307,7 +1268,7 @@ tags:
     description: |+
       Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/custody_basics.py)
       
-      Custody APIs have a limit of 20 requests per minute combined across all endpoints of type **/wallets/***
+      Custody APIs have a limit of 40 requests per minute combined across all endpoints of type **/wallets/***
   - name: trades
     description: Authenticated APIs for reading trade data
   - name: accounts
@@ -2093,6 +2054,115 @@ paths:
             schema:
               $ref: '#/components/schemas/CancelAllOrdersByMarketRequest'
 
+      security:
+        - jwtTokenAuth: [ ]
+
+  /command?commandType=V1DelayedCancelAllOrders:
+    post:
+      tags:
+        - orders
+      summary: Cancel All Open Limit Orders after Delay
+      description: |
+        Cancel All Open Limit Orders after Delay
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - provides a “Dead Man’s Switch” mechanism to protect customers from network malfunction. 
+          The customer can send a request with a delay (in seconds), that will start a countdown timer 
+          which cancels all open limit orders for a specific trading account when the timer expires.
+        - can be disabled by another command type: V1UnsetDelayedCancelAllOrders
+        
+        **Ratelimited:** `True`
+      operationId: trade-delayed-cancel-all-open-limit-orders
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      requestBody:
+        description: Cancel All Open Limit Orders after Delay request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DelayedCancelAllOrdersRequest'
+      responses:
+        200:
+          description: Status OK. This means a cancel all open limit orders command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelayedCancelAllOrdersResponse'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+  /command?commandType=V1UnsetDelayedCancelAllOrders:
+    post:
+      tags:
+        - orders
+      summary: Cancel All Open Limit Orders after Delay Disable
+      description: |
+        Cancel All Open Limit Orders after Delay Disable
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - Disable the delay set on a trading account that initiates cancelling all open limit orders
+          (i.e. disable the previous V1DelayedCancelAllOrders command)
+        
+        **Ratelimited:** `True`
+      operationId: trade-unset-delayed-cancel-all-open-limit-orders
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      requestBody:
+        description: Cancel All Open Limit Orders after Delay Disable request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersRequest'
+      responses:
+        200:
+          description: Status OK. This means a cancel all open limit orders command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersResponse'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
 
@@ -3059,6 +3129,39 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+  /history/borrow-interest:
+    get:
+      tags:
+        - orders
+      summary: Get Historical Hourly Borrow Interest
+      description: |
+        Get Historical Hourly Borrow Interest. Each entry denotes the hourly quantities for the specific asset. 
+        Total borrowed quantity is inclusive of interest. `interest = totalBorrowedQuantity - borrowedQuantity` 
+        which denotes the interest charged in the particular hour for the asset.
+        - [supports pagination](#overview--pagination-support)
+        - supports filtering on `assetSymbol`, `createdAtDatetime`, `createdAtTimestamp`
+
+        **Ratelimited:** `True`
+      operationId: market-data-get-historical-borrow-interest
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/BorrowInterest'
+        404:
+          description: Resource Not Found
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /time:
     get:
       tags:
@@ -3209,6 +3312,12 @@ components:
       description: id of the trading account.
       type: string
       example: "111234567890"
+    TradingAccountIds:
+      description: list of trading account ids.
+      type: array
+      items:
+        type: string
+        example: "111234567890"
     MarketID:
       type: string
       example: BTCUSD
@@ -3218,7 +3327,7 @@ components:
     AssetValue:
       description: see [asset value](#overview--price-and-quantity-precision) format
       type: string
-      example: '0.00000000'
+      example: '1.00000000'
     DateTime:
       type: string
       format: date-time
@@ -3740,6 +3849,112 @@ components:
           description: message
           type: string
           example: "Command acknowledged - CancelAllOrders"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+    DelayedCancelAllOrdersRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/DelayedCancelAllOrdersCommand'
+    DelayedCancelAllOrdersCommand:
+      type: object
+      required:
+        - commandType
+        - delayBySeconds
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V1DelayedCancelAllOrders'
+          type: string
+          example: 'V1DelayedCancelAllOrders'
+        cancelId:
+          allOf:
+            - $ref: '#/components/schemas/CancelId'
+        delayBySeconds:
+          description: 'Delay of the cancel-all-order in seconds'
+          allOf:
+            - $ref: '#/components/schemas/DelayBySeconds'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+    DelayedCancelAllOrdersResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - DelayedCancelAllOrders"
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+    UnsetDelayedCancelAllOrdersRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          allOf:
+            - $ref: '#/components/schemas/NonceAsString'
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: the command to be executed which is sent in the request payload
+          allOf:
+            - $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersCommand'
+    UnsetDelayedCancelAllOrdersCommand:
+      type: object
+      required:
+        - commandType
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V1UnsetDelayedCancelAllOrders'
+          type: string
+          example: 'V1UnsetDelayedCancelAllOrders'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+    UnsetDelayedCancelAllOrdersResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+          example: "Command acknowledged - UnsetDelayedCancelAllOrders"
         requestId:
           description: unique request ID
           allOf:
@@ -5143,6 +5358,42 @@ components:
           description: date and time of the candle, ISO 8601 with millisecond as string
           allOf:
             - $ref: '#/components/schemas/DateTime'
+    BorrowInterest:
+      type: object
+      required:
+        - assetId
+        - assetSymbol
+        - borrowedQuantity
+        - totalBorrowedQuantity
+        - createdAtDatetime
+        - createdAtTimestamp
+      properties:
+        assetId:
+          description: unique asset ID
+          allOf:
+            - $ref: '#/components/schemas/AssetID'
+        assetSymbol:
+          description: asset symbol
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        borrowedQuantity:
+          description: the principal borrowed quantity
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        totalBorrowedQuantity:
+          description: the sum of the principal borrowed quantity and the interest charged
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        createdAtDatetime:
+          description: denotes the hour in which the principal quantity was borrowed or when the interest was charged, ISO 8601 with millisecond as string
+          type: string
+          format: date-time
+          example: "2020-08-21T08:00:00.000Z"
+        createdAtTimestamp:
+          description: denotes the hour in which the principal quantity was borrowed or when the interest was charged
+          type: string
+          format: string
+          example: "1621490985000"
     CurrentExchangeTimeResponse:
       type: object
       required:
@@ -5225,6 +5476,23 @@ components:
       enum:
         - LONG
         - SHORT
+    DelayBySeconds:
+      description: Delay the cancel-all-orders request by (seconds) as a timeout mechanism
+      type: string
+      enum:
+        - "5"
+        - "10"
+        - "15"
+        - "20"
+        - "25"
+        - "30"
+        - "40"
+        - "50"
+        - "60"
+    CancelId:
+      description: Unique id for this cancel request which is an unsigned 64 bit integer expressed as string
+      type: string
+      example: "123456789"
   headers:
     Authorization:
       description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
