@@ -244,22 +244,20 @@ info:
     1. Log in into your Bullish account
     2. Click on your account initials at the upper right corner and then click **Settings**
     3. Click **API Keys** and then click **Add API Key**
-    4. Enter a key name in the *Key Name* field and click *Generate API Key*
+    4. Select the API Key type, either Bullish, Bullish Custody or HMAC
+    5. Enter a key name in the *Key Name* field and click *Generate API Key*
 
-    **NOTES**
+    ### Bullish API Key Notes
 
-    - An API key is a public/private key pair
+    - A Bullish API key is a public/private key pair used for ECDSA based signing of trading API requests
     - The private key is what you will use to sign your requests
     - From here on the:
       - public key will be referred to as `PUBLIC_KEY`
       - private key will be referred to as `PRIVATE_KEY`
     - For information about the format of keys please review [EOS Wallet Specification](https://developers.eos.io/manuals/eos/v2.0/keosd/wallet-specification)
     - Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
-    - When you generate an API key you also get back the API metadata, in the next section you will learn how to use it
 
-    ## Get Your Bullish User ID
-
-    An API key additionally has a `metadata` string assoicated with it which is displayed along side the key.
+    A Bullish API key additionally has a `metadata` string assoicated with it which is displayed along side the key.
     You must base64 decode the `metadata` to extract your `userId` (example follows). You will need the `userId` in the next step.
     Please note that the `accountId` field is deprecated, and will be removed along with `v1/users/login` API towards the end of Q2 2023. Clients should reference the `userId` field instead.
     Old `metadata` strings generated before the March 2023 upgrade will not contain the `userId` field; clients are advised to get the `metadata` from the Settings page on the UI again.
@@ -268,6 +266,22 @@ info:
     echo eyJwdWJsaWNLZXkiOiJQVUJfUjFfNWNpVW52TW5rVThMOVBCWnZaa1BGcjhqdkRnUHpzcHhWNGlqOThIN1JqM1FSNzJyMkEiLCJhY2NvdW50SWQiOjIyMjAwMDAwMDAwMDAwNCwiY3JlZGVudGlhbElkIjoiMTAifQ== | base64 --decode
     {"publicKey":"PUB_R1_5ciUnvMnkU8L9PBZvZkPFr8jvDgPzspxV4ij98H7Rj3QR72r2A","userId":"12345","accountId":"12345","credentialId":"10"}
     ```
+    
+    ### Bullish Custody API Key Notes
+    
+    - A Bullish Custody API key is a public/private key pair used for ECDSA based signing of custody API requests
+    - The private key is what you will use to sign your requests
+    - From here on the:
+      - public key will be referred to as `PUBLIC_KEY`
+      - private key will be referred to as `PRIVATE_KEY`
+    - Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
+    
+    
+    ### HMAC API Key Notes
+    
+    - A HMAC API Key is a shared secret key that is used for HMAC based signing
+    - Always store your HMAC secret in a secure medium as they are used to sign your requests
+    - You do not need the `metadata` string to extract your `userId` like you would a Bullish API Key
 
     ## Add Authenticated Request Header
 
@@ -276,11 +290,10 @@ info:
 
     The JWT is valid for 24 hours.
 
-    ## Generate A JWT Token
+    ### Bullish API Key
+    To generate/get a JWT token for a Bullish API Key you will need to perform the following request:
 
-    To generate/get a JWT token you will need to perform the following request:
-
-    ### POST /trading-api/v2/users/login
+    #### POST /trading-api/v2/users/login
 
     - Body
       - `publicKey` - bullish account public key
@@ -314,7 +327,7 @@ info:
     }
     ```
 
-    ### POST /trading-api/v1/users/login (Deprecated - the endpoint will be removed towards the end of Q2 2023)
+    #### POST /trading-api/v1/users/login (Deprecated - the endpoint will be removed towards the end of Q2 2023)
 
     - Body
       - `publicKey` - bullish account public key
@@ -349,7 +362,39 @@ info:
     ```
 
     See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt.py) for a sample Python script.
-
+    
+    ### HMAC API Key
+    To generate/get a JWT token for a HMAC API Key you will need to perform the following request:
+    
+    #### GET /trading-api/v1/users/hmac/login
+    
+    - Response
+    
+    ```json
+    {
+      "authorizer": "<AUTHORIZER>",
+      "token": "<JWT_TOKEN>"
+    }
+    ```
+    
+    You will need to provide a series of headers along with the request in order to successfully generate a JWT token.
+    
+    - `BX-TIMESTAMP` - number of milliseconds since EPOCH
+    - `BX-NONCE` - client side incremented 64-bit unsigned integer
+    - `BX-PUBLIC-KEY` - Public key for the HMAC Key being used to generate the JWT
+    - `BX-SIGNATURE` - The signed message related to the login request. Outlined below
+    
+    To sign the login request for an HMAC API Key login we will need to construct a string that concatenates the following fields:
+    - timestamp - value provided for the `BX-TIMESTAMP` header
+    - nonce - value provided for the `BX-NONCE`
+    - request method - `GET`
+    - request path - `/trading-api/v1/users/hmac/login`
+    
+    See [generate JWT with HMAC](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt_hmac.py) for a sample Python script.
+    
+    ## Logout using a JWT Token
+    Users can better manage their sessions by logging out of unused sessions. This can be done by calling the `GET /trading-api/v1/users/logout` endpoint with the JWT Token in the header - see [Add Authenticated Request Header](#overview--add-authenticated-request-header).
+    
     ## Construct The BX-NONCE Header
 
     The header `BX-NONCE` value is a unique client-side 64-bit unsigned integer. It has the following characteristics:
@@ -499,13 +544,30 @@ info:
       - `<AUTHORIZER>`: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
       - `<COMMAND>`: the command which is sent in the request payload, JSON encoded
 
-    ### How To Sign
-
+    #### Bullish API Key
+    
     To obtain the signature:
 
     1. Encode the request JSON payload, also referred to as body, with the SHA-256 hash function and take the hexdigest
     2. Sign the hexdigest from step 1 with ECDSA P-256 using your `<PRIVATE_KEY>`
     3. Various signing examples can be found on [GitHub](https://github.com/bullish-exchange)
+    
+    #### Bullish Custody API Key
+    
+    To obtain the signature:
+
+    1. Encode the request JSON payload, also referred to as body, with the SHA-256 hash function and take the hexdigest
+    2. Sign the hexdigest from step 1 with ECDSA P-256 using your `<PRIVATE_KEY>`
+    3. Various signing examples can be found on [GitHub](https://github.com/bullish-exchange)
+    
+    #### HMAC API Key
+    
+    To obtain the signature:
+    
+    1. Encode the request JSON payload, also referred to as body, with the SHA-256 hash function and take the hexdigest
+    2. Sign the hexdigest from step 1 with your HMAC Secret Key.
+    
+    See [sign a request with HMAC](https://github.com/bullish-exchange/api-examples/blob/master/create_order_hmac_v2.py) for a sample Python script.
 
     ## Fetch Trading Account Ids
     
@@ -1193,7 +1255,13 @@ info:
     
     # API Change Log
     ## 2023 Changes
-    - September - New FIX API - The FIX API is available to institutional clients for testing in early September and production ready late September.
+    - September
+      - New HMAC API Keys released
+        - Login API - `GET /v1/users/hmac/login` 
+        - BX-SIGNATURE header supports signatures generated via HMAC and ECDSA 
+      - New Bullish Custody API Keys released
+        - Login API - `GET /v1/users/hmac/login`
+      - New FIX API - The FIX API is available to institutional clients for testing in early September and production ready late September
     - August - New REST API - `Get /history/borrow-interest`
       - New REST API - `Cancel All Open Limit Orders after Delay` - `/command?commandType=V1DelayedCancelAllOrders` 
     - July - Margin related REST and WS changes
@@ -2853,6 +2921,70 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
+  /wallets/withdrawal:
+    post:
+      tags:
+        - custody
+      summary: Create Withdrawal
+      description: |
+        Trigger a withdrawal, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        The `BX-SIGNATURE` header should be created by signing the request with a Bullish Custody API Key. 
+
+        > **Bullish requires you to whitelist a withdrawal destination address before submitting a withdrawal request. You may view, approve, and manage your list of destination addresses in Account Settings on the Bullish website. If you attempt a withdrawal without first whitelisting an address in Account Settings, then the withdrawal attempt will fail.**
+
+        For a full example of using the withdrawal endpoints please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/custody_withdrawals.py)
+
+        The currently supported precisions for withdrawal quantities are as follows, and as with fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei) :
+
+        | Symbol | Precision |
+        | ---------- |---------------- |
+        | USD | 2dp |
+        | BTC | 8dp |
+        | DOGE | 8dp |
+        | EOS | 4dp |
+        | ETH | 8dp |
+        | LTC | 8dp |
+        | XRP | 6dp |
+        | AAVE | 8dp |
+        | CRV | 8dp |
+        | LINK | 8dp |
+        | MANA | 8dp |
+        | MATIC | 8dp |
+        | SUSHI | 8dp |
+        | UNI | 8dp |
+        | USDC | 6dp |
+        | USDT | 6dp |
+
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
+      operationId: custody-withdrawal
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      requestBody:
+        description: withdrawal request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustodyApiWithdrawalRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustodyApiWithdrawalResponse'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /assets:
     get:
       tags:
@@ -4590,6 +4722,34 @@ components:
           description: signature of challenge
           allOf:
             - $ref: '#/components/schemas/Signature'
+    CustodyApiWithdrawalCommand:
+      type: object
+      required:
+        - commandType
+        - destinationId
+        - symbol
+        - network
+        - quantity
+      properties:
+        commandType:
+          description: the command type, it must be 'V1WithdrawalChallenge'
+          type: string
+          example: 'V1WithdrawalChallenge'
+        destinationId:
+          allOf:
+            - $ref: '#/components/schemas/CustodyDestinationID'
+        symbol:
+          example: 'USDC'
+          allOf:
+            - $ref: '#/components/schemas/CustodySymbol'
+        network:
+          example: 'ETH'
+          allOf:
+            - $ref: '#/components/schemas/NetworkID'
+        quantity:
+          example: '100000.000001'
+          allOf:
+            - $ref: '#/components/schemas/CustodyQuantity'
     CustodyApiWithdrawalAssertionRequest:
       type: object
       required:
@@ -4599,6 +4759,29 @@ components:
           description: withdrawal assertion command
           allOf:
             - $ref: '#/components/schemas/CustodyApiWithdrawalAssertionCommand'
+    CustodyApiWithdrawalRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          type: string
+          description: Withdrawal nonce, independent of header nonce, recommendation re-use header nonce
+          example: "1628376611"
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: withdrawal command
+          allOf:
+            - $ref: '#/components/schemas/CustodyApiWithdrawalCommand'
     CustodyApiWithdrawalChallengeRequest:
       type: object
       required:
@@ -4631,6 +4814,20 @@ components:
             - $ref: '#/components/schemas/CustodyWithdrawalChallenge'
         custodyTransactionId:
           description: transaction id
+          allOf:
+            - $ref: '#/components/schemas/CustodyTransactionID'
+    CustodyApiWithdrawalResponse:
+      type: object
+      properties:
+        statusReason:
+          description: status reason, describes why withdrawal challenge is in a specific state
+          type: string
+          example: Withdrawal accepted
+        statusReasonCode:
+          description: status reason code, see [details](#overview--custody-statusreasoncode-map)
+          type: integer
+          example: 1001
+        custodyTransactionId:
           allOf:
             - $ref: '#/components/schemas/CustodyTransactionID'
     CustodyApiWithdrawalAssertionResponse:
