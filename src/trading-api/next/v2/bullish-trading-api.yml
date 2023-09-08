@@ -1560,8 +1560,59 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
-      security:
-        - jwtTokenAuth: [ ]
+  /trading-api/v1/users/hmac/login:
+    post:
+      tags:
+        - sessions
+      summary: HMAC Login
+      description: |
+        Login and generate a new session associated with a JWT using HMAC. 
+
+        **Ratelimited:** `True`
+      operationId: login
+      parameters:
+        - in: header
+          name: BX-SIGNATURE
+          description: HMAC signature is a signature resulted from the [signed message of the `login` request](#overview--add-authenticated-request-header)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+      responses:
+        200:
+          description: returns JWT and the `authorizer` for signing requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: login request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
   /accounts/trading-accounts:
     get:
       tags:
