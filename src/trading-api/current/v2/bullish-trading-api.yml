@@ -47,10 +47,10 @@ info:
     
     
     For more details please refer to the full specification:
-    - [Bullish FIX Protocol Specification](../../../fix-api/Bullish%20FIX%20Protocol%20Specification%20v1.0.2.pdf) 
+    - [Bullish FIX Protocol Specification](../../../fix-api/Bullish%20FIX%20Protocol%20Specification%20v1.0.3.pdf) 
     - [Bullish FIX Protocol Dictionary](../../../fix-api/fix-dictionary.xml)
     
-    
+  
     # Exchange Time
 
     All timestamps are specified in [EPOCH time](https://en.wikipedia.org/wiki/Unix_time).
@@ -221,7 +221,8 @@ info:
 
     # Authentication
 
-    The API uses bearer based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token)
+    The API uses bearer based authentication. A JWT token is valid for 24 hours only. To generate a JWT token see - [Generate A JWT Token](#overview--generate-a-jwt-token). 
+    Sessions are currently tracked per user, and each user is allowed to create a maximum of 500 concurrent sessions. If a user exceeds this limit, an error (MAX_SESSION_COUNT_REACHED) is returned on the subsequent login requests. In order to free up unused sessions, users must logout, see - [Logout using a JWT Token](#overview--logout-using-a-jwt-token).  
 
     # How To Send Authenticated Requests
 
@@ -349,7 +350,10 @@ info:
     ```
 
     See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt.py) for a sample Python script.
-
+    
+    ## Logout using a JWT Token
+    Users can better manage their sessions by logging out of unused sessions. This can be done by calling the `GET /trading-api/v1/users/logout` endpoint with the JWT Token in the header - see [Add Authenticated Request Header](#overview--add-authenticated-request-header).
+    
     ## Construct The BX-NONCE Header
 
     The header `BX-NONCE` value is a unique client-side 64-bit unsigned integer. It has the following characteristics:
@@ -914,9 +918,6 @@ info:
 
     #### l1Orderbook response
     
-    -
-    
-
     - Level 1 market data updates are realtime.
     - If the `sequenceNumber` of an incoming update is smaller than that of a previously received update, then the
     `sequenceNumber` is out of order. Terminate the web-socket connection and reconnect.
@@ -1194,8 +1195,9 @@ info:
     # API Change Log
     ## 2023 Changes
     - September - New FIX API - The FIX API is available to institutional clients for testing in early September and production ready late September.
-    - August - New REST API - `Get /history/borrow-interest`
-      - New REST API - `Cancel All Open Limit Orders after Delay` - `/command?commandType=V1DelayedCancelAllOrders` 
+    - August - New REST API - `GET /history/borrow-interest`
+      - New REST API - `Cancel All Open Limit Orders after Delay` - `POST /command?commandType=V1DelayedCancelAllOrders`
+      - New REST API -  logout session -  `GET /v1/users/logout` 
     - July - Margin related REST and WS changes
       - `borrowedQuantity` and `isLiquidation` fields added to `GET /orders` and `WS /private-data` orders topic
       - Calculation for `free` and `used` fields changed in `GET /accounts/spot`, `GET /accounts/spot/{symbol}` and `WS /private-data` `spotAccounts` topic
@@ -1427,6 +1429,72 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+  /trading-api/v1/users/logout:
+    get:
+      tags:
+        - sessions
+      summary: Logout
+      description: |
+        Logout of the session associated with the JWT. It requires [bearer token](#overview--add-authenticated-request-header) in authorization header. 
+
+        **Ratelimited:** `True`
+      operationId: logout
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+  /trading-api/v2/users/login:
+    post:
+      tags:
+        - sessions
+      summary: Login
+      description: |
+        Login and generate a new session associated with a JWT. 
+
+        **Ratelimited:** `True`
+      operationId: login
+      responses:
+        200:
+          description:  returns JWT and the `authorizer` for signing requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: login request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      security:
+        - jwtTokenAuth: [ ]
   /accounts/trading-accounts:
     get:
       tags:
@@ -1465,7 +1533,6 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
-
   /accounts/spot:
     get:
       tags:
@@ -3333,6 +3400,15 @@ components:
       format: date-time
       example: "2021-05-20T01:01:01.000Z"
       description: ISO 8601 with millisecond as string
+    UserId:
+      type: string
+      example: "12345"
+      description: Bullish user ID
+    TimeStampInSeconds:
+      type: integer
+      format: int64
+      example: 1621490985
+      description: number of seconds since EPOCH as integer
     TimeStamp:
       type: string
       format: int64
@@ -3959,6 +4035,11 @@ components:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
+    JWT:
+      type: string
+      format: string
+      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoic2FuZGVlcCByYWtocmEifQ.wyVq6PlKaldWXtu-jz2hJCvkGl1lM2S7HUKCH8LnXp0"
+      description: JWT token
     Authorizer:
       type: string
       format: string
@@ -4084,8 +4165,66 @@ components:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
-
-
+    LoginRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        publicKey:
+          allOf:
+            - $ref: '#/components/schemas/PublicKey'
+        signature:
+          allOf:
+            - $ref: '#/components/schemas/Signature'
+        loginPayload:
+          allOf:
+            - $ref: '#/components/schemas/LoginPayload'
+    LoginPayload:
+      type: object
+      required:
+        - userId
+        - nonce
+        - expirationTime
+        - biometricsUsed
+        - sessionKey
+      properties:
+        userId:
+          description: Bullish user ID corresponding to the metadata
+          allOf:
+            - $ref: '#/components/schemas/UserId'
+        nonce:
+          description: epoch timestamp in seconds; note this login API nonce has no connection to the orders API nonce
+          allOf:
+            - $ref: '#/components/schemas/TimeStampInSeconds'
+        expirationTime:
+          description: epoch timestamp in seconds that is 5 minutes in the future
+          allOf:
+            - $ref: '#/components/schemas/TimeStampInSeconds'
+        biometricsUsed:
+          description: biometrics flag. always `false`
+          type: boolean
+          example: false
+        sessionKey:
+          description: session key. always `null`
+          type: string
+          example: null
+    LoginResponse:
+      type: object
+      required:
+        - authorizer
+        - token
+      properties:
+        authorizer:
+          description: Authorizer
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        token:
+          description: JWT token
+          allOf:
+            - $ref: '#/components/schemas/JWT'
     CreateOrderRequest:
       type: object
       required:
