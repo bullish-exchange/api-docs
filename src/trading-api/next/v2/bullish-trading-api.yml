@@ -563,13 +563,8 @@ info:
     #### HMAC API Key
     
     To obtain the signature:
-    To sign a request using a HMAC API Key you will need to construct a `message` string that concatenates the following fields:
-    - timestamp - value provided for the `BX-TIMESTAMP` header
-    - request method - e.g. `GET` or `POST`
-    - request path - e.g. `/trading-api/v1/orders`
-    - request body - if present
     
-    1. Encode the message with the SHA-256 hash function and take the hexdigest
+    1. Encode the request JSON payload, also referred to as body, with the SHA-256 hash function and take the hexdigest
     2. Sign the hexdigest from step 1 with your HMAC Secret Key.
     
     See [sign a request with HMAC](https://github.com/bullish-exchange/api-examples/blob/master/create_order_hmac_v2.py) for a sample Python script.
