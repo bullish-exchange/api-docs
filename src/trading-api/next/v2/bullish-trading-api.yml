@@ -1260,7 +1260,7 @@ info:
         - Login API - `GET /v1/users/hmac/login` 
         - BX-SIGNATURE header supports signatures generated via HMAC and ECDSA 
       - New Bullish Custody API Keys released
-        - Login API - `GET /v1/users/hmac/login`
+        - Withdraw API - `POST /wallets/withdrawal`
       - New FIX API - The FIX API is available to institutional clients for testing in early September and production ready late September
     - August - New REST API - `GET /history/borrow-interest`
       - New REST API - `Cancel All Open Limit Orders after Delay` - `POST /command?commandType=V1DelayedCancelAllOrders`
