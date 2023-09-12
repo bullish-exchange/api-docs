@@ -3315,7 +3315,7 @@ paths:
           required: true
           description: symbol to get
       tags:
-        - market-data
+        - history
       summary: Get Historical Market Trades
       description: |
         Get Historical Market Trades by Market Symbol.
