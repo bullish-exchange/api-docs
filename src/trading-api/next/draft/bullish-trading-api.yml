@@ -1311,12 +1311,12 @@ info:
     # API Change Log
     ## 2023 Changes
     - December - API updated for Perpetual features 
-      - updated REST API - [Get Markets](../v2/#get-/markets) new fields `marketType`, `contractMultiplier`,`settlementAssetSymbol`
-      - updated REST API - [Get Market Tick](../v2/#get-/markets/-symbol-/tick) new fields `markPrice` `fundingRate`, `openInterest` 
-      - new REST API - [derivative positions](../v2/#get-/derivatives-positions)
-      - new REST API- [perpetual settlement](../v2/#get-/history/perpetual-settlement)  
-      - Websocket - [Private Data WebSocket](../v2/#overview--private-data-websocket) new Topic `derivativesPositions`
-      - Websocket - [Private Data WebSocket](../v2/#overview--private-data-websocket) Topic `tradingAccounts`, response model updated.
+      - updated REST API - [Get Markets](#get-/markets) new fields `marketType`, `contractMultiplier`,`settlementAssetSymbol`
+      - updated REST API - [Get Market Tick](#get-/markets/-symbol-/tick) new fields `markPrice` `fundingRate`, `openInterest` 
+      - new REST API - [derivatives positions](#get-/derivatives-positions)
+      - new REST API- [perpetual settlement](#get-/history/perpetual-settlement)  
+      - Websocket - [Private Data WebSocket](#overview--private-data-websocket) new Topic `derivativesPositions`
+      - Websocket - [Private Data WebSocket](#overview--private-data-websocket) Topic `tradingAccounts`, response model updated.
     - September
       - New HMAC API Keys released
         - Login API - `GET /v1/users/hmac/login` 
