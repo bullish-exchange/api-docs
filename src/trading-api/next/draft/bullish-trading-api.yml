@@ -1248,7 +1248,7 @@ info:
     | Name                    | Type      | Description                                                                                           |
     |-------------------------|-----------|-------------------------------------------------------------------------------------------------------|
     | tradingAccountId        | String    | Id of the trading account                                                                             |
-    | symbol                  | String    | Market symbol , eg. BTC-USD-PERP                                                                      |
+    | symbol                  | String    | Market symbol , eg. BTC-USDC-PERP                                                                      |
     | side                    | String    | Side of the position                                                                        |
     | quantity                | String    | Size of the  position [asset value](#overview--price-and-quantity-precision) format          |
     | notional                | String    | Current notional of the position in currency of the quote asset                             |
@@ -1269,7 +1269,7 @@ info:
       "data": [
         {
           "tradingAccountId": "111234567890",
-          "symbol": "BTC-USD-PERP",          
+          "symbol": "BTC-USDC-PERP",          
           "side": "BUY",
           "quantity": "1.00000000",
           "notional": "30000.0000",
@@ -2562,7 +2562,6 @@ paths:
   /trades:
     get:
       tags:
-        - history
         - trades
       summary: Get Trades
       description: |
@@ -2669,7 +2668,6 @@ paths:
   /wallets/transactions:
     get:
       tags:
-        - history
         - custody
       summary: Get Custody Transaction History
       description: |
@@ -3093,10 +3091,10 @@ paths:
   /derivatives-positions:
     get:
       tags:
-        - derivatives-positions
-      summary: Get derivatives position
-      description: Get derivatives position
-      operationId: get-derivatives-position
+        - derivatives
+      summary: Get derivatives positions
+      description: Get derivatives positions
+      operationId: get-derivatives-positions
       parameters:
         - in: header
           name: Authorization
@@ -3112,7 +3110,7 @@ paths:
           required: true
         - in: query
           name: symbol
-          example: BTC-USD-PERP
+          example: BTC-USDC-PERP
           schema:
             $ref: '#/components/schemas/MarketSymbol'
       responses:
@@ -3135,12 +3133,11 @@ paths:
     get:
       tags:
         - history
-        - derivative-positions
       summary: Get perpetual settlement history
       description: | 
         Get perpetual settlement history
         - [supports pagination](#overview--pagination-support)
-        - supports filtering on `symbol`, `handle`, `side`, `status`, `createdAtDatetime`, `createdAtTimestamp`
+        - supports filtering on `symbol`, `settlementDatetime`
       operationId: get-perpetual-settlement-history
       parameters:
         - in: header
@@ -3157,18 +3154,18 @@ paths:
           required: true
         - in: query
           name: symbol
-          example: BTC-USD-PERP
+          example: BTC-USDC-PERP
           schema:
             $ref: '#/components/schemas/MarketSymbol'
           required: false
         - in: query
-          name: settledAtDatetime[gte]
+          name: settlementDatetime[gte]
           description: start timestamp of window, ISO 8601 with millisecond as string
           schema:
             $ref: '#/components/schemas/DateTime'
           required: true
         - in: query
-          name: settledAtDatetime[lte]
+          name: settlementDatetime[lte]
           description: end timestamp of window, ISO 8601 with millisecond as string
           schema:
             $ref: '#/components/schemas/DateTime'
@@ -3318,7 +3315,6 @@ paths:
           required: true
           description: symbol to get
       tags:
-        - history
         - market-data
       summary: Get Historical Market Trades
       description: |
@@ -3431,7 +3427,6 @@ paths:
     get:
       tags:
         - history
-        - orders
       summary: Get Historical Hourly Borrow Interest
       description: |
         Get Historical Hourly Borrow Interest. Each entry denotes the hourly quantities for the specific asset. 
@@ -3631,7 +3626,7 @@ components:
       description: see [asset value](#overview--price-and-quantity-precision) format
       type: string
       example: '1.00000000'
-    UsdValue:
+    UsdcValue:
       description: see [asset value](#overview--price-and-quantity-precision) format
       type: string
       example: '1.0000'
@@ -5366,14 +5361,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         markPrice:
-          description: mark price, see [asset value](#overview--price-and-quantity-precision) format (only apply to derivatives market)
+          description: mark price, see [asset value](#overview--price-and-quantity-precision) format (only applies to derivatives market)
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         fundingRate:
-          description: funding rate, see [asset value](#overview--price-and-quantity-precision) format (only apply to derivatives market)
+          description: funding rate, see [asset value](#overview--price-and-quantity-precision) format (only applies to derivatives market)
           example: "10.0"
         openInterest:
-          description: Open interest is the total quantity of open long positions and short positions across markets, see [asset value](#overview--price-and-quantity-precision) format (only apply to derivatives market)
+          description: Open interest is the total quantity of open long positions and short positions per markets, see [asset value](#overview--price-and-quantity-precision) format (only applies to derivatives market)
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         lastTradeDatetime:
@@ -5685,7 +5680,7 @@ components:
             allOf:
               - $ref: '#/components/schemas/FeeTier'
         marketType:
-          description: market type, e.g. "spot" for market like "BTCUSD", "perpetual" for market like "BTC-USD-PERP"
+          description: market type, e.g. "SPOT" for market like "BTCUSD", "PERPETUAL" for market like "BTC-USDC-PERP"
           allOf:
             - $ref: '#/components/schemas/MarketTypeAsString'
         contractMultiplier:
@@ -5913,7 +5908,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
         symbol:
-          example: "BTC-USD-PERP"
+          example: "BTC-USDC-PERP"
           allOf:
             - $ref: '#/components/schemas/MarketSymbol'
         side:
@@ -5925,31 +5920,31 @@ components:
         notional:
           description: Current notional of the position in currency of the quote asset
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
+            - $ref: '#/components/schemas/UsdcValue'
         entryNotional:
           description: Notional of the position in currency of the quote asset when entering the position
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
+            - $ref: '#/components/schemas/UsdcValue'
         mtmPnl:
           description: Mark to Market PnL
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
+            - $ref: '#/components/schemas/UsdcValue'
         reportedMtmPnl:
           description: Reported Mark to Market PnL
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
+            - $ref: '#/components/schemas/UsdcValue'
         reportedFundingPnl:
           description: Report Funding PnL
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
+            - $ref: '#/components/schemas/UsdcValue'
         realizedPnl:
           description: Realized PnL
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
+            - $ref: '#/components/schemas/UsdcValue'
         settlementAssetSymbol:
           description: Settlement Asset Symbol
           type: string
-          example: "USD"
+          example: "USDC"
         createdAtDatetime:
           description: Denotes the time the position was created by the exchange, ISO 8601 with millisecond as string
           allOf:
@@ -5975,7 +5970,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
         symbol:
-          example: "BTC-USD-PERP"
+          example: "BTC-USDC-PERP"
           allOf:
             - $ref: '#/components/schemas/MarketSymbol'
         side:
@@ -5993,28 +5988,28 @@ components:
         mtmPnl:
           description: Mark to Market PnL
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
+            - $ref: '#/components/schemas/UsdcValue'
         fundingPnl:
           description: Funding PnL
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
-        markPriceAtSettlement:
+            - $ref: '#/components/schemas/UsdcValue'
+        settlementMarkPrice:
           description: Mark Price
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
-        indexPriceAtSettlement:
+            - $ref: '#/components/schemas/UsdcValue'
+        settlementIndexPrice:
           description: Realized PnL
           allOf:
-            - $ref: '#/components/schemas/UsdValue'
-        fundingRateAtSettlement:
+            - $ref: '#/components/schemas/UsdcValue'
+        settlementFundingRate:
           description: Funding Rate
           type: string
           example: "10.0"
-        settledAtDatetime:
+        settlementDatetime:
           description: Denotes the time the position was settled by the exchange, ISO 8601 with millisecond as string
           allOf:
             - $ref: '#/components/schemas/DateTime'
-        settledAtTimestamp:
+        settlementTimestamp:
           description: Denotes the time the position was settled by the exchange, number of milliseconds since EPOCH
           allOf:
             - $ref: '#/components/schemas/TimeStampAsString'
