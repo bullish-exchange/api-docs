@@ -96,7 +96,6 @@
             <field name="OrdType" required="Y"/>
             <field name="TimeInForce" required="Y"/>
             <group name="NoMiscFees" required="N">
-                <field name="NoMiscFees" required="N"/>
                 <field name="MiscFeeAmt" required="N"/>
                 <field name="MiscFeeCurr" required="N"/>
                 <field name="MiscFeeType" required="N"/>
