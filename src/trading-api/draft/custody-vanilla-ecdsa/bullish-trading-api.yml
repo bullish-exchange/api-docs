@@ -3083,6 +3083,12 @@ paths:
           schema:
             $ref: '#/components/headers/Authorization'
           required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: signature created by signing the request with a Bullish Custody API Key
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
       requestBody:
         description: withdrawal request
         required: true
@@ -3102,7 +3108,7 @@ paths:
         500:
           description: Internal Server Error
       security:
-        - jwtTokenAuth: [ ]
+        - jwtTokenAuth: []
   /assets:
     get:
       tags:

@@ -3064,6 +3064,85 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
+  /wallets/withdrawal:
+    post:
+      tags:
+        - custody
+      summary: Create Withdrawal
+      description: |
+        Trigger a withdrawal, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        The `BX-SIGNATURE` header should be created by signing the request with an ECDSA API Key as follows:
+
+        1. construct a string that concatenates the following fields:
+            - `timestamp` - current epoch milliseconds e.g. 1697008474031
+            - `nonce` - a UUID identifier to protect against replay attacks e.g. 255241a1-2cde-4954-87b1-13beef547960
+            - `request method` - e.g. POST
+            - `request path` - e.g. /trading-api/v1/wallets/withdrawal
+            - `request body json string`, removing any spaces and newline characters
+        2. Hash the string using a SHA-256 hash function and sign the resulting hexdigest with your <PRIVATE_KEY>.
+        3. DER encode the signature, and BASE64 encode the DER encoded signature.
+
+        > **Bullish requires you to whitelist a withdrawal destination address before submitting a withdrawal request. You may view, approve, and manage your list of destination addresses in Account Settings on the Bullish website. If you attempt a withdrawal without first whitelisting an address in Account Settings, then the withdrawal attempt will fail.**
+
+        For a full example of using the withdrawal endpoints please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/ecdsa/rest/custody_withdrawal.py)
+
+        The currently supported precisions for withdrawal quantities are as follows, and as with fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei) :
+
+        | Symbol | Precision |
+        | ---------- |---------------- |
+        | USD | 2dp |
+        | BTC | 8dp |
+        | DOGE | 8dp |
+        | EOS | 4dp |
+        | ETH | 8dp |
+        | LTC | 8dp |
+        | XRP | 6dp |
+        | AAVE | 8dp |
+        | CRV | 8dp |
+        | LINK | 8dp |
+        | MANA | 8dp |
+        | MATIC | 8dp |
+        | SUSHI | 8dp |
+        | UNI | 8dp |
+        | USDC | 6dp |
+        | USDT | 6dp |
+
+        **Ratelimited:** `True` - see [custody limits](#tag--custody)
+      operationId: custody-withdrawal
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: ECDSA signature created by signing the request with an ECDSA Key
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+      requestBody:
+        description: withdrawal request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustodyApiEcdsaWithdrawalRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustodyApiWithdrawalResponse'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /assets:
     get:
       tags:
@@ -4901,6 +4980,34 @@ components:
           example: '100000.000001'
           allOf:
             - $ref: '#/components/schemas/CustodyQuantity'
+    CustodyApiEcdsaWithdrawalCommand:
+      type: object
+      required:
+        - commandType
+        - destinationId
+        - symbol
+        - network
+        - quantity
+      properties:
+        commandType:
+          description: the command type, it must be 'V1Withdrawal'
+          type: string
+          example: 'V1Withdrawal'
+        destinationId:
+          allOf:
+            - $ref: '#/components/schemas/CustodyDestinationID'
+        symbol:
+          example: 'USDC'
+          allOf:
+            - $ref: '#/components/schemas/CustodySymbol'
+        network:
+          example: 'ETH'
+          allOf:
+            - $ref: '#/components/schemas/NetworkID'
+        quantity:
+          example: '100000.000001'
+          allOf:
+            - $ref: '#/components/schemas/CustodyQuantity'
     CustodyApiWithdrawalAssertionRequest:
       type: object
       required:
@@ -4933,6 +5040,29 @@ components:
           description: withdrawal command
           allOf:
             - $ref: '#/components/schemas/CustodyApiWithdrawalCommand'
+    CustodyApiEcdsaWithdrawalRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        nonce:
+          type: string
+          description: a UUID withdrawal nonce, independent of header nonce, recommendation re-use header nonce
+          example: "1628376611"
+        authorizer:
+          description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        command:
+          description: withdrawal command
+          allOf:
+            - $ref: '#/components/schemas/CustodyApiEcdsaWithdrawalCommand'
     CustodyApiWithdrawalChallengeRequest:
       type: object
       required:
