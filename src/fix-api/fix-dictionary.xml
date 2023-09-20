@@ -149,6 +149,7 @@
             <field name="SecurityRequestResult" required="Y"/>
             <field name="SecurityRejectReason" required="N"/>
             <field name="TransactTime" required="Y"/>
+            <field name="LastFragment" required="N"/>
             <group name="NoRelatedSym" required="Y">
                 <field name="Symbol" required="Y"/>
                 <group name="NoRelatedInstruments" required="Y">
@@ -320,7 +321,7 @@
             <value enum="3031" description="PRICE_IS_OUT_OF_RANGE"/>
             <value enum="3032" description="ORDER_IS_CLOSED_OR_REJECTED"/>
             <value enum="3033" description="LEVERAGE_INCREASE_NOT_PERMITTED"/>
-            <value enum="3034" description="ORDER_ENTRY_THROTTLE_REACHED"/>
+            <value enum="3034" description="RATE_LIMIT_EXCEEDED"/>
         </field>
         <field number="136" name="NoMiscFees" type="NUMINGROUP"/>
         <field number="137" name="MiscFeeAmt" type="AMT"/>
@@ -379,6 +380,7 @@
             <value enum="1" description="INVALID_OR_UNSUPPORTED_REQUEST"/>
             <value enum="2" description="INSTRUMENT_NOT_FOUND"/>
         </field>
+        <field number="893" name="LastFragment" type="BOOLEAN"/>
         <field number="969" name="MinPriceIncrement" type="FLOAT"/>
         <field number="1057" name="AggressorIndicator" type="BOOLEAN"/>
         <field number="1328" name="RejectText" type="STRING"/>

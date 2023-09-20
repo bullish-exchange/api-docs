@@ -34,9 +34,7 @@ info:
     
     # FIX API
     
-    The FIX API is available to institutional clients for testing in early September and production ready late September.
-    
-    The FIX API will only be available through an AWS or GCP private connection:
+    The FIX API is available to institutional clients and is only accessible through a AWS or GCP private connection:
     - AWS PrivateLink
       - It provides private connectivity between VPCs, AWS service without exposing your traffic to the public internet. 
       Bullish will provide the published service IDs for this service. You will be able to connect to our FIX service endpoint once the connection has been successfully established.
@@ -47,7 +45,7 @@ info:
     
     
     For more details please refer to the full specification:
-    - [Bullish FIX Protocol Specification](../../../fix-api/Bullish%20FIX%20Protocol%20Specification%20v1.0.2.pdf) 
+    - [Bullish FIX Protocol Specification](../../../fix-api/Bullish%20FIX%20Protocol%20Specification%20v1.0.4.pdf) 
     - [Bullish FIX Protocol Dictionary](../../../fix-api/fix-dictionary.xml)
     
     
@@ -244,12 +242,12 @@ info:
     1. Log in into your Bullish account
     2. Click on your account initials at the upper right corner and then click **Settings**
     3. Click **API Keys** and then click **Add API Key**
-    4. Select the API Key type, either Bullish, Bullish Custody or HMAC
+    4. Select the API Key type, either Bullish or HMAC
     5. Enter a key name in the *Key Name* field and click *Generate API Key*
 
     ### Bullish API Key Notes
 
-    - A Bullish API key is a public/private key pair used for ECDSA based signing of trading API requests
+    - A Bullish API key is a public/private key pair used for EDDSA based signing of trading API requests
     - The private key is what you will use to sign your requests
     - From here on the:
       - public key will be referred to as `PUBLIC_KEY`
@@ -267,21 +265,12 @@ info:
     {"publicKey":"PUB_R1_5ciUnvMnkU8L9PBZvZkPFr8jvDgPzspxV4ij98H7Rj3QR72r2A","userId":"12345","accountId":"12345","credentialId":"10"}
     ```
     
-    ### Bullish Custody API Key Notes
-    
-    - A Bullish Custody API key is a public/private key pair used for ECDSA based signing of custody API requests
-    - The private key is what you will use to sign your requests
-    - From here on the:
-      - public key will be referred to as `PUBLIC_KEY`
-      - private key will be referred to as `PRIVATE_KEY`
-    - Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
-    
-    
     ### HMAC API Key Notes
     
     - A HMAC API Key is a shared secret key that is used for HMAC based signing
     - Always store your HMAC secret in a secure medium as they are used to sign your requests
     - You do not need the `metadata` string to extract your `userId` like you would a Bullish API Key
+    - HMAC API Keys can only be used for Trading on Bullish; the JWT generated using an HMAC API Key is only valid for trading endpoints.
 
     ## Add Authenticated Request Header
 
@@ -390,7 +379,7 @@ info:
     - request method - `GET`
     - request path - `/trading-api/v1/users/hmac/login`
     
-    See [generate JWT with HMAC](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt_hmac.py) for a sample Python script.
+    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt.py) for a sample Python script.
     
     ## Logout using a JWT Token
     Users can better manage their sessions by logging out of unused sessions. This can be done by calling the `GET /trading-api/v1/users/logout` endpoint with the JWT Token in the header - see [Add Authenticated Request Header](#overview--add-authenticated-request-header).
@@ -544,7 +533,7 @@ info:
       - `<AUTHORIZER>`: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
       - `<COMMAND>`: the command which is sent in the request payload, JSON encoded
 
-    #### Bullish API Key
+    #### How To Sign - Bullish API Key
     
     To obtain the signature:
 
@@ -552,15 +541,7 @@ info:
     2. Sign the hexdigest from step 1 with ECDSA P-256 using your `<PRIVATE_KEY>`
     3. Various signing examples can be found on [GitHub](https://github.com/bullish-exchange)
     
-    #### Bullish Custody API Key
-    
-    To obtain the signature:
-
-    1. Encode the request JSON payload, also referred to as body, with the SHA-256 hash function and take the hexdigest
-    2. Sign the hexdigest from step 1 with ECDSA P-256 using your `<PRIVATE_KEY>`
-    3. Various signing examples can be found on [GitHub](https://github.com/bullish-exchange)
-    
-    #### HMAC API Key
+    #### How To Sign - HMAC API Key
     
     To obtain the signature:
     
@@ -572,7 +553,7 @@ info:
     ## Fetch Trading Account Ids
     
     Trading Account Ids may be required by some endpoints. They can be fetched from [Get All Trading Accounts](#get-/accounts/trading-accounts).
-      
+    
     See an API example [Here](https://github.com/bullish-exchange/api-examples/blob/master/get_trading_accounts.py).
 
     ## Send The HTTP Authenticated Request
@@ -978,7 +959,7 @@ info:
     
     -
     
-
+    
     - Level 1 market data updates are realtime.
     - If the `sequenceNumber` of an incoming update is smaller than that of a previously received update, then the
     `sequenceNumber` is out of order. Terminate the web-socket connection and reconnect.
@@ -1007,8 +988,7 @@ info:
 
     See [connect to market data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/market_data_web_socket.py) for a sample Python script.
 
-    ## Private Data WebSocket
-    - authenticated
+    ### Private Data WebSocket (authenticated)
     - All private data updates are realtime.
 
     Route
@@ -1021,8 +1001,7 @@ info:
     | spotAccounts      | (Deprecated) Provides snapshot and updates on assets in your account.                                                               | `V1TASpotAccount`   | By `<TOPIC>`      |
     | assetAccounts     | Provides snapshot and updates on assets in your account.                                                                            | `V1TAAssetAccount`  | By `<TOPIC>`      |
     | tradingAccounts   | Provides snapshot and updates on your trading account summary.                                                                      | `V1TATradingAccount`| By `<TOPIC>`      |
-    | derivativesPositions| Provides derivative position information on your trading account                                                                   | `V1TAPerpetualPosition`| By `<TOPIC>`   |
-    
+
     #### orders response
 
     | Name               | Type      | Description                                                                                                                             |
@@ -1212,11 +1191,6 @@ info:
     | tradingAccountId        | String    | id of the trading account                                                                             |
     | totalBorrowedQuantity   | String    | total borrowed across all assets in this trading account displayed in the reference asset             |
     | totalCollateralQuantity | String    | total collateral across all assets in this trading account displayed in the reference asset           |
-    | initialMarginUSD        | String    | The minimum margin one must maintain in order to be able to purposefully increase risk                |
-    | warningMarginUSD        | String    | The minimum margin when the customer will receive warning via email/notifications over UI             |
-    | liquidationMarginUSD    | String    | The minimum value of margin one must maintain in order to avoid liquidation                           |
-    | fullLiquidationMarginUSD| String    | The value of margin when full liquidation occurs                                                      |
-    | defaultedMarginUSD      | String    | The value of margin when this trading account will be moved into a Defaulted state                    |
     | referenceAssetSymbol    | String    | asset symbol                                                                                          |
     | updatedAtDatetime       | String    | denotes the time the trading account was updated by the exchange, ISO 8601 with millisecond as string |
     | updatedAtTimestamp      | String    | denotes the time the trading account was updated by the exchange                                      |
@@ -1231,61 +1205,13 @@ info:
           "totalBorrowedQuantity": "12.0000",
           "totalCollateralQuantity": "13.0000",
           "referenceAssetSymbol": "USD",
-          "initialMarginUSD": "0.0000",
-          "warningMarginUSD": "0.0000",
-          "liquidationMarginUSD": "0.0000",
-          "fullLiquidationMarginUSD": "0.0000",
-          "defaultedMarginUSD": "0.0000",
           "updatedAtDatetime": "2020-10-01T00:00:00.000Z",
           "updatedAtTimestamp": "1601510400000"
         }
       ]
     }
     ````
-    #### Derivative position response
-    -  Provide a detail view of the derivative position of each market.
-    
-    | Name                    | Type      | Description                                                                                           |
-    |-------------------------|-----------|-------------------------------------------------------------------------------------------------------|
-    | tradingAccountId        | String    | Id of the trading account                                                                             |
-    | symbol                  | String    | Market symbol , eg. BTC-USDC-PERP                                                                      |
-    | side                    | String    | Side of the position                                                                        |
-    | quantity                | String    | Size of the  position [asset value](#overview--price-and-quantity-precision) format          |
-    | notional                | String    | Current notional of the position in currency of the quote asset                             |
-    | entryNotional           | String    | Notional of the  position in currency of the quote asset when entering the position          |
-    | mtmPnl                  | String    | Market to market PnL                                                                                  |
-    | reportedMtmPnl          | String    | Report Market to market PnL                                                                           |
-    | reportedFundingPnl      | String    | Reported Funding PnL                                                                                  |
-    | realizedPnl             | String    | Realized Pnl                                                                                          |
-    | createdAtDatetime       | String    | denotes the time the trading account was created by the exchange, ISO 8601 with millisecond as string |
-    | createdAtTimestamp      | String    | denotes the time the trading account was created by the exchange, number of milliseconds since EPOCH  |
-    | updatedAtDatetime       | String    | denotes the time the trading account was updated by the exchange, ISO 8601 with millisecond as string |
-    | updatedAtTimestamp      | String    | denotes the time the trading account was updated by the exchange  number of milliseconds since EPOCH  |
-    
-    ````json
-    {
-      "type": "snapshot",
-      "dataType": "V1TAPerpetualPosition",
-      "data": [
-        {
-          "tradingAccountId": "111234567890",
-          "symbol": "BTC-USDC-PERP",          
-          "side": "BUY",
-          "quantity": "1.00000000",
-          "notional": "30000.0000",
-          "entryNotional": "30000.0000",
-          "mtmPnl": "110.0000",
-          "reportedMtmPnl": "120.0000",
-          "reportedFundingPnl": "130.0000",
-          "realizedPnl": "140.0000",          
-          "createdAtDatetime": "2020-01-01T00:00:00.000Z",
-          "createdAtTimestamp": "1577836800000",
-          "updatedAtDatetime": "2020-01-02T00:00:00.000Z",
-          "updatedAtTimestamp": "1577923200000"
-        }
-      ]
-    }
-    ````
+
     See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/private_data_web_socket.py) for a sample Python script.
 
     # Quickly Try The API
@@ -1310,22 +1236,14 @@ info:
     
     # API Change Log
     ## 2023 Changes
-    - December - API updated for Perpetual features 
-      - updated REST API - [Get Markets](#get-/markets) new fields `marketType`, `contractMultiplier`,`settlementAssetSymbol`
-      - updated REST API - [Get Market Tick](#get-/markets/-symbol-/tick) new fields `markPrice` `fundingRate`, `openInterest` 
-      - new REST API - [derivatives positions](#get-/derivatives-positions)
-      - new REST API- [perpetual settlement](#get-/history/perpetual-settlement)  
-      - Websocket - [Private Data WebSocket](#overview--private-data-websocket) new Topic `derivativesPositions`
-      - Websocket - [Private Data WebSocket](#overview--private-data-websocket) Topic `tradingAccounts`, response model updated.
     - September
-      - New HMAC API Keys released
+      - New HMAC API Keys and HMAC based signing
         - Login API - `GET /v1/users/hmac/login` 
-        - BX-SIGNATURE header supports signatures generated via HMAC and ECDSA 
-      - New Bullish Custody API Keys released
-        - Login API - `GET /v1/users/hmac/login`
-      - New FIX API - The FIX API is available to institutional clients for testing in early September and production ready late September
-    - August - New REST API - `Get /history/borrow-interest`
-      - New REST API - `Cancel All Open Limit Orders after Delay` - `/command?commandType=V1DelayedCancelAllOrders` 
+        - BX-SIGNATURE header supports signatures generated via HMAC and EDDSA 
+      - New FIX API - The FIX API is available to institutional clients
+    - August - New REST API - `GET /history/borrow-interest`
+      - New REST API - `Cancel All Open Limit Orders after Delay` - `POST /command?commandType=V1DelayedCancelAllOrders`
+      - New REST API -  logout session -  `GET /v1/users/logout` 
     - July - Margin related REST and WS changes
       - `borrowedQuantity` and `isLiquidation` fields added to `GET /orders` and `WS /private-data` orders topic
       - Calculation for `free` and `used` fields changed in `GET /accounts/spot`, `GET /accounts/spot/{symbol}` and `WS /private-data` `spotAccounts` topic
@@ -1557,6 +1475,123 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+  /trading-api/v1/users/logout:
+    get:
+      tags:
+        - sessions
+      summary: Logout
+      description: |
+        Logout of the session associated with the JWT. It requires [bearer token](#overview--add-authenticated-request-header) in authorization header. 
+
+        **Ratelimited:** `True`
+      operationId: logout
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+  /trading-api/v2/users/login:
+    post:
+      tags:
+        - sessions
+      summary: Login
+      description: |
+        Login and generate a new session associated with a JWT. 
+
+        **Ratelimited:** `True`
+      operationId: login
+      responses:
+        200:
+          description:  returns JWT and the `authorizer` for signing requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: login request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+  /trading-api/v1/users/hmac/login:
+    post:
+      tags:
+        - sessions
+      summary: HMAC Login
+      description: |
+        Login and generate a new session associated with a JWT using HMAC. 
+
+        **Ratelimited:** `True`
+      operationId: login
+      parameters:
+        - in: header
+          name: BX-SIGNATURE
+          description: HMAC signature is a signature resulted from the [signed message of the `login` request](#overview--add-authenticated-request-header)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+      responses:
+        200:
+          description: returns JWT and the `authorizer` for signing requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: login request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
   /accounts/trading-accounts:
     get:
       tags:
@@ -2983,70 +3018,6 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
-  /wallets/withdrawal:
-    post:
-      tags:
-        - custody
-      summary: Create Withdrawal
-      description: |
-        Trigger a withdrawal, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-
-        The `BX-SIGNATURE` header should be created by signing the request with a Bullish Custody API Key. 
-
-        > **Bullish requires you to whitelist a withdrawal destination address before submitting a withdrawal request. You may view, approve, and manage your list of destination addresses in Account Settings on the Bullish website. If you attempt a withdrawal without first whitelisting an address in Account Settings, then the withdrawal attempt will fail.**
-
-        For a full example of using the withdrawal endpoints please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/custody_withdrawals.py)
-
-        The currently supported precisions for withdrawal quantities are as follows, and as with fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei) :
-
-        | Symbol | Precision |
-        | ---------- |---------------- |
-        | USD | 2dp |
-        | BTC | 8dp |
-        | DOGE | 8dp |
-        | EOS | 4dp |
-        | ETH | 8dp |
-        | LTC | 8dp |
-        | XRP | 6dp |
-        | AAVE | 8dp |
-        | CRV | 8dp |
-        | LINK | 8dp |
-        | MANA | 8dp |
-        | MATIC | 8dp |
-        | SUSHI | 8dp |
-        | UNI | 8dp |
-        | USDC | 6dp |
-        | USDT | 6dp |
-
-        **Ratelimited:** `True` - see [custody limits](#tag--custody)
-      operationId: custody-withdrawal
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-      requestBody:
-        description: withdrawal request
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustodyApiWithdrawalRequest'
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustodyApiWithdrawalResponse'
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: [ ]
   /assets:
     get:
       tags:
@@ -3087,106 +3058,6 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
-
-  /derivatives-positions:
-    get:
-      tags:
-        - derivatives
-      summary: Get derivatives positions
-      description: Get derivatives positions
-      operationId: get-derivatives-positions
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: query
-          name: tradingAccountId
-          description: Id of the trading account
-          schema:
-            $ref: '#/components/schemas/TradingAccountId'
-          required: true
-        - in: query
-          name: symbol
-          example: BTC-USDC-PERP
-          schema:
-            $ref: '#/components/schemas/MarketSymbol'
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DerivativesPositionResponse'
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: [ ]
-
-  /history/perpetual-settlement:
-    get:
-      tags:
-        - history
-      summary: Get perpetual settlement history
-      description: | 
-        Get perpetual settlement history
-        - [supports pagination](#overview--pagination-support)
-        - supports filtering on `symbol`, `settlementDatetime`
-      operationId: get-perpetual-settlement-history
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: query
-          name: tradingAccountId
-          description: Id of the trading account
-          schema:
-            $ref: '#/components/schemas/TradingAccountId'
-          required: true
-        - in: query
-          name: symbol
-          example: BTC-USDC-PERP
-          schema:
-            $ref: '#/components/schemas/MarketSymbol'
-          required: false
-        - in: query
-          name: settlementDatetime[gte]
-          description: start timestamp of window, ISO 8601 with millisecond as string
-          schema:
-            $ref: '#/components/schemas/DateTime'
-          required: true
-        - in: query
-          name: settlementDatetime[lte]
-          description: end timestamp of window, ISO 8601 with millisecond as string
-          schema:
-            $ref: '#/components/schemas/DateTime'
-          required: true
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                minItems: 0
-                maxItems: 25
-                items:
-                  $ref: '#/components/schemas/PerpetualSettlementResponse'
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: [ ]
   /markets:
     get:
       tags:
@@ -3315,7 +3186,7 @@ paths:
           required: true
           description: symbol to get
       tags:
-        - history
+        - market-data
       summary: Get Historical Market Trades
       description: |
         Get Historical Market Trades by Market Symbol.
@@ -3426,7 +3297,7 @@ paths:
   /history/borrow-interest:
     get:
       tags:
-        - history
+        - orders
       summary: Get Historical Hourly Borrow Interest
       description: |
         Get Historical Hourly Borrow Interest. Each entry denotes the hourly quantities for the specific asset. 
@@ -3561,10 +3432,6 @@ components:
     Boolean:
       type: boolean
       format: true or false
-    MarketTypeAsString:
-      type: string
-      description: market type can have the following string values `"SPOT"`, `"PERPETUAL"`
-      example: SPOT
     OrderTypeAsString:
       type: string
       description: order type can have the following string values `"LMT"`, `"MKT"`, `"STOP_LIMIT"`
@@ -3618,7 +3485,7 @@ components:
         example: "111234567890"
     MarketID:
       type: string
-      example: 10000
+      example: BTCUSD
     TradeID:
       type: string
       example: "100020000000000060"
@@ -3626,10 +3493,15 @@ components:
       description: see [asset value](#overview--price-and-quantity-precision) format
       type: string
       example: '1.00000000'
-    UsdcValue:
-      description: see [asset value](#overview--price-and-quantity-precision) format
+    UserId:
       type: string
-      example: '1.0000'
+      example: "12345"
+      description: Bullish user ID
+    TimeStampInSeconds:
+      type: integer
+      format: int64
+      example: 1621490985
+      description: number of seconds since EPOCH as integer
     DateTime:
       type: string
       format: date-time
@@ -4261,6 +4133,11 @@ components:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
+    JWT:
+      type: string
+      format: string
+      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoic2FuZGVlcCByYWtocmEifQ.wyVq6PlKaldWXtu-jz2hJCvkGl1lM2S7HUKCH8LnXp0"
+      description: JWT token
     Authorizer:
       type: string
       format: string
@@ -4386,8 +4263,66 @@ components:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
-
-
+    LoginRequest:
+      type: object
+      required:
+        - timestamp
+        - nonce
+        - authorizer
+        - command
+      properties:
+        publicKey:
+          allOf:
+            - $ref: '#/components/schemas/PublicKey'
+        signature:
+          allOf:
+            - $ref: '#/components/schemas/Signature'
+        loginPayload:
+          allOf:
+            - $ref: '#/components/schemas/LoginPayload'
+    LoginPayload:
+      type: object
+      required:
+        - userId
+        - nonce
+        - expirationTime
+        - biometricsUsed
+        - sessionKey
+      properties:
+        userId:
+          description: Bullish user ID corresponding to the metadata
+          allOf:
+            - $ref: '#/components/schemas/UserId'
+        nonce:
+          description: epoch timestamp in seconds; note this login API nonce has no connection to the orders API nonce
+          allOf:
+            - $ref: '#/components/schemas/TimeStampInSeconds'
+        expirationTime:
+          description: epoch timestamp in seconds that is 5 minutes in the future
+          allOf:
+            - $ref: '#/components/schemas/TimeStampInSeconds'
+        biometricsUsed:
+          description: biometrics flag. always `false`
+          type: boolean
+          example: false
+        sessionKey:
+          description: session key. always `null`
+          type: string
+          example: null
+    LoginResponse:
+      type: object
+      required:
+        - authorizer
+        - token
+      properties:
+        authorizer:
+          description: Authorizer
+          allOf:
+            - $ref: '#/components/schemas/Authorizer'
+        token:
+          description: JWT token
+          allOf:
+            - $ref: '#/components/schemas/JWT'
     CreateOrderRequest:
       type: object
       required:
@@ -5280,9 +5215,6 @@ components:
         - baseVolume
         - quoteVolume
         - bancorPrice
-        - markPrice
-        - fundingRate
-        - openInterest
         - lastTradeDatetime
         - lastTradeTimestamp
         - lastTradeQuantity
@@ -5358,17 +5290,6 @@ components:
             - $ref: '#/components/schemas/AssetValue'
         bancorPrice:
           description: current price, see [asset value](#overview--price-and-quantity-precision) format
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        markPrice:
-          description: mark price, see [asset value](#overview--price-and-quantity-precision) format (only applies to derivatives market)
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        fundingRate:
-          description: funding rate, see [asset value](#overview--price-and-quantity-precision) format (only applies to derivatives market)
-          example: "10.0"
-        openInterest:
-          description: Open interest is the total quantity of open long positions and short positions per markets, see [asset value](#overview--price-and-quantity-precision) format (only applies to derivatives market)
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         lastTradeDatetime:
@@ -5541,9 +5462,6 @@ components:
         - createOrderEnabled
         - cancelOrderEnabled
         - feeTiers
-        - marketType
-        - contractMultiplier
-        - settlementAssetSymbol
       properties:
         marketId:
           description: unique market ID
@@ -5554,21 +5472,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/MarketSymbol'
         baseSymbol:
-          description: base asset symbol (only applies to spot market)
-          allOf:
-            - $ref: '#/components/schemas/AssetSymbol'
-        underlyingBaseSymbol:
-          description: underlying base asset symbol (only applies to derivative market)
-          example:
+          description: base asset symbol
           allOf:
             - $ref: '#/components/schemas/AssetSymbol'
         quoteSymbol:
-          description: quote asset symbol (only applies to spot market)
-          allOf:
-            - $ref: '#/components/schemas/AssetSymbol'
-        underlyingQuoteSymbol:
-          description: underlying quote asset symbol (only applies to derivative market)
-          example:
+          description: quote asset symbol
           allOf:
             - $ref: '#/components/schemas/AssetSymbol'
         quoteAssetId:
@@ -5653,15 +5561,15 @@ components:
             allOf:
               - $ref: '#/components/schemas/OrderTypeAsString'
         spotTradingEnabled:
-          description: spot trading enabled (only applies for Spot markets)
+          description: spot trading enabled
           type: boolean
           example: true
         marginTradingEnabled:
-          description: margin trading enabled (only applies for Spot markets)
+          description: margin trading enabled
           type: boolean
           example: true
         marketEnabled:
-          description: market enabled (only applies for Spot markets)
+          description: market enabled
           type: boolean
           example: true
         createOrderEnabled:
@@ -5679,19 +5587,6 @@ components:
           items:
             allOf:
               - $ref: '#/components/schemas/FeeTier'
-        marketType:
-          description: market type, e.g. "SPOT" for market like "BTCUSD", "PERPETUAL" for market like "BTC-USDC-PERP"
-          allOf:
-            - $ref: '#/components/schemas/MarketTypeAsString'
-        contractMultiplier:
-          description: contract multiplier. (only applies to perpetual market)
-          type: integer
-          example:
-        settlementAssetSymbol:
-          description: settlement asset symbol. (only applies to perpetual market)
-          allOf:
-            - $ref: '#/components/schemas/AssetSymbol'
-          example:
     Asset:
       type: object
       required:
@@ -5900,119 +5795,6 @@ components:
       description: Unique id for this cancel request which is an unsigned 64 bit integer expressed as string
       type: string
       example: "123456789"
-    DerivativesPositionResponse:
-      description: Derivatives Position of one market for the trading account
-      type: string
-      properties:
-        tradingAccountId:
-          allOf:
-            - $ref: '#/components/schemas/TradingAccountId'
-        symbol:
-          example: "BTC-USDC-PERP"
-          allOf:
-            - $ref: '#/components/schemas/MarketSymbol'
-        side:
-          allOf:
-            - $ref: '#/components/schemas/OrderSide'
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        notional:
-          description: Current notional of the position in currency of the quote asset
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        entryNotional:
-          description: Notional of the position in currency of the quote asset when entering the position
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        mtmPnl:
-          description: Mark to Market PnL
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        reportedMtmPnl:
-          description: Reported Mark to Market PnL
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        reportedFundingPnl:
-          description: Report Funding PnL
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        realizedPnl:
-          description: Realized PnL
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        settlementAssetSymbol:
-          description: Settlement Asset Symbol
-          type: string
-          example: "USDC"
-        createdAtDatetime:
-          description: Denotes the time the position was created by the exchange, ISO 8601 with millisecond as string
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-        createdAtTimestamp:
-          description: Denotes the time the position was created by the exchange, number of milliseconds since EPOCH
-          allOf:
-            - $ref: '#/components/schemas/TimeStampAsString'
-        updatedAtDatetime:
-          description: Denotes the time the position was updated by the exchange, ISO 8601 with millisecond as string
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-        updatedAtTimestamp:
-          description: Denotes the time the position was updated by the exchange, number of milliseconds since EPOCH
-          allOf:
-            - $ref: '#/components/schemas/TimeStampAsString'
-
-    PerpetualSettlementResponse:
-      description: Perpetual Settlement of one market for the trading account
-      type: string
-      properties:
-        tradingAccountId:
-          allOf:
-            - $ref: '#/components/schemas/TradingAccountId'
-        symbol:
-          example: "BTC-USDC-PERP"
-          allOf:
-            - $ref: '#/components/schemas/MarketSymbol'
-        side:
-          allOf:
-            - $ref: '#/components/schemas/OrderSide'
-        settlementQuantity:
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        deltaTradingQuantity:
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        deltaAmmQuantity:
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        mtmPnl:
-          description: Mark to Market PnL
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        fundingPnl:
-          description: Funding PnL
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        settlementMarkPrice:
-          description: Mark Price
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        settlementIndexPrice:
-          description: Realized PnL
-          allOf:
-            - $ref: '#/components/schemas/UsdcValue'
-        settlementFundingRate:
-          description: Funding Rate
-          type: string
-          example: "10.0"
-        settlementDatetime:
-          description: Denotes the time the position was settled by the exchange, ISO 8601 with millisecond as string
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-        settlementTimestamp:
-          description: Denotes the time the position was settled by the exchange, number of milliseconds since EPOCH
-          allOf:
-            - $ref: '#/components/schemas/TimeStampAsString'
   headers:
     Authorization:
       description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
