@@ -1212,6 +1212,8 @@ info:
     | tradingAccountId        | String    | id of the trading account                                                                             |
     | totalBorrowedQuantity   | String    | total borrowed across all assets in this trading account displayed in the reference asset             |
     | totalCollateralQuantity | String    | total collateral across all assets in this trading account displayed in the reference asset           |
+    | totalBorrowedUSD        | String    | total borrowed across all assets in this trading account                                              |
+    | totalCollateralUSD      | String    | total collateral across all assets in this trading account                                            |
     | initialMarginUSD        | String    | The minimum margin one must maintain in order to be able to purposefully increase risk                |
     | warningMarginUSD        | String    | The minimum margin when the customer will receive warning via email/notifications over UI             |
     | liquidationMarginUSD    | String    | The minimum value of margin one must maintain in order to avoid liquidation                           |
@@ -1230,6 +1232,8 @@ info:
           "tradingAccountId": "1111",
           "totalBorrowedQuantity": "12.0000",
           "totalCollateralQuantity": "13.0000",
+          "totalBorrowedUSD": "12.0000",
+          "totalCollateralUSD": "13.0000",
           "referenceAssetSymbol": "USD",
           "initialMarginUSD": "0.0000",
           "warningMarginUSD": "0.0000",
