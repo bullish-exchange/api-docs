@@ -643,11 +643,13 @@ info:
 
     Two types of subscription:
       1. Subscribe by `<TOPIC>`
-      2. Subscribe by `<TOPIC>` and `<SYMBOL>`
+      2. Subscribe by `<TOPIC>` and `<SYMBOL>` plus optional `<DEPTH>`, `<AGGREGATION_FACTOR>`
 
     Message fields:
       - `<TOPIC>`: subscription topic
       - `<SYMBOL>`: market symbol
+      - `<DEPTH>`: depth of l2 orderbook, default 10
+      - `<AGGREGATION_FACTOR>`: aggregation factor of l2 orderbook, default 1
       - `<COMMAND_ID>`: unsigned long value
 
     The subscription message would be constructed like below:
@@ -679,7 +681,24 @@ info:
     }
     ```
 
-    Sample subscription message:
+    Subscribe by `<TOPIC>` and `<SYMBOL>` plus optional `<DEPTH>`, `<AGGREGATION_FACTOR>`
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "<TOPIC>",
+          "symbol": "<SYMBOL>",
+          "depth": "<DEPTH>",
+          "aggregationFactor": "<AGGREGATION_FACTOR>",
+      },
+      "id": "<COMMAND_ID>"
+    }
+    ```
+
+    Sample subscription messages:
+     - Orders
     ```json
     {
       "jsonrpc": "2.0",
@@ -691,10 +710,24 @@ info:
       "id": "1611082473000"
     }
     ```
+     - L1 Order Book
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "l1Orderbook"
+          "symbol": "BTCUSD"
+      },
+      "id": "1611082473000"
+    }
+    ```
 
     Find below the available `<TOPIC>`:
-      1. [Market Data Web Socket](#overview--market-data-websocket)
-      2. [Private Data Web Socket](#overview--private-data-websocket)
+      1. [Market Data Web Socket](#overview--market-data-websocket-authenticated)
+      2. [Private Data Web Socket](#overview--private-data-websocket-authenticated)
+      3. [Multi-OrderBook Data Web Socket](#overview--multi-orderbook-websocket-authenticated)
 
 
     ### Keep Web Socket Open
@@ -714,7 +747,6 @@ info:
       "id": "<COMMAND_ID>"
     }
     ```
-
 
     ## Receive A Message From The Web Socket
 
@@ -782,7 +814,7 @@ info:
     }
     ```
 
-    ### Hybrid OrderBook WebSocket (unauthenticated)
+    ## Hybrid OrderBook WebSocket (unauthenticated)
     **Route**
     - `/trading-api/markets/{symbol}/orderbook/hybrid`
     - `/trading-api/v2/market-data/orderbook/hybrid/{symbol}?depth={depth}&aggregationFactor={aggregationFactor}`
@@ -798,10 +830,11 @@ info:
     conflated update and the snapshot, the server disconnects the client with the following error message - 
     `4003 (Try Again, sequence number miss-match between snapshot and updates)`.
 
-    #### l2Snapshot response
+    ### l2Snapshot response
 
     | Name                    | Type   | Description                                                                                                                                                                                                              |
     |---------------------    |--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | symbol                  | String | market symbol                                                                                                                                                                                                            |
     | bids                    | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
     | asks                    | Array  | array of size 20 (default unless specified otherwise by the `depth` parameter) where even indices denote price, odd indices denote absolute quantities                                                                   |
     | sequenceNumberRange     | Array  | array of size 2 where first element denotes lower bound, second element denotes upper bound of sequence numbers <br /> lower and upper bound are equal for initial snapshot; this may differ for subsequent snapshots    |
@@ -814,6 +847,7 @@ info:
       "type": "snapshot",
       "dataType": "V1TALevel2",
       "data": {
+        "symbol": "BTCUSD",
         "bids": [
           "5199.5000",
           "110.92467647",
@@ -867,10 +901,11 @@ info:
     ```
 
 
-    #### l2Update response
+    ### l2Update response
 
     | Name                  | Type   | Description                                                                                                                                                |
     |---------------------  |--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | symbol                | String | market symbol                                                                                                                                              |
     | bids                  | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
     | asks                  | Array  | even indices denote price, odd indices denote absolute quantities                                                                                          |
     | sequenceNumberRange   | Array  | array of size 2 where first element denotes lower bound, second element denotes upper <br /> bound of sequence numbers represented by the conflated update |
@@ -883,6 +918,7 @@ info:
       "type": "update",
       "dataType": "V1TALevel2",
       "data": {
+        "symbol": "BTCUSD",
         "bids": [],
         "asks": ["5199.7000", "101.30313224"],
         "sequenceNumberRange": [7, 10],
@@ -893,7 +929,7 @@ info:
     }
     ```
 
-    #### Maintaining Hybrid OrderBook
+    ### Maintaining Hybrid OrderBook
     1. Connect to hybrid orderbook WebSocket API.
     2. Receive initial snapshot message.
     3. Record sequence number and create orderbook.
@@ -903,8 +939,83 @@ info:
     6. Receive a subsequent snapshot message and reset existing orderbook. Create orderbook with new price levels.
 
     See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
+
+    ## Multi-OrderBook WebSocket (authenticated)
+    **Route**
+    - `/trading-api/v1/market-data/orderbook`
     
-    ### Anonymous Trades WebSocket (unauthenticated)
+    This is an enhanced and integrated API of the 2 APIs below. It allows simultaneous subscriptions to multiple L1 and L2 orderbooks of different markets:
+    * [Hybrid OrderBook WebSocket](#overview--hybrid-orderbook-websocket-unauthenticated)
+    * [Market Data Web Socket](#overview--market-data-websocket-authenticated)
+    
+    ### Multi-Orderbook Subscription
+    The orderbooks of different markets to be subscribed are controlled by the parameters in the subscription message listed below:
+    | Parameters            | Type   | Description                                                                     |
+    |:----------------------|:-------|:--------------------------------------------------------------------------------|
+    | topic                 | String | l1 orderbook: l1OrderBook<br>l2 orderbook: l2Orderbook                          |
+    | symbol                | String | market symbol                                                                   |
+    | depth                 | String | l2 orderbook depth: [ 10, 50, 100, 200 ], optional, default 10                  |
+    | aggregationFactor     | String | l2 orderbook aggregationFactor: [1, 5, 10], optional, default 1                 |
+
+    L1 Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "l1Orderbook"
+          "symbol": "BTCUSD"
+      },
+      "id": "1611082473000"
+    }
+    ```
+
+    L2 Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "l2Orderbook"
+          "symbol": "BTCUSD"
+          "depth": "10"
+          "aggregationFactor": "1"
+      },
+      "id": "1611082473000"
+    }
+    ```
+
+    ### Multi-Orderbook Response
+    * L1 Update Response
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TALevel1",
+      "data": {
+        "symbol": "BTCUSD",
+        "bid": [
+          "5199.5000",
+          "61.95995262"
+        ],
+        "ask": [
+          "5199.6000",
+          "96.59626782"
+        ],
+        "sequenceNumber": "8",
+        "datetime": "2020-06-29T06:28:55.500Z",
+        "timestamp": "1593412135500"
+      }
+    }
+    ```
+
+    * L2 Snapshot and Update Response    
+    The L2 snapshot and update responses are exactly the same as [Hybrid OrderBook WebSocket](#overview--hybrid-orderbook-websocket-unauthenticated).
+    
+    See [connect to multi-orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/multi_orderbook_web_socket.py) for a sample Python script.
+
+    ## Anonymous Trades WebSocket (unauthenticated)
     **Route**
     - `/trading-api/v1/market-data/trades/{symbol}`
 
@@ -915,7 +1026,7 @@ info:
     smaller than that of a previously received update, then the `tradeId` is out of order. Terminate the 
     web-socket connection and reconnect.
 
-    #### trades response
+    ### trades response
 
     | Name               | Type      | Description                                                                               |
     |:-------------------|:----------|:------------------------------------------------------------------------------------------|
@@ -947,7 +1058,7 @@ info:
     
     See [connect to trades web-socket](https://github.com/bullish-exchange/api-examples/blob/master/trades_web_socket.py) for a sample Python script.
 
-    ### Market Data WebSocket (authenticated)
+    ## Market Data WebSocket (authenticated)
     Route
     - `/trading-api/v1/market-data`
 
@@ -955,11 +1066,8 @@ info:
     |:--------------|:------------------------------------------|:-----------------|:----------------------------|
     | l1Orderbook   | Provides updates for Level 1 market data  | `V1TABookLevel1` | By `<TOPIC>` and `<SYMBOL>` |
 
-    #### l1Orderbook response
-    
-    -
-    
-    
+    ### l1Orderbook response
+
     - Level 1 market data updates are realtime.
     - If the `sequenceNumber` of an incoming update is smaller than that of a previously received update, then the
     `sequenceNumber` is out of order. Terminate the web-socket connection and reconnect.
@@ -988,11 +1096,11 @@ info:
 
     See [connect to market data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/market_data_web_socket.py) for a sample Python script.
 
-    ### Private Data WebSocket (authenticated)
+    ## Private Data WebSocket (authenticated)
     - All private data updates are realtime.
 
     Route
-    - `/trading-api/v1/private-data?tradingAccountId=<Id of the Trading Account>`
+    - `/trading-api/v1/private-data`
 
     | Topic             | Description                                                                                                                         | Data Type           | Subscription Type |
     | :--               | :--                                                                                                                                 | :--                 | :--               |
@@ -1002,7 +1110,7 @@ info:
     | assetAccounts     | Provides snapshot and updates on assets in your account.                                                                            | `V1TAAssetAccount`  | By `<TOPIC>`      |
     | tradingAccounts   | Provides snapshot and updates on your trading account summary.                                                                      | `V1TATradingAccount`| By `<TOPIC>`      |
 
-    #### orders response
+    ### orders response
 
     | Name               | Type      | Description                                                                                                                             |
     |:-------------------|:----------|:------------------------------------------------------------------------------------------                                              |
@@ -1060,7 +1168,7 @@ info:
     }
     ```
 
-    #### trades response
+    ### trades response
 
     | Name               | Type      | Description                                                                                  |
     |:-------------------|:----------|:---------------------------------------------------------------------------------------------|
@@ -1101,8 +1209,10 @@ info:
     ```
 
 
-    #### spotAccounts response
+    ### spotAccounts response
     
+    - `V1TAAssetAccount` provides a more granular view of the assets in your trading account compared to `V1TASpotAccount`. The *Formula* colummn below shows how the fields in `V1TASpotAccount` are calculated.
+
     | Name      | Type   | Description                                                                                                                                                                         |  Formula <br> (expressed in `assetAccounts` response fields)        |
     |:----------|:-------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------|
     | accountId | String | unique spot account ID                                                                                                                                                              |                                                                     |
@@ -1130,7 +1240,7 @@ info:
     }
     ```
     
-    #### assetAccounts response
+    ### assetAccounts response
     
     - `V1TAAssetAccount` provides a more granular view of the assets in your trading account compared to `V1TASpotAccount`. 
     
@@ -1236,6 +1346,8 @@ info:
     
     # API Change Log
     ## 2023 Changes
+    - Oct
+      - New [Multi-OrderBook WebSocket (authenticated)](#overview--multi-orderbook-websocket-authenticated) API
     - September
       - New HMAC API Keys and HMAC based signing
         - Login API - `GET /v1/users/hmac/login` 
