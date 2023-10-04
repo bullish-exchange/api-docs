@@ -948,11 +948,13 @@ info:
     * [Hybrid OrderBook WebSocket](#overview--hybrid-orderbook-websocket-unauthenticated)
     * [Market Data Web Socket](#overview--market-data-websocket-authenticated)
     
+    It also provides a heartbeat topic which sends heartbeat every 30s as an indicator of platform healthiness. Client should disconnect in case of heartbeat missing.
+    
     ### Multi-Orderbook Subscription
     The orderbooks of different markets to be subscribed are controlled by the parameters in the subscription message listed below:
     | Parameters            | Type   | Description                                                                     |
     |:----------------------|:-------|:--------------------------------------------------------------------------------|
-    | topic                 | String | l1 orderbook: l1OrderBook<br>l2 orderbook: l2Orderbook                          |
+    | topic                 | String | l1 orderbook: l1OrderBook<br>l2 orderbook: l2Orderbook<br>heartbeat: heartbeat  |
     | symbol                | String | market symbol                                                                   |
     | depth                 | String | l2 orderbook depth: [ 10, 50, 100, 200 ], optional, default 10                  |
     | aggregationFactor     | String | l2 orderbook aggregationFactor: [1, 5, 10], optional, default 1                 |
@@ -987,6 +989,19 @@ info:
     }
     ```
 
+    Heartbeat Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "heartbeat"
+      },
+      "id": "1611082473000"
+    }
+    ```
+
     ### Multi-Orderbook Response
     * L1 Update Response
     ```json
@@ -1012,6 +1027,18 @@ info:
 
     * L2 Snapshot and Update Response    
     The L2 snapshot and update responses are exactly the same as [Hybrid OrderBook WebSocket](#overview--hybrid-orderbook-websocket-unauthenticated).
+
+    * Heartbeat Update Response
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TAHeartbeat",
+      "data": {
+        "globalSeqNumber": "3",
+        "createdAtTimestamp": "1611082473000"
+      }
+    }
+    ```
     
     See [connect to multi-orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/multi_orderbook_web_socket.py) for a sample Python script.
 
@@ -1109,6 +1136,7 @@ info:
     | spotAccounts      | (Deprecated) Provides snapshot and updates on assets in your account.                                                               | `V1TASpotAccount`   | By `<TOPIC>`      |
     | assetAccounts     | Provides snapshot and updates on assets in your account.                                                                            | `V1TAAssetAccount`  | By `<TOPIC>`      |
     | tradingAccounts   | Provides snapshot and updates on your trading account summary.                                                                      | `V1TATradingAccount`| By `<TOPIC>`      |
+    | heartbeat         | Provides heartbeat updates for healthcheck.                                                                                         | `V1TAHeartbeat`     | By `<TOPIC>`      |
 
     ### orders response
 
@@ -1288,7 +1316,7 @@ info:
     }
     ```
     
-    #### tradingAccounts response
+    ### tradingAccounts response
     
     -  Provides a summary of the total borrowed and total collateral values on the specific trading account ID. 
     `totalBorrowedQuantity` and `totalCollateralQuantity` do not represent the absolute quantity of the borrowed assets and 
@@ -1305,7 +1333,7 @@ info:
     | updatedAtDatetime       | String    | denotes the time the trading account was updated by the exchange, ISO 8601 with millisecond as string |
     | updatedAtTimestamp      | String    | denotes the time the trading account was updated by the exchange                                      |
     
-    ````json
+    ```json
     {
       "type": "snapshot",
       "dataType": "V1TATradingAccount",
@@ -1320,7 +1348,29 @@ info:
         }
       ]
     }
-    ````
+    ```
+    
+    ### heartbeat response
+
+    -  Provides heartbeat update every 30s as an indicator of platform healthiness. Client should disconnect in case of heartbeat missing.
+    
+    | Name                    | Type      | Description                                                                                           |
+    |-------------------------|-----------|-------------------------------------------------------------------------------------------------------|
+    | globalSeqNumber         | String    | sequence number of the heartbeat                                                                      |
+    | createdAtTimestamp      | String    | time at which the heartbeat is generated                                                              |
+    
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TAHeartbeat",
+      "data": [
+        {
+          "globalSeqNumber": "3",
+          "createdAtTimestamp": "1611082473000"
+        }
+      ]
+    }
+    ```
 
     See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/private_data_web_socket.py) for a sample Python script.
 
@@ -1348,6 +1398,7 @@ info:
     ## 2023 Changes
     - Oct
       - New [Multi-OrderBook WebSocket (authenticated)](#overview--multi-orderbook-websocket-authenticated) API
+      - New heartbeat topic for [Multi-OrderBook WebSocket (authenticated)](#overview--multi-orderbook-websocket-authenticated) and [Private Data WebSocket (authenticated)](#overview--private-data-websocket-authenticated)
     - September
       - New HMAC API Keys and HMAC based signing
         - Login API - `GET /v1/users/hmac/login` 
