@@ -5028,7 +5028,7 @@ components:
             - $ref: '#/components/schemas/TimeStampAsString'
         nonce:
           type: string
-          description: a UUID withdrawal nonce, independent of header nonce, recommendation re-use header nonce
+          description: a UUID withdrawal nonce to protect against replay attacks
           example: "1628376611"
         authorizer:
           description: JWT authorizer you obtain along with the [JWT token](#overview--generate-a-jwt-token)
