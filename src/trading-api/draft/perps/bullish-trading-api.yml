@@ -4594,6 +4594,7 @@ components:
         - quoteInvestQuantity
         - quotePrice
         - quoteWithdrawQuantity
+        - lastDistributionPrice
         - requestId
         - staticSpreadFee
         - status
@@ -4725,6 +4726,10 @@ components:
           type: string
           description: amount of quote asset returned when AMM instruction is terminated
           example: "0.0011"
+        lastDistributionPrice:
+          type: string
+          description: (Perpetual market only) The price used at the time of settlement for AMMI that can be used to determine mtmPnl And the actual Pnl
+          example: "456.7800"
         requestId:
           description: unique request ID
           allOf:
@@ -5979,9 +5984,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         deltaTradingQuantity:
-          allOf:
-            - $ref: '#/components/schemas/AssetValue'
-        deltaAmmQuantity:
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         mtmPnl:
