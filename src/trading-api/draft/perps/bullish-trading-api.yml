@@ -4594,7 +4594,7 @@ components:
         - quoteInvestQuantity
         - quotePrice
         - quoteWithdrawQuantity
-        - lastDistributionPrice
+        - lastDistributedPrice
         - requestId
         - staticSpreadFee
         - status
@@ -4726,7 +4726,7 @@ components:
           type: string
           description: amount of quote asset returned when AMM instruction is terminated
           example: "0.0011"
-        lastDistributionPrice:
+        lastDistributedPrice:
           type: string
           description: (Perpetual market only) The price used at the time of settlement for AMMI that can be used to determine mtmPnl And the actual Pnl
           example: "456.7800"
