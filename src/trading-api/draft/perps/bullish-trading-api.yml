@@ -3953,6 +3953,7 @@ components:
         - tradingAccountId
         - tradingAccountName
         - isDefaulted
+        - riskLimitUSD
       properties:
         isBorrowing:
           description: whether the trading account is borrowing
@@ -3998,6 +3999,10 @@ components:
           description: whether the trading account is defaulted
           type: String
           example: "false"
+        riskLimitUSD:
+          description: The maximum allowed borrowing for this trading account (in USD currency)
+          type: string
+          example: "10000.0000"
     CreateAMMInstructionResponse:
       type: object
       required:
