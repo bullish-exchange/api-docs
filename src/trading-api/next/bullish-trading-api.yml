@@ -45,8 +45,9 @@ info:
     
     
     For more details please refer to the full specification:
-    - [Bullish FIX Protocol Specification](../../../fix-api/Bullish%20FIX%20Protocol%20Specification%20v1.0.4.pdf) 
-    - [Bullish FIX Protocol Dictionary](../../../fix-api/fix-dictionary.xml)
+    - [Bullish FIX Protocol Specification](../../fix-api/Bullish%20FIX%20Protocol%20Specification%20v1.0.4.pdf) 
+    - [Bullish FIX Protocol Dictionary](../../fix-api/fix-dictionary.xml) 
+    
     
     # Exchange Time
 
@@ -241,12 +242,12 @@ info:
     1. Log in into your Bullish account
     2. Click on your account initials at the upper right corner and then click **Settings**
     3. Click **API Keys** and then click **Add API Key**
-    4. Select the API Key type, either Bullish or HMAC
+    4. Select the API Key type, either Bullish, ECDSA or HMAC
     5. Enter a key name in the *Key Name* field and click *Generate API Key*
 
     ### Bullish API Key Notes
 
-    - A Bullish API key is a public/private key pair used for EDDSA based signing of trading API requests
+    - A Bullish API key is a public/private key pair used for EDDSA based signing of trading and custody API requests
     - The private key is what you will use to sign your requests
     - From here on the:
       - public key will be referred to as `PUBLIC_KEY`
@@ -254,9 +255,9 @@ info:
     - For information about the format of keys please review [EOS Wallet Specification](https://developers.eos.io/manuals/eos/v2.0/keosd/wallet-specification)
     - Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
 
-    A Bullish API key additionally has a `metadata` string assoicated with it which is displayed along side the key.
+    A Bullish API key additionally has a `metadata` string associated with it which is displayed along side the key.
     You must base64 decode the `metadata` to extract your `userId` (example follows). You will need the `userId` in the next step.
-    Please note that the `accountId` field is deprecated, and will be removed along with `v1/users/login` API towards the end of Q2 2023. Clients should reference the `userId` field instead.
+    Please note that the `accountId` field is deprecated, and will be removed along with `v1/users/login` API towards the end of Q4 2023. Clients should reference the `userId` field instead.
     Old `metadata` strings generated before the March 2023 upgrade will not contain the `userId` field; clients are advised to get the `metadata` from the Settings page on the UI again.
 
     ```shell
@@ -266,10 +267,31 @@ info:
     
     ### HMAC API Key Notes
     
-    - A HMAC API Key is a shared secret key that is used for HMAC based signing
-    - Always store your HMAC secret in a secure medium as they are used to sign your requests
+    - A HMAC API Key is a shared secret key that is used for HMAC based signing of trading API requests
+    - Always store your HMAC secret in a secure medium as they are used to sign your requests. Do not share your HMAC secret in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
     - You do not need the `metadata` string to extract your `userId` like you would a Bullish API Key
     - HMAC API Keys can only be used for Trading on Bullish; the JWT generated using an HMAC API Key is only valid for trading endpoints.
+
+    ### ECDSA API Key Notes
+
+    - An ECDSA API key is a public/private key pair used for ECDSA based signing of trading and custody API requests
+    - The private key is what you will use to sign your requests. Always store your private keys in a secure medium as they are used to sign your requests. Do not share your private keys in any publicly accessible areas such as code repositories, client side code, or other vulnerable areas and make sure the keys are not shipped with your mobile or web apps.
+    - From here on the:
+      - public key will be referred to as `PUBLIC_KEY`
+      - private key will be referred to as `PRIVATE_KEY`
+    - Key and signature format details:
+      - Curve: ECDSA R1 (prime256v1/secp256r1/P-256)
+      - Signature encoding: DER
+      - Hashing Algorithm: SHA256
+      - Key format: X.509 SubjectPublicKeyInfo format, PEM encoded
+
+    An ECDSA API key additionally has a `metadata` string associated with it which is displayed along side the key.
+    You must base64 decode the `metadata` to extract your `userId` (example follows). You will need the `userId` in the next step.
+    
+    ```shell
+    echo eyJwdWJsaWNLZXkiOiJQVUJfUjFfNWNpVW52TW5rVThMOVBCWnZaa1BGcjhqdkRnUHpzcHhWNGlqOThIN1JqM1FSNzJyMkEiLCJhY2NvdW50SWQiOjIyMjAwMDAwMDAwMDAwNCwiY3JlZGVudGlhbElkIjoiMTAifQ== | base64 --decode
+    {"publicKey":"PUB_R1_5ciUnvMnkU8L9PBZvZkPFr8jvDgPzspxV4ij98H7Rj3QR72r2A","userId":"12345","accountId":"12345","credentialId":"10"}
+    ```
 
     ## Add Authenticated Request Header
 
@@ -314,6 +336,8 @@ info:
       "token": "<JWT_TOKEN>"
     }
     ```
+    
+    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/bullish/rest/generate_jwt_v2.py) for a sample Python script.
 
     #### POST /trading-api/v1/users/login (Deprecated - the endpoint will be removed towards the end of Q2 2023)
 
@@ -349,7 +373,7 @@ info:
     }
     ```
 
-    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt.py) for a sample Python script.
+    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/bullish/rest/generate_jwt.py) for a sample Python script.
     
     ### HMAC API Key
     To generate/get a JWT token for a HMAC API Key you will need to perform the following request:
@@ -378,7 +402,45 @@ info:
     - request method - `GET`
     - request path - `/trading-api/v1/users/hmac/login`
     
-    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/generate_jwt.py) for a sample Python script.
+    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/hmac/rest/generate_jwt.py) for a sample Python script.
+
+    ### ECDSA API Key
+    To generate/get a JWT token for a ECDSA API Key you will need to perform the following request:
+
+    #### POST /trading-api/v2/users/login
+
+    - Body
+      - `publicKey` - ECDSA public key; new line characters should be UNIX encoded (\n, not \r\n or \r)
+      - `userId` - bullish user id corresponding to the metadata
+      - `signature` - signed JSON string encoding of `loginPayload`, see the code sample for how to get it
+      - `expirationTime` - epoch timestamp in seconds that is 5 minutes in the future
+      - `nonce` - epoch timestamp in seconds; note this login API nonce has no connection to the orders API nonce
+      - `biometricsUsed` - set to `false`
+      - `sessionKey` - set to `null`
+
+    ```json
+    {
+      "publicKey": "<PUBLIC_KEY>",
+      "signature": "<SIGNATURE>",
+      "loginPayload": {
+        "userId": "100008771"
+        "nonce": 1638776636,
+        "expirationTime": 1638776936,
+        "biometricsUsed": false,
+        "sessionKey": null
+      }
+    }
+    ```
+
+    - Response
+
+    ```json
+    {
+      "authorizer": "<AUTHORIZER>",
+      "token": "<JWT_TOKEN>"
+    }
+    ```
+    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/ecdsa/rest/generate_jwt.py) for a sample Python script.
     
     ## Logout using a JWT Token
     Users can better manage their sessions by logging out of unused sessions. This can be done by calling the `GET /trading-api/v1/users/logout` endpoint with the JWT Token in the header - see [Add Authenticated Request Header](#overview--add-authenticated-request-header).
@@ -522,8 +584,10 @@ info:
     
     ## Construct The BX-SIGNATURE Header
 
-    Set the `BX-SIGNATURE` header to the value resulting from signing the `<COMMAND>`.
+    The following signing formats demonstrates how to obtain the `BX-SIGNATURE` header.
 
+    ## Signing Format (Deprecated)
+    
     Before signing the `<COMMAND>` string remove any spaces and newline characters.
 
     The resulting value is also referred to as the request signature. Each component of the signature is detailed below:
@@ -547,17 +611,47 @@ info:
     1. Encode the request JSON payload, also referred to as body, with the SHA-256 hash function and take the hexdigest
     2. Sign the hexdigest from step 1 with your HMAC Secret Key.
     
-    See [sign a request with HMAC](https://github.com/bullish-exchange/api-examples/blob/master/create_order_hmac_v2.py) for a sample Python script.
+    See [sign a request with HMAC](https://github.com/bullish-exchange/api-examples/blob/master/hmac/rest/create_order_v2.py) for a sample Python script.
+
+    ## Signing Format (New)
+    
+    The new signing format only works with `/trading-api/v2/orders`, `/trading-api/v2/amm-instructions` and `/trading-api/v2/command`. 
+    The new signing format has the following benefits:
+    - Null fields need not be included in the HTTP request body
+    - Fields need not be strictly ordered in the HTTP request body
+    
+    Construct a string that concatenates the following fields:
+    - timestamp - value provided for the `BX-TIMESTAMP` header
+    - nonce - value provided for the `BX-NONCE`
+    - request method - e.g. `POST`
+    - request path - e.g. `/trading-api/v2/orders`
+    - request JSON string, removing any spaces and newline characters.
+    
+    Note that the same request JSON string used in signing must be sent as the HTTP request body.
+    
+    #### How To Sign - ECDSA API Key
+    
+    1. Hash the above string using a SHA-256 hash function and sign the resulting hexdigest with your ECDSA `<PRIVATE_KEY>`.
+    2. DER encode the signature, and base64 encode the DER encoded signature.  
+    
+    See [sign a request with ECDSA](https://github.com/bullish-exchange/api-examples/blob/master/ecdsa/rest/v2_endpoints/create_order.py) for a sample Python script.
+
+    #### How To Sign - HMAC API Key
+
+    1. Hash the above string using a SHA-256 hash function and take the hexdigest.
+    2. Sign the hexdigest from step 2 with your HMAC Secret Key.  
+    
+    See [sign a request with HMAC](https://github.com/bullish-exchange/api-examples/blob/master/hmac/rest/v2_endpoints/create_order.py) for a sample Python script.
 
     ## Fetch Trading Account Ids
     
     Trading Account Ids may be required by some endpoints. They can be fetched from [Get All Trading Accounts](#get-/accounts/trading-accounts).
     
-    See an API example [Here](https://github.com/bullish-exchange/api-examples/blob/master/get_trading_accounts.py).
+    See an API example [Here](https://github.com/bullish-exchange/api-examples/blob/master/bullish/rest/get_trading_accounts.py).
 
     ## Send The HTTP Authenticated Request
 
-    See [create an order](https://github.com/bullish-exchange/api-examples/blob/master/create_order.py) for a sample Python script.
+    See [create an order](https://github.com/bullish-exchange/api-examples/blob/master/bullish/rest/create_order.py) for a sample Python script.
 
     ## How To Ensure The Order Of *Create Order* or *Cancel Order* Requests
 
@@ -624,7 +718,7 @@ info:
     - Unauthenticated WebSockets, maximum of 100 open connections per IP address.
     - Authenticated WebSockets, maximum of 10 open connections per API key.
     
-    ## Send A Message Over The Web Socket
+    ## Send A Message Over The WebSocket
 
     Messages sent by the client to the server over a web-socket follows the
     [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification). The server then returns a response following
@@ -642,11 +736,12 @@ info:
 
     Two types of subscription:
       1. Subscribe by `<TOPIC>`
-      2. Subscribe by `<TOPIC>` and `<SYMBOL>`
+      2. Subscribe by `<TOPIC>` and `<SYMBOL>` plus optional `<DEPTH>`
 
     Message fields:
       - `<TOPIC>`: subscription topic
       - `<SYMBOL>`: market symbol
+      - `<DEPTH>`: depth of l2 orderbook, default 10
       - `<COMMAND_ID>`: unsigned long value
 
     The subscription message would be constructed like below:
@@ -673,6 +768,21 @@ info:
       "params": {
           "topic": "<TOPIC>",
           "symbol": "<SYMBOL>",
+      },
+      "id": "<COMMAND_ID>"
+    }
+    ```
+
+    Subscribe by `<TOPIC>` and `<SYMBOL>` plus optional `<DEPTH>`
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "<TOPIC>",
+          "symbol": "<SYMBOL>",
+          "depth": "<DEPTH>",
       },
       "id": "<COMMAND_ID>"
     }
@@ -706,10 +816,12 @@ info:
     ```
 
     Find below the available `<TOPIC>`:
-      1. [Market Data Web Socket](#overview--market-data-websocket-authenticated)
-      2. [Private Data Web Socket](#overview--private-data-websocket-authenticated)
+      1. [Market Data WebSocket](#overview--market-data-websocket-authenticated)
+      2. [Private Data WebSocket](#overview--private-data-websocket-authenticated)
+      3. [Multi-OrderBook Data WebSocket](#overview--multi-orderbook-websocket-unauthenticated)
 
-    ## Keep Web Socket Open
+
+    ## Keep WebSocket Open
 
     Keep the web-socket connection open by sending keepalive ping messages periodically.
     The web-socket closes automatically after 5 minutes.
@@ -727,7 +839,7 @@ info:
     }
     ```
 
-    ## Receive A Message From The Web Socket
+    ## Receive A Message From The WebSocket
 
     JSON-RPC responses are of the following format:
 
@@ -795,10 +907,10 @@ info:
 
     ## Heartbeat
     - this is a `beta/experimental` feature that is currently being tested
-    - the heart beat message is periodically sent approximately every 30 seconds on the `heartbeat` topic for the [Private Data Web Socket](#overview--private-data-websocket-authenticated) API
+    - the heart beat message is periodically sent approximately every 30 seconds on the `heartbeat` topic for the [Private Data WebSocket](#overview--private-data-websocket-authenticated) API and [Multi-OrderBook WebSocket)](#overview--multi-orderbook-websocket-unauthenticated) API
     - the heat beat serves to validate end to end communication between the exchange and the client
     - if 3 heart beats are missed, then it is advisable to check the [official status page](https://bullish.statuspage.io/) for any announcements on the degradation of the exchanges features
-    - if no announcements have been made, it is advisable to disconnect and reconnect the web socket API given the issue may be isolated to a specific gateway
+    - if no announcements have been made, it is advisable to disconnect and reconnect the websocket API given the issue may be isolated to a specific gateway
 
     ## Hybrid OrderBook WebSocket (unauthenticated)
     **Route**
@@ -924,7 +1036,107 @@ info:
        If quantity is 0, price level is removed.
     6. Receive a subsequent snapshot message and reset existing orderbook. Create orderbook with new price levels.
 
-    See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/l2_orderbook_web_socket.py) for a sample Python script.
+    See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/bullish/websocket/l2_orderbook_web_socket.py) for a sample Python script.
+
+    ## Multi-OrderBook WebSocket (unauthenticated)
+    **Route**
+    - `/trading-api/v1/market-data/orderbook`
+    
+    This is an enhanced and integrated API of the 2 APIs below. It allows simultaneous subscriptions to multiple L1 and L2 orderbooks of different markets:
+    * [Hybrid OrderBook WebSocket](#overview--hybrid-orderbook-websocket-unauthenticated)
+    * [Market Data WebSocket](#overview--market-data-websocket-authenticated)
+    
+    It also provides a heartbeat topic which sends heartbeat every 30s as an indicator of platform healthiness. Please refer to the [heartbeat session](#overview--heartbeat) for the details.
+    
+    ### Multi-Orderbook Subscription
+    The orderbooks of different markets to be subscribed are controlled by the parameters in the subscription message listed below:
+    | Parameters            | Type   | Description                                                                     |
+    |:----------------------|:-------|:--------------------------------------------------------------------------------|
+    | topic                 | String | l1 orderbook: l1OrderBook<br>l2 orderbook: l2Orderbook<br>heartbeat: heartbeat  |
+    | symbol                | String | market symbol                                                                   |
+    | depth                 | String | l2 orderbook depth: [ 10, 50, 100, 200 ], optional, default 10                  |
+
+    L1 Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "l1Orderbook",
+          "symbol": "BTCUSD"
+      },
+      "id": "1611082473000"
+    }
+    ```
+
+    L2 Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "l2Orderbook",
+          "symbol": "BTCUSD",
+          "depth": "10",
+      },
+      "id": "1611082473000"
+    }
+    ```
+
+    Heartbeat Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "heartbeat"
+      },
+      "id": "1611082473000"
+    }
+    ```
+
+    ### Multi-Orderbook Response
+    * L1 Update Response
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TALevel1",
+      "data": {
+        "symbol": "BTCUSD",
+        "bid": [
+          "5199.5000",
+          "61.95995262"
+        ],
+        "ask": [
+          "5199.6000",
+          "96.59626782"
+        ],
+        "sequenceNumber": "8",
+        "datetime": "2020-06-29T06:28:55.500Z",
+        "timestamp": "1593412135500"
+      }
+    }
+    ```
+
+    * L2 Snapshot and Update Response    
+    The L2 snapshot and update responses are exactly the same as [Hybrid OrderBook WebSocket](#overview--hybrid-orderbook-websocket-unauthenticated).
+
+    * Heartbeat Update Response
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TAHeartbeat",
+      "data": {
+        "sequenceNumber": "3",
+        "createdAtTimestamp": "1611082473000"
+      }
+    }
+    ```
+    
+    See [connect to multi-orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/bullish/websocket/multi_orderbook_web_socket.py) for a sample Python script.
 
     ## Anonymous Trades WebSocket (unauthenticated)
     **Route**
@@ -967,8 +1179,69 @@ info:
     }
     ```
     
-    See [connect to trades web-socket](https://github.com/bullish-exchange/api-examples/blob/master/trades_web_socket.py) for a sample Python script.
+    See [connect to trades web-socket](https://github.com/bullish-exchange/api-examples/blob/master/bullish/websocket/trades_web_socket.py) for a sample Python script.
+    
+    ## Anonymous Market Data Price Tick (unauthenticated)
+    **Route**
+    - `/trading-api/v1/market-data/tick/{symbol}`
+    
+    **Note**: This endpoint does not require subscriptions.
+    
+    On connection, the client receives current Tick by Market Symbol. See the data model: [Get Market Tick](#get-/markets/-symbol-/tick)
 
+    ### Tick response example
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TATickerResponse",
+      "data": {
+        "askVolume": "3.56000000",
+        "average": "5200.0400",
+        "baseVolume": "1.00000000",
+        "bestAsk": "6543.0000",
+        "bestBid": "2345.0000",
+        "bidVolume": "2.00000000",
+        "change": "0.0000",
+        "close": "5200.0400",
+        "createdAtTimestamp": "1591058897000",
+        "high": "5200.0400",
+        "last": "5200.0400",
+        "lastTradeDatetime": "2020-06-02T00:40:39.500Z",
+        "lastTradeSize": "1.00000000",
+        "low": "5200.0400",
+        "open": "5200.0400",
+        "percentage": "0.00",
+        "quoteVolume": "5200.0400",
+        "symbol": "BTC-USD-PERP",
+        "type": "ticker",
+        "vwap": "5200.0400",
+        "currentPrice": "0.0007",
+        "ammData": [
+          {
+            "feeTierId": "1",
+            "currentPrice": "0.0007",
+            "baseReservesQuantity": "96153.00000000",
+            "quoteReservesQuantity": "500005200.0400",
+            "bidSpreadFee": "0.00000005",
+            "askSpreadFee": "0.00000006"
+          },
+          {
+            "feeTierId": "2",
+            "currentPrice": "0.0017",
+            "baseReservesQuantity": "96153.00000000",
+            "quoteReservesQuantity": "500005200.0400",
+            "bidSpreadFee": "0.00000015",
+            "askSpreadFee": "0.00000016"
+          }
+        ],
+        "createdAtDatetime": "2020-06-02T00:48:17.000Z",
+        "markPrice": "26000.0000",
+        "fundingRate": "0.114100",
+        "openInterest": "9.00000000"
+      }
+    }
+    ```
+    
     ## Market Data WebSocket (authenticated)
     Route
     - `/trading-api/v1/market-data`
@@ -1005,7 +1278,7 @@ info:
     }
     ```
 
-    See [connect to market data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/market_data_web_socket.py) for a sample Python script.
+    See [connect to market data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/bullish/websocket/market_data_web_socket.py) for a sample Python script.
 
     ## Private Data WebSocket (authenticated)
     - All private data updates are realtime.
@@ -1021,32 +1294,37 @@ info:
     | assetAccounts     | Provides snapshot and updates on assets in your account.                                                                            | `V1TAAssetAccount`  | By `<TOPIC>`      |
     | tradingAccounts   | Provides snapshot and updates on your trading account summary.                                                                      | `V1TATradingAccount`| By `<TOPIC>`      |
     | heartbeat         | Provides heartbeat updates for healthcheck.                                                                                         | `V1TAHeartbeat`     | By `<TOPIC>`      |
+    | derivativesPositions| Provides derivative position information on your trading account                                                                  | `V1TAPerpetualPosition`| By `<TOPIC>`   |
 
     ### orders response
 
-    | Name               | Type      | Description                                                                                                                             |
-    |:-------------------|:----------|:------------------------------------------------------------------------------------------                                              |
-    | handle             | String    | unique numeric identifier generated on the client side expressed as a string value                                                      |
-    | orderId            | String    | unique order ID                                                                                                                         |
-    | symbol             | String    | market symbol                                                                                                                           |
-    | price              | String    | price, see [asset value](#overview--price-and-quantity-precision) format                                                                |
-    | averageFillPrice   | String    | average fill price, see [asset value](#overview--price-and-quantity-precision) format                                                   |
-    | stopPrice          | String    | stop price, see [asset value](#overview--price-and-quantity-precision) format                                                           |
-    | margin             | Boolean   | indicates if the order was allowed to borrow (does not indicate that borrowing occurred)                                                |
-    | quantity           | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format                                                             |
-    | quantityFilled     | String    | quantity filled, see [asset value](#overview--price-and-quantity-precision) format                                                      |
-    | baseFee            | String    | base fee, see [asset value](#overview--price-and-quantity-precision) format                                                             |
-    | quoteFee           | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                                                            |
-    | borrowedQuantity   | String    | quantity borrowed, see [asset value](#overview--price-and-quantity-precision) format - BUY order borrows quote, SELL order borrows base |
-    | isLiquidation      | Boolean   | indicates if the order was executed as a liquidation order                                                                              |
-    | side               | String    | order side                                                                                                                              |
-    | type               | String    | order type                                                                                                                              |
-    | timeInForce        | String    | time in force                                                                                                                           |
-    | status             | String    | order status                                                                                                                            |
-    | statusReason       | String    | status reason, describes why the order is in a specific state                                                                           |
-    | statusReasonCode   | Integer   | status reason code, see [details](#overview--order-statusreasoncode-map)                                                                |
-    | createdAtDatetime  | String    | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string                                               |
-    | createdAtTimestamp | String    | denotes the time the order was ACK'd by the exchange                                                                                    |
+    | Name                  | Type      | Description                                                                                                                                                                                       |
+    |:-------------------   |:----------|:------------------------------------------------------------------------------------------                                                                                                        |
+    | handle                | String    | unique numeric identifier generated on the client side expressed as a string value (deprecated, will be removed towards end of Q3 2024)                                                           |
+    | clientOrderId         | String    | unique numeric identifier generated on the client side expressed as a string value                                                                                                                |
+    | orderId               | String    | unique order ID                                                                                                                                                                                   |
+    | symbol                | String    | market symbol                                                                                                                                                                                     |
+    | price                 | String    | price, see [asset value](#overview--price-and-quantity-precision) format                                                                                                                          |
+    | averageFillPrice      | String    | average fill price, see [asset value](#overview--price-and-quantity-precision) format                                                                                                             |
+    | stopPrice             | String    | stop price, see [asset value](#overview--price-and-quantity-precision) format                                                                                                                     |
+    | margin                | Boolean   | indicates if the order was allowed to borrow (does not indicate that borrowing occurred. deprecated, will be removed towards end of Q3 2024)                                                      |
+    | allowBorrow           | Boolean   | indicates if the order was allowed to borrow (does not indicate that borrowing occurred)                                                                                                          |
+    | quantity              | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format                                                                                                                       |
+    | quantityFilled        | String    | quantity filled, see [asset value](#overview--price-and-quantity-precision) format                                                                                                                |
+    | baseFee               | String    | base fee, see [asset value](#overview--price-and-quantity-precision) format                                                                                                                       |
+    | quoteFee              | String    | quote fee, see [asset value](#overview--price-and-quantity-precision) format                                                                                                                      |
+    | borrowedQuantity      | String    | quantity borrowed, see [asset value](#overview--price-and-quantity-precision) format - BUY order borrows quote, SELL order borrows base (deprecated, will be removed towards end of Q3 2024)      |
+    | borrowedBaseQuantity  | String    | base quantity borrowed, see [asset value](#overview--price-and-quantity-precision) format                                                                                                         |
+    | borrowedQuoteQuantity | String    | quote quantity borrowed, see [asset value](#overview--price-and-quantity-precision) format                                                                                                        |
+    | isLiquidation         | Boolean   | indicates if the order was executed as a liquidation order                                                                                                                                        |
+    | side                  | String    | order side                                                                                                                                                                                        |
+    | type                  | String    | order type                                                                                                                                                                                        |
+    | timeInForce           | String    | time in force                                                                                                                                                                                     |
+    | status                | String    | order status                                                                                                                                                                                      |
+    | statusReason          | String    | status reason, describes why the order is in a specific state                                                                                                                                     |
+    | statusReasonCode      | Integer   | status reason code, see [details](#overview--order-statusreasoncode-map)                                                                                                                          |
+    | createdAtDatetime     | String    | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string                                                                                                         |
+    | createdAtTimestamp    | String    | denotes the time the order was ACK'd by the exchange                                                                                                                                              |
 
     ```json
     {
@@ -1211,8 +1489,15 @@ info:
     | Name                    | Type      | Description                                                                                           |
     |-------------------------|-----------|-------------------------------------------------------------------------------------------------------|
     | tradingAccountId        | String    | id of the trading account                                                                             |
-    | totalBorrowedQuantity   | String    | total borrowed across all assets in this trading account displayed in the reference asset             |
+    | totalBorrowedQuantity   | String    | total borrowed across all assets in this trading account displayed in the reference asset             |        
     | totalCollateralQuantity | String    | total collateral across all assets in this trading account displayed in the reference asset           |
+    | totalBorrowedUSD        | String    | total borrowed across all assets in this trading account displayed in the reference asset in USD      |
+    | totalCollateralUSD      | String    | total collateral across all assets in this trading account displayed in the reference asset in USD    |
+    | initialMarginUSD        | String    | The minimum margin one must maintain in order to be able to purposefully increase risk                |
+    | warningMarginUSD        | String    | The minimum margin when the customer will receive warning via email/notifications over UI             |
+    | liquidationMarginUSD    | String    | The minimum value of margin one must maintain in order to avoid liquidation                           |
+    | fullLiquidationMarginUSD| String    | The value of margin when full liquidation occurs                                                      |
+    | defaultedMarginUSD      | String    | The value of margin when this trading account will be moved into a Defaulted state                    |
     | referenceAssetSymbol    | String    | asset symbol                                                                                          |
     | updatedAtDatetime       | String    | denotes the time the trading account was updated by the exchange, ISO 8601 with millisecond as string |
     | updatedAtTimestamp      | String    | denotes the time the trading account was updated by the exchange                                      |
@@ -1226,7 +1511,14 @@ info:
           "tradingAccountId": "1111",
           "totalBorrowedQuantity": "12.0000",
           "totalCollateralQuantity": "13.0000",
+          "totalBorrowedUSD": "12000.0000",
+          "totalCollateralUSD": "13000.0000",
           "referenceAssetSymbol": "USD",
+          "initialMarginUSD": "0.0000",
+          "warningMarginUSD": "0.0000",
+          "liquidationMarginUSD": "0.0000",
+          "fullLiquidationMarginUSD": "0.0000",
+          "defaultedMarginUSD": "0.0000",
           "updatedAtDatetime": "2020-10-01T00:00:00.000Z",
           "updatedAtTimestamp": "1601510400000"
         }
@@ -1255,8 +1547,51 @@ info:
       ]
     }
     ```
-
-    See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/private_data_web_socket.py) for a sample Python script.
+    ### Derivative position response
+    -  Provide a detail view of the derivative position of each market.
+    
+    | Name                    | Type      | Description                                                                                           |
+    |-------------------------|-----------|-------------------------------------------------------------------------------------------------------|
+    | tradingAccountId        | String    | Id of the trading account                                                                             |
+    | symbol                  | String    | Market symbol , eg. BTC-USDC-PERP                                                                      |
+    | side                    | String    | Side of the position                                                                        |
+    | quantity                | String    | Size of the  position [asset value](#overview--price-and-quantity-precision) format          |
+    | notional                | String    | Current notional of the position in currency of the quote asset                             |
+    | entryNotional           | String    | Notional of the  position in currency of the quote asset when entering the position          |
+    | mtmPnl                  | String    | Market to market PnL                                                                                  |
+    | reportedMtmPnl          | String    | Report Market to market PnL                                                                           |
+    | reportedFundingPnl      | String    | Reported Funding PnL                                                                                  |
+    | realizedPnl             | String    | Realized Pnl                                                                                          |
+    | createdAtDatetime       | String    | denotes the time the trading account was created by the exchange, ISO 8601 with millisecond as string |
+    | createdAtTimestamp      | String    | denotes the time the trading account was created by the exchange, number of milliseconds since EPOCH  |
+    | updatedAtDatetime       | String    | denotes the time the trading account was updated by the exchange, ISO 8601 with millisecond as string |
+    | updatedAtTimestamp      | String    | denotes the time the trading account was updated by the exchange  number of milliseconds since EPOCH  |
+    
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TAPerpetualPosition",
+      "data": [
+        {
+          "tradingAccountId": "111234567890",
+          "symbol": "BTC-USDC-PERP",
+          "side": "BUY",
+          "quantity": "1.00000000",
+          "notional": "30000.0000",
+          "entryNotional": "30000.0000",
+          "mtmPnl": "110.0000",
+          "reportedMtmPnl": "120.0000",
+          "reportedFundingPnl": "130.0000",
+          "realizedPnl": "140.0000",
+          "createdAtDatetime": "2020-01-01T00:00:00.000Z",
+          "createdAtTimestamp": "1577836800000",
+          "updatedAtDatetime": "2020-01-02T00:00:00.000Z",
+          "updatedAtTimestamp": "1577923200000"
+        }
+      ]
+    }
+    ```
+    See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/bullish/websocket/private_data_web_socket.py) for a sample Python script.
 
     # Quickly Try The API
 
@@ -1280,8 +1615,36 @@ info:
     
     # API Change Log
     ## 2023 Changes
+    - November
+      - New APIs for placing commands into the exchange. Uses [new signing format](#overview--signing-format-new) and allows non-strict precision on price/quantities.
+        - [POST /trading-api/v2/orders](#post-/trading-api/v2/orders) for creating orders, [GET /trading-api/v2/orders](#get-/trading-api/v2/orders) for fetching orders.
+        - [POST /trading-api/v2/amm-instructions](#post-/trading-api/v2/amm-instructions) for creating AMM instructions, [GET /trading-api/v2/amm-instructions](#get-/trading-api/v2/amm-instructions) for fetching AMM instructions.
+        - [POST /trading-api/v2/command](#post-/trading-api/v2/command) for all other commands.
+      - Deprecation of following APIs, will be removed towards the end of Q3 2024.
+        - `/trading-api/v1/orders`
+        - `/trading-api/v1/amm-instructions`
+        - `/trading-api/v1/command`
+      - Response model changes for [GET /trading-api/v2/orders](#get-/trading-api/v2/orders), [GET /trading-api/v1/orders](#get-/trading-api/v1/orders) and [Private Data WebSocket (authenticated)](#overview--private-data-websocket-authenticated) orders topic.
+        - `allowBorrow`, `borrowedBaseQuantity`, `borrowedQuoteQuantity`, `clientOrderId` added.
+        - `margin`, `borrowedQuantity`, `handle` deprecated, will be removed towards the end of Q3 2024.
+      - Response model changes for [GET /trading-api/v2/amm-instructions](#get-/trading-api/v2/amm-instructions) and [GET /trading-api/v1/amm-instructions](#get-/trading-api/v1/amm-instructions)
+        - `instructionId` added.
+        - `liquidityId` deprecated, will be removed towards the end of Q3 2024.
+      - New [Multi-OrderBook WebSocket (unauthenticated)](#overview--multi-orderbook-websocket-unauthenticated) API
+      - new REST API - [derivatives positions](#get-/derivatives-positions)
+      - new REST API (not ready, coming soon)- [perpetual settlement](#get-/history/perpetual-settlement)    
+      - updated REST API - [Get Markets](#get-/markets) new fields `marketType` and new fields for perpetual market only: `contractMultiplier`,`settlementAssetSymbol` ,`underlyingBaseSymbol`, `underlyingQuoteSymbol`
+      - updated REST API - [Get Market Tick](#get-/markets/-symbol-/tick) new fields `markPrice` `fundingRate`, `openInterest`
+      - updated REST API - [Get Trading-Accounts](#get-/accounts/trading-accounts) new field `riskLimitUSD`
+      - updated REST API - [Get AMM Instruction](#get-/amm-instructions) new field `lastDistributedPrice`
+      - New [Get Market Tick WebSocket API](#overview--anonymous-market-data-price-tick-unauthenticated)
+      - Websocket - Updated API [Private Data WebSocket](#overview--private-data-websocket-authenticated) new Topic `derivativesPositions`
+      - Websocket - Updated API [Private Data WebSocket](#overview--private-data-websocket-authenticated) Topic `tradingAccounts`, response model updated.
     - October
       - New heartbeat topic for [Private Data WebSocket (authenticated)](#overview--private-data-websocket-authenticated)
+      - New ECDSA API Keys and ECDSA based signing
+        - Login API - `POST /trading-api/v2/users/login` supports ECDSA signatures
+        - BX-SIGNATURE header supports signatures generated via ECDSA
     - September
       - New HMAC API Keys and HMAC based signing
         - Login API - `GET /v1/users/hmac/login` 
@@ -1350,17 +1713,27 @@ tags:
     description: Non-authenticated API for getting nonce range information
   - name: users
     description: Authenticated APIs for interacting with users
+  - name: orders (deprecated)
+    description: Authenticated APIs for interacting with orders. Deprecated, will be removed towards the end of Q3 2024.
   - name: orders
     description: Authenticated APIs for interacting with orders
-  - name: "amm instructions"
+  - name: "amm instructions (deprecated)"
     description: |+
-      Authenticated APIs that allow users to Create, View and Terminate AMM instructions.
+      Authenticated APIs that allow users to Create, View and Terminate AMM instructions. Deprecated, will be removed towards the end of Q3 2024.
       
       Please refer to the [AMM instruction Overview Doc](https://github.com/bullish-exchange/api-docs/wiki/Automated-Market-Making-%28AMM%29-Instructions) 
       for more details on how AMM instructions work.
+  - name: "amm instructions"
+    description: |+
+      Authenticated APIs that allow users to Create, View and Terminate AMM instructions.
+
+      Please refer to the [AMM instruction Overview Doc](https://github.com/bullish-exchange/api-docs/wiki/Automated-Market-Making-%28AMM%29-Instructions) 
+      for more details on how AMM instructions work.
+  - name: "command entry"
+    description: Authenticated API for submitting commands into the exchange.
   - name: custody
     description: |+
-      Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/custody_basics.py)
+      Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/bullish/rest/custody_basics.py)
       
       Custody APIs have a limit of 40 requests per minute combined across all endpoints of type **/wallets/***
   - name: trades
@@ -1485,7 +1858,9 @@ x-tagGroups:
   - name: Authenticated API
     tags:
       - accounts
+      - orders (deprecated)
       - orders
+      - "amm instructions (deprecated)"
       - "amm instructions"
       - trades
       - custody
@@ -1863,10 +2238,10 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
-  /orders:
+  /trading-api/v1/orders:
     get:
       tags:
-        - orders
+        - orders (deprecated)
       summary: Get Orders
       description: |
         Gets the orders list based on specified filters.
@@ -1935,7 +2310,7 @@ paths:
         - jwtTokenAuth: []
     post:
       tags:
-        - orders
+        - orders (deprecated)
       summary: Create Order
       description: |
         Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
@@ -2019,7 +2394,7 @@ paths:
         - jwtTokenAuth: [ ]
     delete:
       tags:
-        - orders
+        - orders (deprecated)
       summary: Cancel Order
       description: |
         Cancels an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
@@ -2108,7 +2483,7 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
-  /orders/{orderId}:
+  /trading-api/v1/orders/{orderId}:
     parameters:
       - in: path
         name: orderId
@@ -2118,7 +2493,7 @@ paths:
         description: order ID
     get:
       tags:
-        - orders
+        - orders (deprecated)
       summary: Get Order by ID
       description: |
         Gets an order by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
@@ -2156,10 +2531,10 @@ paths:
       security:
         - jwtTokenAuth: []
 
-  /command?commandType=V1CancelAllOrders:
+  /trading-api/v1/command?commandType=V1CancelAllOrders:
     post:
       tags:
-        - orders
+        - orders (deprecated)
       summary: Cancel All Open Limit Orders
       description: |
         Cancels all open limit orders
@@ -2212,10 +2587,10 @@ paths:
       security:
         - jwtTokenAuth: [ ]
 
-  /command?commandType=V1CancelAllOrdersByMarket:
+  /trading-api/v1/command?commandType=V1CancelAllOrdersByMarket:
     post:
       tags:
-        - orders
+        - orders (deprecated)
       summary: Cancel All Open Limit Orders By Market
       description: |
         Cancels all open orders by market
@@ -2268,10 +2643,10 @@ paths:
       security:
         - jwtTokenAuth: [ ]
 
-  /command?commandType=V1DelayedCancelAllOrders:
+  /trading-api/v1/command?commandType=V1DelayedCancelAllOrders:
     post:
       tags:
-        - orders
+        - orders (deprecated)
       summary: Cancel All Open Limit Orders after Delay
       description: |
         Cancel All Open Limit Orders after Delay
@@ -2323,10 +2698,10 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
-  /command?commandType=V1UnsetDelayedCancelAllOrders:
+  /trading-api/v1/command?commandType=V1UnsetDelayedCancelAllOrders:
     post:
       tags:
-        - orders
+        - orders (deprecated)
       summary: Cancel All Open Limit Orders after Delay Disable
       description: |
         Cancel All Open Limit Orders after Delay Disable
@@ -2377,13 +2752,213 @@ paths:
       security:
         - jwtTokenAuth: [ ]
 
-
-
-
-  /amm-instructions:
+  /trading-api/v2/orders:
     get:
       tags:
-        - "amm instructions"
+        - orders
+      summary: Get Orders
+      description: |
+        Gets the orders list based on specified filters.
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - [supports pagination](#overview--pagination-support)
+        - supports filtering on `symbol`, `handle` (deprecated), `clientOrderId`, `side`, `status`, `createdAtDatetime`, `createdAtTimestamp`
+
+        **Ratelimited:** `True`
+      operationId: trade-get-orders-v2
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: false
+        - in: query
+          name: clientOrderId
+          description: Unique numeric identifier generated on the client side expressed as a string value
+          schema:
+            $ref: '#/components/schemas/OrderHandle'
+          required: false
+        - in: query
+          name: side
+          description: order side
+          schema:
+            $ref: '#/components/schemas/OrderSide'
+          required: false
+        - in: query
+          name: status
+          description: order status
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+          required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/Order'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+    post:
+      tags:
+        - orders
+      summary: Create Order
+      description: |
+        Creates an order, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
+
+        This endpoint uses the [new signing format](#overview--signing-format-new) which does not require strict field ordering 
+        and addition of null fields in the request body. Quantities and prices does not require strict precision. 
+        Eg. for asset precision of 4 - `100`, `100.0`, `100.00`, `100.000` and `100.0000` are all accepted.
+
+        **Ratelimited:** `True`
+      operationId: trade-create-order-v2
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: signature obtained using the [new signing format](#overview--signing-format-new)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+        - in: header
+          name: BX-NONCE-WINDOW-ENABLED
+          description:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED/description'
+          schema:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
+          required: false
+      responses:
+        200:
+          description: Status OK. This means an create order command was successfully acknowledged. It does not necessarily mean the order was created. To check the current status of the order, query [Get Order by ID](#get-/trading-api/v2/orders/-orderId-) using the `orderId` received in the response payload. Also consult the section [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrderCommandResponseV3'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: new order request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderCommandV3'
+            examples:
+              CreateLimitOrderCommand:
+                $ref: '#/components/examples/CreateLimitOrderCommand'
+              CreateMarketOrderCommand:
+                $ref: '#/components/examples/CreateMarketOrderCommand'
+              CreateStopLimitOrderCommand:
+                $ref: '#/components/examples/CreateStopLimitOrderCommand'
+      security:
+        - jwtTokenAuth: [ ]
+  /trading-api/v2/orders/{orderId}:
+    parameters:
+      - in: path
+        name: orderId
+        schema:
+          type: number
+        required: true
+        description: order ID
+    get:
+      tags:
+        - orders
+      summary: Get Order by ID
+      description: |
+        Gets an order by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: trade-get-order-by-id-v2
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+
+  /trading-api/v1/amm-instructions:
+    get:
+      tags:
+        - "amm instructions (deprecated)"
       summary: Get AMM Instructions
       description: |
         Gets a list of AMM instructions based on applied filters.
@@ -2440,7 +3015,7 @@ paths:
         - jwtTokenAuth: [ ]
     post:
       tags:
-        - "amm instructions"
+        - "amm instructions (deprecated)"
       summary: Create AMM Instruction
       description: |
         Creates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) 
@@ -2518,7 +3093,7 @@ paths:
         - jwtTokenAuth: [ ]
     delete:
       tags:
-        - "amm instructions"
+        - "amm instructions (deprecated)"
       summary: Terminate AMM Instruction
       description: |
         Terminates a specific AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
@@ -2592,7 +3167,7 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
-  /amm-instructions/{liquidityId}:
+  /trading-api/v1/amm-instructions/{liquidityId}:
     parameters:
       - in: path
         name: liquidityId
@@ -2608,7 +3183,7 @@ paths:
         required: true
     get:
       tags:
-        - "amm instructions"
+        - "amm instructions (deprecated)"
       summary: Get AMM Instruction by ID
       description: |
         Gets a specific AMM instruction based on the `liquidityId`, 
@@ -2640,6 +3215,326 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
+
+  /trading-api/v2/amm-instructions:
+    get:
+      tags:
+        - "amm instructions"
+      summary: Get AMM Instructions
+      description: |
+        Gets a list of AMM instructions based on applied filters.
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - [supports pagination](#overview--pagination-support)
+        - supports filtering on `symbol` and `status`
+
+        **Ratelimited:** `True`
+      operationId: trade-get-amm-instructions
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: false
+        - in: query
+          name: status
+          description: order status
+          schema:
+            $ref: '#/components/schemas/AMMInstructionStatus'
+          required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/AMMInstruction'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+    post:
+      tags:
+        - "amm instructions"
+      summary: Create AMM Instruction
+      description: |
+        Creates an AMM instruction, requires [bearer token](#overview--add-authenticated-request-header) 
+        in authorization header.
+
+        This endpoint uses the [new signing format](#overview--signing-format-new) which does not require strict field ordering
+        in the request body. Quantities and prices does not require strict precision. 
+        Eg. for asset precision of 4 - `100`, `100.0`, `100.00`, `100.000` and `100.0000` are all accepted.
+
+        **Ratelimited:** `True`
+      operationId: trade-create-amm-instruction
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description:
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: signature obtained using the [new signing format](#overview--signing-format-new)
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+      responses:
+        200:
+          description: Status OK. This means a create AMM instruction command was successfully acknowledged. It does not necessarily mean the instruction was created. To check the current status, query [Get AMM Instruction by ID](#get-/trading-api/v2/amm-instructions/-instructionId-) using the `instructionId` received in the response payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateAMMInstructionCommandResponseV3'
+              examples:
+                CreateAMMInstructionCommandResponse:
+                  $ref: '#/components/examples/CreateAMMInstructionCommandResponse'
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        description: new AMM instruction
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAMMInstructionCommandV3'
+            examples:
+              CreateAMMInstructionCommand:
+                $ref: '#/components/examples/CreateAMMInstructionCommand'
+      security:
+        - jwtTokenAuth: [ ]
+  /trading-api/v2/amm-instructions/{instructionid}:
+    parameters:
+      - in: path
+        name: instructionId
+        schema:
+          type: number
+        required: true
+        description: unique AMM instruction ID
+      - in: query
+        name: tradingAccountId
+        description: Id of the trading account
+        schema:
+          $ref: '#/components/schemas/TradingAccountId'
+        required: true
+    get:
+      tags:
+        - "amm instructions"
+      summary: Get AMM Instruction by ID
+      description: |
+        Gets a specific AMM instruction based on the `instructionId`, 
+        requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`
+      operationId: trade-get-amm-instruction-by-id-v2
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AMMInstruction'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+
+  /trading-api/v2/command:
+    post:
+      tags:
+        - "command entry"
+      summary: Create Command
+      description: |
+        Submits a command to the trading engine. A successful response indicates that the command entry was acknowledged 
+        but does not indicate that the command was executed. 
+        This endpoint uses the [new signing format](#overview--signing-format-new) which does not require strict field 
+        ordering and addition of null fields in the request body. Quantities and prices does not require strict precision. 
+        Eg. for asset precision of 4 - `100`, `100.0`, `100.00`, `100.000` and `100.0000` are all accepted.
+        
+        Command schemas and examples are provided below. Supported commands:
+        - V3CancelOrder
+        - V1CancelAllOrders
+        - V1CancelAllOrdersByMarket
+        - V1DelayedCancelAllOrders
+        - V1UnsetDelayedCancelAllOrders
+        - V3TerminateAMMInstruction
+        - V2TransferAsset
+        
+        Requires
+        - [bearer token](#overview--add-authenticated-request-header) in authorization header
+        
+        **Ratelimited:** `True`
+      operationId: command-entry
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: signature obtained using the [new signing format](#overview--signing-format-new)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+        - in: header
+          name: BX-NONCE-WINDOW-ENABLED
+          description: |
+            string representation of a boolean value, [enables out-of-order order requests to be processed](#overview--how-to-enable-out-of-order-processing-of-order-requests),
+            only valid for `V3CancelOrder`
+          schema:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
+          required: false
+      responses:
+        200:
+          description: Status OK. This means a command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/CancelOrderCommandResponseV3'
+                  - $ref: '#/components/schemas/CancelAllOrdersByMarketResponse'
+                  - $ref: '#/components/schemas/TerminateAMMInstructionCommandResponseV3'
+              examples:
+                CancelOrderResponse:
+                  $ref: '#/components/examples/CancelOrderCommandResponse'
+                CancelAllOrdersResponse:
+                  $ref: '#/components/examples/CancelAllOrdersCommandResponse'
+                CancelAllOrdersByMarketResponse:
+                  $ref: '#/components/examples/CancelAllOrdersByMarketCommandResponse'
+                DelayedCancelAllOrdersResponse:
+                  $ref: '#/components/examples/DelayedCancelAllOrdersCommandResponse'
+                UnsetDelayedCancelAllOrdersResponse:
+                  $ref: '#/components/examples/UnsetDelayedCancelAllOrdersCommandResponse'
+                TerminateAMMInstructionResponse:
+                  $ref: '#/components/examples/TerminateAMMInstructionCommandResponse'
+                TransferAssetResponse:
+                  $ref: '#/components/examples/TransferAssetCommandResponse'
+
+        400:
+          description: |+
+            Bad Request
+            
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CancelOrderCommandV3'
+                - $ref: '#/components/schemas/CancelAllOrdersCommand'
+                - $ref: '#/components/schemas/CancelAllOrdersByMarketCommand'
+                - $ref: '#/components/schemas/DelayedCancelAllOrdersCommand'
+                - $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersCommand'
+                - $ref: '#/components/schemas/TerminateAMMInstructionCommandV3'
+                - $ref: '#/components/schemas/TransferAssetCommandV2'
+            examples:
+              CancelOrderCommand:
+                $ref: '#/components/examples/CancelOrderCommand'
+              CancelAllOrdersCommand:
+                $ref: '#/components/examples/CancelAllOrdersCommand'
+              CancelAllOrdersByMarketCommand:
+                $ref: '#/components/examples/CancelAllOrdersByMarketCommand'
+              DelayedCancelAllOrdersCommand:
+                $ref: '#/components/examples/DelayedCancelAllOrdersCommand'
+              UnsetDelayedCancelAllOrdersCommand:
+                $ref: '#/components/examples/UnsetDelayedCancelAllOrdersCommand'
+              TerminateAMMInstructionCommand:
+                $ref: '#/components/examples/TerminateAMMInstructionCommand'
+              TransferAssetCommand:
+                $ref: '#/components/examples/TransferAssetCommand'
+
+      security:
+        - jwtTokenAuth: [ ]
+
   /trades:
     get:
       tags:
@@ -2975,7 +3870,7 @@ paths:
         
         > **Bullish requires you to whitelist a withdrawal destination address before submitting a withdrawal request. You may view, approve, and manage your list of destination addresses in Account Settings on the Bullish website. If you attempt a withdrawal without first whitelisting an address in Account Settings, then the withdrawal attempt will fail.**
         
-        For a full example of using the withdrawal endpoints please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/custody_withdrawals.py)
+        For a full example of using the withdrawal endpoints please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/bullish/rest/custody_withdrawals.py)
         
         The currently supported precisions for withdrawal quantities are as follows, and as with fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei) :
         
@@ -3183,6 +4078,105 @@ paths:
           description: Too Many Requests
         500:
           description: Internal Server Error
+  /derivatives-positions:
+    get:
+      tags:
+        - derivatives
+      summary: Get derivatives positions
+      description: Get derivatives positions
+      operationId: get-derivatives-positions
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+        - in: query
+          name: symbol
+          example: BTC-USDC-PERP
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DerivativesPositionResponse'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
+
+  /history/perpetual-settlement:
+    get:
+      tags:
+        - history
+      summary: Get perpetual settlement history
+      description: |
+        Get perpetual settlement history
+        - [supports pagination](#overview--pagination-support)
+        - supports filtering on `symbol`, `settlementDatetime`
+      operationId: get-perpetual-settlement-history
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+        - in: query
+          name: symbol
+          example: BTC-USDC-PERP
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: false
+        - in: query
+          name: settlementDatetime[gte]
+          description: start timestamp of window, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: true
+        - in: query
+          name: settlementDatetime[lte]
+          description: end timestamp of window, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/PerpetualSettlementResponse'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /markets:
     get:
       tags:
@@ -3311,7 +4305,7 @@ paths:
           required: true
           description: symbol to get
       tags:
-        - market-data
+        - history
       summary: Get Historical Market Trades
       description: |
         Get Historical Market Trades by Market Symbol.
@@ -3422,7 +4416,7 @@ paths:
   /history/borrow-interest:
     get:
       tags:
-        - orders
+        - history
       summary: Get Historical Hourly Borrow Interest
       description: |
         Get Historical Hourly Borrow Interest. Each entry denotes the hourly quantities for the specific asset. 
@@ -3557,10 +4551,18 @@ components:
     Boolean:
       type: boolean
       format: true or false
+    MarketTypeAsString:
+      type: string
+      description: market type can have the following string values `"SPOT"`, `"PERPETUAL"`
+      example: SPOT
     OrderTypeAsString:
       type: string
       description: order type can have the following string values `"LMT"`, `"MKT"`, `"STOP_LIMIT"`
       example: "LMT"
+    OrderTypeAsStringV2:
+      type: string
+      description: order type can have the following string values `"LIMIT"`, `"MARKET"`, `"STOP_LIMIT"`
+      example: "LIMIT"
     OrderSideAsString:
       type: string
       description: order side can have the following string values `"BUY"`, `"SELL"`
@@ -3599,15 +4601,15 @@ components:
       type: string
       example: "187"
     TradingAccountId:
-      description: id of the trading account.
+      description: unique trading account ID
       type: string
-      example: "111234567890"
+      example: "111000000000001"
     TradingAccountIds:
       description: list of trading account ids.
       type: array
       items:
         type: string
-        example: "111234567890"
+        example: "111000000000001"
     MarketID:
       type: string
       example: BTCUSD
@@ -3618,6 +4620,10 @@ components:
       description: see [asset value](#overview--price-and-quantity-precision) format
       type: string
       example: '1.00000000'
+    UsdcValue:
+      description: see [asset value](#overview--price-and-quantity-precision) format
+      type: string
+      example: '1.0000'
     UserId:
       type: string
       example: "12345"
@@ -3881,6 +4887,56 @@ components:
           description: unique order ID
           allOf:
             - $ref: '#/components/schemas/OrderID'
+    CreateOrderCommandResponseV3:
+      type: object
+      required:
+        - message
+        - requestId
+        - orderId
+      properties:
+        message:
+          description: message
+          type: string
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+        orderId:
+          description: unique order ID
+          allOf:
+            - $ref: '#/components/schemas/OrderID'
+        clientOrderId:
+          description: unique numeric identifier generated on the client side expressed as a string value
+          type: string
+      example:
+        message: 'Command acknowledged - CreateOrder'
+        requestId: '633910976353665024'
+        orderId: '633910775316480001'
+        clientOrderId: '1234567'
+    CancelOrderCommandResponseV3:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+        orderId:
+          description: unique order ID
+          allOf:
+            - $ref: '#/components/schemas/OrderID'
+        clientOrderId:
+          description: unique numeric identifier generated on the client side expressed as a string value
+          type: string
+      example:
+        message: 'Command acknowledged - CancelOrder'
+        requestId: '633910976353665024'
+        orderId: '633910775316480001'
     CreateOrderCommand:
       type: object
       required:
@@ -3937,6 +4993,55 @@ components:
         tradingAccountId:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+    CreateOrderCommandV3:
+      type: object
+      required:
+        - commandType
+        - symbol
+        - type
+        - side
+        - quantity
+        - timeInForce
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V3CreateOrder'
+          type: string
+        clientOrderId:
+          allOf:
+            - $ref: '#/components/schemas/OrderHandle'
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        type:
+          allOf:
+            - $ref: '#/components/schemas/OrderTypeAsStringV2'
+        side:
+          allOf:
+            - $ref: '#/components/schemas/OrderSideAsString'
+        price:
+          description: price
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        stopPrice:
+          description: stop price
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quantity:
+          description: quantity
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        timeInForce:
+          allOf:
+            - $ref: '#/components/schemas/OrderTimeInForceAsString'
+        allowBorrow:
+          description: allows to borrow on the order
+          type: boolean
+          default: false
+          example: false
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
     TradingAccountResponse:
       type: object
       required:
@@ -3951,6 +5056,7 @@ components:
         - tradingAccountId
         - tradingAccountName
         - isDefaulted
+        - riskLimitUSD
       properties:
         isBorrowing:
           description: whether the trading account is borrowing
@@ -3996,6 +5102,10 @@ components:
           description: whether the trading account is defaulted
           type: String
           example: "false"
+        riskLimitUSD:
+          description: The maximum allowed borrowing for this trading account (in USD currency)
+          type: string
+          example: "10000.0000"
     CreateAMMInstructionResponse:
       type: object
       required:
@@ -4016,6 +5126,50 @@ components:
           description: unique AMM instruction ID
           allOf:
             - $ref: '#/components/schemas/AMMInstructionID'
+    CreateAMMInstructionCommandResponseV3:
+      type: object
+      required:
+        - message
+        - requestId
+        - instructionId
+      properties:
+        message:
+          description: message
+          type: string
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+        instructionId:
+          description: unique AMM instruction ID
+          allOf:
+            - $ref: '#/components/schemas/AMMInstructionID'
+      example:
+        message: 'Command acknowledged - CreateAMMInstruction'
+        requestId: '633906221577404416'
+        instructionId: '633906221577404424'
+    TerminateAMMInstructionCommandResponseV3:
+      type: object
+      required:
+        - message
+        - requestId
+        - instructionId
+      properties:
+        message:
+          description: message
+          type: string
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+        instructionId:
+          description: unique AMM instruction ID
+          allOf:
+            - $ref: '#/components/schemas/AMMInstructionID'
+      example:
+        message: 'Command acknowledged - TerminateAMMInstruction'
+        requestId: '633906221577404416'
+        instructionId: '633906221577404424'
     BadOrderEntryResponse:
       type: object
       required:
@@ -4076,6 +5230,56 @@ components:
         tradingAccountId:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+    CreateAMMInstructionCommandV3:
+      type: object
+      required:
+        - commandType
+        - symbol
+        - baseQuantity
+        - quoteQuantity
+        - upperBound
+        - lowerBound
+        - feeTierId
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V3CreateAMMInstruction'
+          type: string
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        baseQuantity:
+          description: base quantity
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quoteQuantity:
+          description: quote quantity
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        upperBound:
+          type: string
+          description: upper bound of price range, in quote currency
+        lowerBound:
+          type: string
+          description: lower bound of price range, in quote currency
+        feeTierId:
+          allOf:
+            - $ref: '#/components/schemas/FeeTierId'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: 'V3CreateAMMInstruction'
+        symbol:
+          $ref: '#/components/schemas/MarketSymbol/example'
+        baseQuantity: '0'
+        quoteQuantity: '50000.1'
+        upperBound: '25000'
+        lowerBound: '20000'
+        feeTierId:
+          $ref: '#/components/schemas/FeeTierId/example'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
     CancelOrderCommand:
       type: object
       required:
@@ -4102,6 +5306,66 @@ components:
         tradingAccountId:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+    CancelOrderCommandV3:
+      type: object
+      required:
+        - commandType
+        - symbol
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V3CancelOrder'
+          type: string
+        orderId:
+          description: unique order ID
+          allOf:
+            - $ref: '#/components/schemas/OrderID'
+        clientOrderId:
+          allOf:
+            - $ref: '#/components/schemas/OrderHandle'
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: 'V3CancelOrder'
+        orderId:
+          $ref: '#/components/schemas/OrderID/example'
+        symbol:
+          $ref: '#/components/schemas/MarketSymbol/example'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
+    TerminateAMMInstructionCommandV3:
+      type: object
+      required:
+        - commandType
+        - instructionId
+        - symbol
+        - tradingAccountId
+      properties:
+        commandType:
+          description: The command type, it must be 'V3TerminateAMMInstruction'
+          type: string
+        instructionId:
+          description: unique AMM instruction ID
+          allOf:
+            - $ref: '#/components/schemas/AMMInstructionID'
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: 'V3TerminateAMMInstruction'
+        instructionId:
+          $ref: '#/components/schemas/AMMInstructionID/example'
+        symbol:
+          $ref: '#/components/schemas/MarketSymbol/example'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
     CancelAllOrdersRequest:
       type: object
       required:
@@ -4133,11 +5397,14 @@ components:
         commandType:
           description: The command type, it must be 'V1CancelAllOrders'
           type: string
-          example: 'V1CancelAllOrders'
         tradingAccountId:
           description: unique trading account Id
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: 'V1CancelAllOrders'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
     CancelAllOrdersResponse:
       type: object
       required:
@@ -4147,11 +5414,14 @@ components:
         message:
           description: message
           type: string
-          example: "Command acknowledged - CancelAllOrders"
         requestId:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
+      example:
+        message: "Command acknowledged - CancelAllOrders"
+        requestId: "633900538459062272"
+
     DelayedCancelAllOrdersRequest:
       type: object
       required:
@@ -4195,6 +5465,12 @@ components:
         tradingAccountId:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: 'V1DelayedCancelAllOrders'
+        delayBySeconds:
+          $ref: '#/components/schemas/DelayBySeconds/example'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
     DelayedCancelAllOrdersResponse:
       type: object
       required:
@@ -4204,11 +5480,13 @@ components:
         message:
           description: message
           type: string
-          example: "Command acknowledged - DelayedCancelAllOrders"
         requestId:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
+      example:
+        message: "Command acknowledged - DelayedCancelAllOrders"
+        requestId: "633914459442118656"
     UnsetDelayedCancelAllOrdersRequest:
       type: object
       required:
@@ -4244,6 +5522,10 @@ components:
         tradingAccountId:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: 'V1UnsetDelayedCancelAllOrders'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
     UnsetDelayedCancelAllOrdersResponse:
       type: object
       required:
@@ -4253,11 +5535,13 @@ components:
         message:
           description: message
           type: string
-          example: "Command acknowledged - UnsetDelayedCancelAllOrders"
         requestId:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
+      example:
+        message: "Command acknowledged - UnsetDelayedCancelAllOrders"
+        requestId: "633914459442118656"
     JWT:
       type: string
       format: string
@@ -4299,11 +5583,13 @@ components:
         message:
           description: message
           type: string
-          example: "Command acknowledged - TransferAsset"
         requestId:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
+      example:
+        message: "Command acknowledged - TransferAsset"
+        requestId: '633909659774222336'
     TransferAssetCommand:
       type: object
       required:
@@ -4333,6 +5619,43 @@ components:
           description: Destination of the asset transfer
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+    TransferAssetCommandV2:
+      type: object
+      required:
+        - commandType
+        - assetSymbol
+        - quantity
+        - fromTradingAccountId
+        - toTradingAccountId
+      properties:
+        commandType:
+          description: The command type, e.g. 'V2TransferAsset'
+          type: string
+        assetSymbol:
+          description: Symbol of the asset. i.e. currency
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        quantity:
+          description: |
+            Quantity of the asset. Can be representated with any number of trailing zeroes up to asset precision 
+            (eg `100.1`, `100.10`, `100.100`, `100.1000` are valid for asset precision 4)
+          type: string
+        fromTradingAccountId:
+          description: Source of the asset transfer
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        toTradingAccountId:
+          description: Destination of the asset transfer
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: 'V2TransferAsset'
+        assetSymbol:
+          $ref: '#/components/schemas/AssetSymbol/example'
+        quantity: '100.1'
+        fromTradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
+        toTradingAccountId: '111000000000002'
     CancelAllOrdersByMarketRequest:
       type: object
       required:
@@ -4365,7 +5688,6 @@ components:
         commandType:
           description: The command type, it must be 'V1CancelAllOrdersByMarket'
           type: string
-          example: 'V1CancelAllOrdersByMarket'
         symbol:
           description: market symbol
           allOf:
@@ -4374,6 +5696,12 @@ components:
           description: unique trading account Id
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: 'V1CancelAllOrdersByMarket'
+        symbol:
+          $ref: '#/components/schemas/MarketSymbol/example'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
     CancelAllOrdersByMarketResponse:
       type: object
       required:
@@ -4383,11 +5711,13 @@ components:
         message:
           description: message
           type: string
-          example: "Command acknowledged - CancelAllOrdersByMarket"
         requestId:
           description: unique request ID
           allOf:
             - $ref: '#/components/schemas/RequestID'
+      example:
+        message: "Command acknowledged - CancelAllOrdersByMarket"
+        requestId: "633914459442118656"
     LoginRequest:
       type: object
       required:
@@ -4523,16 +5853,20 @@ components:
       required:
         - orderId
         - handle
+        - clientOrderId
         - symbol
         - price
         - stopPrice
         - averageFillPrice
         - margin
+        - allowBorrow
         - quantity
         - quantityFilled
         - baseFee
         - quoteFee
         - borrowedQuantity
+        - borrowedBaseQuantity
+        - borrowedQuoteQuantity
         - isLiquidation
         - side
         - type
@@ -4544,6 +5878,10 @@ components:
         - createdAtDatetime
       properties:
         handle:
+          deprecated: true
+          allOf:
+            - $ref: '#/components/schemas/OrderHandle'
+        clientOrderId:
           allOf:
             - $ref: '#/components/schemas/OrderHandle'
         orderId:
@@ -4569,6 +5907,11 @@ components:
         margin:
           description: indicates if the order was allowed to borrow (does not indicate that borrowing occurred)
           type: boolean
+          deprecated: true
+          example: false
+        allowBorrow:
+          description: indicates if the order was allowed to borrow (does not indicate that borrowing occurred)
+          type: boolean
           example: false
         quantity:
           description: quantity, see [asset value](#overview--price-and-quantity-precision) format
@@ -4587,7 +5930,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         borrowedQuantity:
+          deprecated: true
           description: quantity borrowed, see [asset value](#overview--price-and-quantity-precision) format - BUY order borrows quote, SELL order borrows base
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        borrowedBaseQuantity:
+          description: quantity borrowed, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        borrowedQuoteQuantity:
+          description: quantity borrowed, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         isLiquidation:
@@ -4649,12 +6001,14 @@ components:
         - initialQuotePrice
         - initialValue
         - liquidityId
+        - instructionId
         - lowerBound
         - price
         - quoteFee
         - quoteInvestQuantity
         - quotePrice
         - quoteWithdrawQuantity
+        - lastDistributedPrice
         - requestId
         - staticSpreadFee
         - status
@@ -4667,6 +6021,11 @@ components:
         - yieldEarn
       properties:
         liquidityId:
+          description: unique AMM instruction ID
+          deprecated: true
+          allOf:
+            - $ref: '#/components/schemas/AMMInstructionID'
+        instructionId:
           description: unique AMM instruction ID
           allOf:
             - $ref: '#/components/schemas/AMMInstructionID'
@@ -4786,6 +6145,10 @@ components:
           type: string
           description: amount of quote asset returned when AMM instruction is terminated
           example: "0.0011"
+        lastDistributedPrice:
+          type: string
+          description: (Perpetual market only) The price used at the time of settlement for AMMI that can be used to determine mtmPnl And the actual Pnl
+          example: "456.7800"
         requestId:
           description: unique request ID
           allOf:
@@ -5391,6 +6754,9 @@ components:
         - baseVolume
         - quoteVolume
         - bancorPrice
+        - markPrice
+        - fundingRate
+        - openInterest
         - lastTradeDatetime
         - lastTradeTimestamp
         - lastTradeQuantity
@@ -5468,6 +6834,18 @@ components:
           description: current price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        markPrice:
+          description: mark price, see [asset value](#overview--price-and-quantity-precision) format (only applies to derivatives market)
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        fundingRate:
+          description: funding rate, see [asset value](#overview--price-and-quantity-precision) format (only applies to derivatives market)
+          type: string
+          example: "10.0"
+        openInterest:
+          description: Open interest is the total quantity of open long positions and short positions per markets, see [asset value](#overview--price-and-quantity-precision) format (only applies to derivatives market)
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
         lastTradeDatetime:
           description: time of the last trade on this symbol, ISO 8601 with millisecond as string
           allOf:
@@ -5523,7 +6901,7 @@ components:
           example: "16856.0000"
     MarketSymbol:
       type: string
-      description: market symbol as denoted in the world
+      description: market symbol
       example: 'BTCUSD'
     FeeTier:
       type: object
@@ -5638,6 +7016,9 @@ components:
         - createOrderEnabled
         - cancelOrderEnabled
         - feeTiers
+        - marketType
+        - contractMultiplier
+        - settlementAssetSymbol
       properties:
         marketId:
           description: unique market ID
@@ -5648,11 +7029,21 @@ components:
           allOf:
             - $ref: '#/components/schemas/MarketSymbol'
         baseSymbol:
-          description: base asset symbol
+          description: base asset symbol (only applies to spot market)
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        underlyingBaseSymbol:
+          description: underlying base asset symbol (only applies to derivative market)
+          example:
           allOf:
             - $ref: '#/components/schemas/AssetSymbol'
         quoteSymbol:
-          description: quote asset symbol
+          description: quote asset symbol (only applies to spot market)
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        underlyingQuoteSymbol:
+          description: underlying quote asset symbol (only applies to derivative market)
+          example:
           allOf:
             - $ref: '#/components/schemas/AssetSymbol'
         quoteAssetId:
@@ -5737,11 +7128,11 @@ components:
             allOf:
               - $ref: '#/components/schemas/OrderTypeAsString'
         spotTradingEnabled:
-          description: spot trading enabled
+          description: spot trading enabled (only applies for Spot markets)
           type: boolean
           example: true
         marginTradingEnabled:
-          description: margin trading enabled
+          description: margin trading enabled (only applies for Spot markets)
           type: boolean
           example: true
         marketEnabled:
@@ -5763,6 +7154,19 @@ components:
           items:
             allOf:
               - $ref: '#/components/schemas/FeeTier'
+        marketType:
+          description: market type, e.g. "SPOT" for market like "BTCUSD", "PERPETUAL" for market like "BTC-USDC-PERP"
+          allOf:
+            - $ref: '#/components/schemas/MarketTypeAsString'
+        contractMultiplier:
+          description: contract multiplier. (only applies to perpetual market)
+          type: integer
+          example: 1
+        settlementAssetSymbol:
+          description: settlement asset symbol. (only applies to perpetual market)
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+          example: USDC
     Asset:
       type: object
       required:
@@ -5967,10 +7371,121 @@ components:
         - "40"
         - "50"
         - "60"
+      example: "5"
     CancelId:
       description: Unique id for this cancel request which is an unsigned 64 bit integer expressed as string
       type: string
       example: "123456789"
+    DerivativesPositionResponse:
+      description: Derivatives Position of one market for the trading account
+      type: string
+      properties:
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        symbol:
+          example: "BTC-USDC-PERP"
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        side:
+          allOf:
+            - $ref: '#/components/schemas/OrderSide'
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        notional:
+          description: Current notional of the position in currency of the quote asset
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        entryNotional:
+          description: Notional of the position in currency of the quote asset when entering the position
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        mtmPnl:
+          description: Mark to Market PnL
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        reportedMtmPnl:
+          description: Reported Mark to Market PnL
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        reportedFundingPnl:
+          description: Report Funding PnL
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        realizedPnl:
+          description: Realized PnL
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        settlementAssetSymbol:
+          description: Settlement Asset Symbol
+          type: string
+          example: "USDC"
+        createdAtDatetime:
+          description: Denotes the time the position was created by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: Denotes the time the position was created by the exchange, number of milliseconds since EPOCH
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        updatedAtDatetime:
+          description: Denotes the time the position was updated by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        updatedAtTimestamp:
+          description: Denotes the time the position was updated by the exchange, number of milliseconds since EPOCH
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+
+    PerpetualSettlementResponse:
+      description: Perpetual Settlement of one market for the trading account
+      type: string
+      properties:
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        symbol:
+          example: "BTC-USDC-PERP"
+          allOf:
+            - $ref: '#/components/schemas/MarketSymbol'
+        side:
+          allOf:
+            - $ref: '#/components/schemas/OrderSide'
+        settlementQuantity:
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        deltaTradingQuantity:
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        mtmPnl:
+          description: Mark to Market PnL
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        fundingPnl:
+          description: Funding PnL
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        settlementMarkPrice:
+          description: Mark Price
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        settlementIndexPrice:
+          description: Realized PnL
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        settlementFundingRate:
+          description: Funding Rate
+          type: string
+          example: "10.0"
+        settlementDatetime:
+          description: Denotes the time the position was settled by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        settlementTimestamp:
+          description: Denotes the time the position was settled by the exchange, number of milliseconds since EPOCH
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
   headers:
     Authorization:
       description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
@@ -6000,3 +7515,97 @@ components:
         - "false"
         - "true"
       default: "false"
+  examples:
+    CreateLimitOrderCommand:
+      value:
+        commandType: 'V3CreateOrder'
+        clientOrderId: '1234'
+        symbol:
+          $ref: '#/components/schemas/MarketSymbol/example'
+        type: "LIMIT"
+        side: "BUY"
+        price: "31000.1"
+        quantity: "1.1"
+        timeInForce: "GTC"
+        allowBorrow: true
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
+    CreateMarketOrderCommand:
+      value:
+        commandType: 'V3CreateOrder'
+        clientOrderId: '1234'
+        symbol:
+          $ref: '#/components/schemas/MarketSymbol/example'
+        type: "MARKET"
+        side: "BUY"
+        quantity: "1.1"
+        timeInForce: "GTC"
+        allowBorrow: true
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
+    CreateStopLimitOrderCommand:
+      value:
+        commandType: 'V3CreateOrder'
+        symbol:
+          $ref: '#/components/schemas/MarketSymbol/example'
+        type: "STOP_LIMIT"
+        side: "BUY"
+        price: "31000.1"
+        stopPrice: "31000.8"
+        quantity: "1.1"
+        timeInForce: "GTC"
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId/example'
+    CreateAMMInstructionCommand:
+      value:
+        $ref: '#/components/schemas/CreateAMMInstructionCommandV3/example'
+    CancelOrderCommand:
+      description: Only one of `orderId` or `clientOrderId` can be used in the cancel order command
+      value:
+        $ref: '#/components/schemas/CancelOrderCommandV3/example'
+    CancelAllOrdersCommand:
+      value:
+        $ref: '#/components/schemas/CancelAllOrdersCommand/example'
+    CancelAllOrdersByMarketCommand:
+      value:
+        $ref: '#/components/schemas/CancelAllOrdersByMarketCommand/example'
+    DelayedCancelAllOrdersCommand:
+      value:
+        $ref: '#/components/schemas/DelayedCancelAllOrdersCommand/example'
+    UnsetDelayedCancelAllOrdersCommand:
+      value:
+        $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersCommand/example'
+    TerminateAMMInstructionCommand:
+      value:
+        $ref: '#/components/schemas/TerminateAMMInstructionCommandV3/example'
+    TransferAssetCommand:
+      value:
+        $ref: '#/components/schemas/TransferAssetCommandV2/example'
+    CreateOrderCommandResponse:
+      value:
+        $ref: '#/components/schemas/CreateOrderCommandResponseV3/example'
+    CancelOrderCommandResponse:
+      description: Only one of `orderId` or `clientOrderId` present
+      value:
+        $ref: '#/components/schemas/CancelOrderCommandResponseV3/example'
+    CancelAllOrdersCommandResponse:
+      value:
+        $ref: '#/components/schemas/CancelAllOrdersResponse/example'
+    CancelAllOrdersByMarketCommandResponse:
+      value:
+        $ref: '#/components/schemas/CancelAllOrdersByMarketResponse/example'
+    DelayedCancelAllOrdersCommandResponse:
+      value:
+        $ref: '#/components/schemas/DelayedCancelAllOrdersResponse/example'
+    UnsetDelayedCancelAllOrdersCommandResponse:
+      value:
+        $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersResponse/example'
+    CreateAMMInstructionCommandResponse:
+      value:
+        $ref: '#/components/schemas/CreateAMMInstructionCommandResponseV3/example'
+    TerminateAMMInstructionCommandResponse:
+      value:
+        $ref: '#/components/schemas/TerminateAMMInstructionCommandResponseV3/example'
+    TransferAssetCommandResponse:
+      value:
+        $ref: '#/components/schemas/TradingAccountTransferResponse/example'
