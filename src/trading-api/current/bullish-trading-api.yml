@@ -718,7 +718,7 @@ info:
     - Unauthenticated WebSockets, maximum of 100 open connections per IP address.
     - Authenticated WebSockets, maximum of 10 open connections per API key.
     
-    ## Send A Message Over The Web Socket
+    ## Send A Message Over The WebSocket
 
     Messages sent by the client to the server over a web-socket follows the
     [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification). The server then returns a response following
@@ -736,11 +736,12 @@ info:
 
     Two types of subscription:
       1. Subscribe by `<TOPIC>`
-      2. Subscribe by `<TOPIC>` and `<SYMBOL>`
+      2. Subscribe by `<TOPIC>` and `<SYMBOL>` plus optional `<DEPTH>`
 
     Message fields:
       - `<TOPIC>`: subscription topic
       - `<SYMBOL>`: market symbol
+      - `<DEPTH>`: depth of l2 orderbook, default 10
       - `<COMMAND_ID>`: unsigned long value
 
     The subscription message would be constructed like below:
@@ -767,6 +768,21 @@ info:
       "params": {
           "topic": "<TOPIC>",
           "symbol": "<SYMBOL>",
+      },
+      "id": "<COMMAND_ID>"
+    }
+    ```
+
+    Subscribe by `<TOPIC>` and `<SYMBOL>` plus optional `<DEPTH>`
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "<TOPIC>",
+          "symbol": "<SYMBOL>",
+          "depth": "<DEPTH>",
       },
       "id": "<COMMAND_ID>"
     }
@@ -800,10 +816,12 @@ info:
     ```
 
     Find below the available `<TOPIC>`:
-      1. [Market Data Web Socket](#overview--market-data-websocket-authenticated)
-      2. [Private Data Web Socket](#overview--private-data-websocket-authenticated)
+      1. [Market Data WebSocket](#overview--market-data-websocket-authenticated)
+      2. [Private Data WebSocket](#overview--private-data-websocket-authenticated)
+      3. [Multi-OrderBook Data WebSocket](#overview--multi-orderbook-websocket-unauthenticated)
 
-    ## Keep Web Socket Open
+
+    ## Keep WebSocket Open
 
     Keep the web-socket connection open by sending keepalive ping messages periodically.
     The web-socket closes automatically after 5 minutes.
@@ -821,7 +839,7 @@ info:
     }
     ```
 
-    ## Receive A Message From The Web Socket
+    ## Receive A Message From The WebSocket
 
     JSON-RPC responses are of the following format:
 
@@ -889,10 +907,10 @@ info:
 
     ## Heartbeat
     - this is a `beta/experimental` feature that is currently being tested
-    - the heart beat message is periodically sent approximately every 30 seconds on the `heartbeat` topic for the [Private Data Web Socket](#overview--private-data-websocket-authenticated) API
+    - the heart beat message is periodically sent approximately every 30 seconds on the `heartbeat` topic for the [Private Data WebSocket](#overview--private-data-websocket-authenticated) API and [Multi-OrderBook WebSocket)](#overview--multi-orderbook-websocket-unauthenticated) API
     - the heat beat serves to validate end to end communication between the exchange and the client
     - if 3 heart beats are missed, then it is advisable to check the [official status page](https://bullish.statuspage.io/) for any announcements on the degradation of the exchanges features
-    - if no announcements have been made, it is advisable to disconnect and reconnect the web socket API given the issue may be isolated to a specific gateway
+    - if no announcements have been made, it is advisable to disconnect and reconnect the websocket API given the issue may be isolated to a specific gateway
 
     ## Hybrid OrderBook WebSocket (unauthenticated)
     **Route**
@@ -1019,6 +1037,106 @@ info:
     6. Receive a subsequent snapshot message and reset existing orderbook. Create orderbook with new price levels.
 
     See [connect to hybrid orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/bullish/websocket/l2_orderbook_web_socket.py) for a sample Python script.
+
+    ## Multi-OrderBook WebSocket (unauthenticated)
+    **Route**
+    - `/trading-api/v1/market-data/orderbook`
+    
+    This is an enhanced and integrated API of the 2 APIs below. It allows simultaneous subscriptions to multiple L1 and L2 orderbooks of different markets:
+    * [Hybrid OrderBook WebSocket](#overview--hybrid-orderbook-websocket-unauthenticated)
+    * [Market Data WebSocket](#overview--market-data-websocket-authenticated)
+    
+    It also provides a heartbeat topic which sends heartbeat every 30s as an indicator of platform healthiness. Please refer to the [heartbeat session](#overview--heartbeat) for the details.
+    
+    ### Multi-Orderbook Subscription
+    The orderbooks of different markets to be subscribed are controlled by the parameters in the subscription message listed below:
+    | Parameters            | Type   | Description                                                                     |
+    |:----------------------|:-------|:--------------------------------------------------------------------------------|
+    | topic                 | String | l1 orderbook: l1OrderBook<br>l2 orderbook: l2Orderbook<br>heartbeat: heartbeat  |
+    | symbol                | String | market symbol                                                                   |
+    | depth                 | String | l2 orderbook depth: [ 10, 50, 100, 200 ], optional, default 10                  |
+
+    L1 Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "l1Orderbook",
+          "symbol": "BTCUSD"
+      },
+      "id": "1611082473000"
+    }
+    ```
+
+    L2 Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "l2Orderbook",
+          "symbol": "BTCUSD",
+          "depth": "10",
+      },
+      "id": "1611082473000"
+    }
+    ```
+
+    Heartbeat Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "heartbeat"
+      },
+      "id": "1611082473000"
+    }
+    ```
+
+    ### Multi-Orderbook Response
+    * L1 Update Response
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TALevel1",
+      "data": {
+        "symbol": "BTCUSD",
+        "bid": [
+          "5199.5000",
+          "61.95995262"
+        ],
+        "ask": [
+          "5199.6000",
+          "96.59626782"
+        ],
+        "sequenceNumber": "8",
+        "datetime": "2020-06-29T06:28:55.500Z",
+        "timestamp": "1593412135500"
+      }
+    }
+    ```
+
+    * L2 Snapshot and Update Response    
+    The L2 snapshot and update responses are exactly the same as [Hybrid OrderBook WebSocket](#overview--hybrid-orderbook-websocket-unauthenticated).
+
+    * Heartbeat Update Response
+    ```json
+    {
+      "type": "update",
+      "dataType": "V1TAHeartbeat",
+      "data": {
+        "sequenceNumber": "3",
+        "createdAtTimestamp": "1611082473000"
+      }
+    }
+    ```
+    
+    See [connect to multi-orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/bullish/websocket/multi_orderbook_web_socket.py) for a sample Python script.
 
     ## Anonymous Trades WebSocket (unauthenticated)
     **Route**
@@ -1393,6 +1511,7 @@ info:
       - Response model changes for [GET /trading-api/v2/amm-instructions](#get-/trading-api/v2/amm-instructions) and [GET /trading-api/v1/amm-instructions](#get-/trading-api/v1/amm-instructions)
         - `instructionId` added.
         - `liquidityId` deprecated, will be removed towards the end of Q3 2024.
+      - New [Multi-OrderBook WebSocket (unauthenticated)](#overview--multi-orderbook-websocket-unauthenticated) API
     - October
       - New heartbeat topic for [Private Data WebSocket (authenticated)](#overview--private-data-websocket-authenticated)
       - New ECDSA API Keys and ECDSA based signing
