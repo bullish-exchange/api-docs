@@ -322,6 +322,7 @@
             <value enum="3032" description="ORDER_IS_CLOSED_OR_REJECTED"/>
             <value enum="3033" description="LEVERAGE_INCREASE_NOT_PERMITTED"/>
             <value enum="3034" description="RATE_LIMIT_EXCEEDED"/>
+            <value enum="3035" description="GLOBAL_RATE_LIMIT_EXCEEDED"/>
         </field>
         <field number="136" name="NoMiscFees" type="NUMINGROUP"/>
         <field number="137" name="MiscFeeAmt" type="AMT"/>
