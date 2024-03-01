@@ -1305,8 +1305,36 @@ info:
     ## Private Data WebSocket (authenticated)
     - All private data updates are realtime.
 
-    Route
-    - `/trading-api/v1/private-data?tradingAccountId=<Id of the Trading Account>`
+    Establishing a websocket connection
+    1. Getting private data from a single trading account.
+      - Connect to `/trading-api/v1/private-data?tradingAccountId=<Id of the Trading Account>`
+      - For example, to subscribe to the `orders` topic, the following subscription message is sent:
+      ```json
+        {
+            "jsonrpc": "2.0",
+            "type": "command",
+            "method": "subscribe",
+            "params": {
+                "topic": "orders"
+            },
+            "id": "1611082473000"
+        }
+      ```
+    2. Getting private data from multiple trading accounts.
+      - Connect to `/trading-api/v1/private-data`
+      - For example, to subscribe to the `orders` topic for each of your trading accounts, the following subscription message is sent for each trading account you wish to subscribe to:
+      ```json
+        {
+            "jsonrpc": "2.0",
+            "type": "command",
+            "method": "subscribe",
+            "params": {
+                "topic": "orders",
+                "tradingAccountId": "<Id of the Trading Account>"
+            },
+            "id": "1611082473000"
+        }
+      ```
 
     | Topic               | Description                                                                                                                         | Data Type              | Subscription Type |
     | :--                 | :--                                                                                                                                 | :--                    | :--               |
