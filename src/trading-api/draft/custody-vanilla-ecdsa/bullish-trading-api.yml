@@ -3649,7 +3649,7 @@ components:
       example: 041f3105d6e20fc84399dece611f4e6dbf8ad59d51b0db7fd6acf518d38401d4
     CustodyBankName:
       type: string
-      example: Silvergate Bank
+      example: Customers Bank
       description: name of bank
     CustodyPhysicalBankAddress:
       type: string
@@ -3661,7 +3661,7 @@ components:
       example: "9873481227"
     CustodyBankNetworkID:
       type: string
-      description: the fiat network SWIFT, ABA or SIGNET
+      description: the fiat network SWIFT, ABA or CBIT
       example: SWIFT
     CustodyBankRoutingCode:
       type: string
