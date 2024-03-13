@@ -55,6 +55,7 @@
 | 6011 | Self cross prevention amend  |
 | 6012 | Stop limit amend  |
 | 6013 | Partially filled  |
+| 6014 | Order accepted  |
 
 # REST API
 
@@ -108,6 +109,7 @@
 | 6011 | Self cross prevention amend  |
 | 6012 | Stop limit amend  |
 | 6013 | Partially filled  |
+| 6014 | Order accepted  |
 
 ## Custody statusReasonCode Map
 
