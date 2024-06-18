@@ -1337,7 +1337,7 @@ tags:
     description: |+
       Authenticated APIs for custody,  [Custody Basic Examples](https://github.com/bullish-exchange/api-examples/blob/master/custody_basics.py)
       
-      Custody APIs have a limit of 40 requests per minute combined across all endpoints of type **/wallets/***
+      Custody APIs have a limit of 40 requests per IP, per minute. This is combined across all endpoints of type **/wallets/***
   - name: trades
     description: Authenticated APIs for reading trade data
   - name: accounts
@@ -2727,7 +2727,7 @@ paths:
         - custody
       summary: Get Custody Transaction History
       description: |
-        Get custody transaction history requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Get custody transaction history, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         - [supports pagination](#overview--pagination-support)
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
@@ -2762,7 +2762,7 @@ paths:
         - custody
       summary: Get Withdrawal Limits for Symbol
       description: |
-        Get withdrawal limits for symbol [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Get withdrawal limits for symbol, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-limits
@@ -2797,7 +2797,7 @@ paths:
         - custody
       summary: Get Deposit Instructions for Crypto
       description: |
-        Get deposit instructions requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Get deposit instructions requires, [bearer token](#overview--add-authenticated-request-header) in authorization header
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-deposit-instructions
@@ -2834,7 +2834,7 @@ paths:
         - custody
       summary: Get Withdrawal Instructions for Crypto
       description: |
-        Get withdrawal instructions added by the user. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Get withdrawal instructions added by the user, requires [bearer token](#overview--add-authenticated-request-header) in authorization header. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-withdrawal-instructions
@@ -2871,7 +2871,7 @@ paths:
         - custody
       summary: Get Deposit Instructions for Fiat
       description: |
-        Get deposit instructions requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Get deposit instructions, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-deposit-instructions
@@ -2909,7 +2909,7 @@ paths:
         - custody
       summary: Get Withdrawal Instructions for Fiat
       description: |
-        Get withdrawal instructions added by the user. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website. Requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Get withdrawal instructions added by the user, requires [bearer token](#overview--add-authenticated-request-header) in authorization header. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website.
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-withdrawal-instructions
@@ -2946,13 +2946,13 @@ paths:
         - custody
       summary: Create Withdrawal Challenge
       description: |
-        Request a withdrawal challenge for signing, this can later be used to trigger a withdrawal, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Request a withdrawal challenge for signing which can later be used to trigger a withdrawal, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         
         > **Bullish requires you to whitelist a withdrawal destination address before submitting a withdrawal request. You may view, approve, and manage your list of destination addresses in Account Settings on the Bullish website. If you attempt a withdrawal without first whitelisting an address in Account Settings, then the withdrawal attempt will fail.**
         
-        For a full example of using the withdrawal endpoints please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/custody_withdrawals.py)
+        For a full example of using the withdrawal endpoints, please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/custody_withdrawals.py)
         
-        The currently supported precisions for withdrawal quantities are as follows, and as with fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei) :
+        The currently supported precisions for withdrawal quantities are as follows. Please note that fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satoshi, ETH not Wei) :
         
         | Symbol | Precision |
         | ---------- |---------------- |
@@ -3008,7 +3008,7 @@ paths:
         - custody
       summary: Assertion for Withdrawal Challenge
       description: |
-        Make assertion (send signature and effect a withdrawal) for a withdrawal challenge created with the [withdrawal-challenge](#post-/wallets/withdrawal-challenge) endpoint, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        Make an assertion (send signature and effect a withdrawal) for a withdrawal challenge created with the [withdrawal-challenge](#post-/wallets/withdrawal-challenge) endpoint, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-withdrawal-assertion
@@ -3062,7 +3062,7 @@ paths:
 
         For a full example of using the withdrawal endpoint please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/ecdsa/rest/custody_withdrawal.py)
 
-        The currently supported precisions for withdrawal quantities are as follows, and as with fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei) :
+        The currently supported precisions for withdrawal quantities are as follows. Please note that fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satoshi, ETH not Wei) :
 
         | Symbol | Precision |
         | ---------- |---------------- |
@@ -3709,11 +3709,11 @@ components:
     CustodyAvailableWithdrawalLimit:
       type: string
       example: "20000.0"
-      description: remaining limit on amount of coin or token that could be withdrawn now, in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei)
+      description: remaining limit on amount of coin or token that could be withdrawn now, in units of the symbol itself, not in smaller denominations (e.g. BTC not Satoshi, ETH not Wei)
     Custody24HWithdrawalLimit:
       type: string
       example: "1000000.00"
-      description: limit on amount of coin or token that can be withdrawn over a 24 hour period, in units of the symbol itself, not in smaller denominations (e.g. BTC not Satohshi, ETH not Wei)
+      description: limit on amount of coin or token that can be withdrawn over a 24 hour period, in units of the symbol itself, not in smaller denominations (e.g. BTC not Satoshi, ETH not Wei)
     CustodyCreatedAtDateTime:
       type: string
       example: "2022-09-16T07:56:15.000Z"
