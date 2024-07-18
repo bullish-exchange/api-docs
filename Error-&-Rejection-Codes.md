@@ -46,6 +46,7 @@
 | 3023 | Duplicated order handle  |
 | 3031 | Price is out of range  |
 | 3032 | Order is either closed or rejected |
+| 3064 | Incoming limit IOC, FOK or POST_ONLY failed to make or take |
 | 6001 | Open |
 | 6002 | Executed |
 | 6003 | Matured  |
@@ -100,6 +101,7 @@
 | 3023 | Duplicated order handle  |
 | 3031 | Price is out of range  |
 | 3032 | Order is either closed or rejected |
+| 3064 | Incoming limit IOC, FOK or POST_ONLY failed to make or take |
 | 6001 | Open |
 | 6002 | Executed |
 | 6003 | Matured  |
