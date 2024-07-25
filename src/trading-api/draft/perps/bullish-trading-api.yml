@@ -2883,105 +2883,6 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
-  /wallets/withdrawal-challenge:
-    post:
-      tags:
-        - custody
-      summary: Create Withdrawal Challenge
-      description: |
-        Request a withdrawal challenge for signing which can later be used to trigger a withdrawal, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-        
-        > **Bullish requires you to whitelist a withdrawal destination address before submitting a withdrawal request. You may view, approve, and manage your list of destination addresses in Account Settings on the Bullish website. If you attempt a withdrawal without first whitelisting an address in Account Settings, then the withdrawal attempt will fail.**
-        
-        For a full example of using the withdrawal endpoints, please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/custody_withdrawals.py)
-        
-        The currently supported precisions for withdrawal quantities are as follows. Please note that fees are always specified in units of the symbol itself, not in smaller denominations (e.g. BTC not Satoshi, ETH not Wei) :
-        
-        | Symbol | Precision |
-        | ---------- |---------------- |
-        | USD | 2dp |
-        | BTC | 8dp |
-        | DOGE | 8dp |
-        | EOS | 4dp |
-        | ETH | 8dp |
-        | LTC | 8dp |
-        | XRP | 6dp |
-        | AAVE | 8dp |
-        | CRV | 8dp |
-        | LINK | 8dp |
-        | MANA | 8dp |
-        | MATIC | 8dp |
-        | SUSHI | 8dp |
-        | UNI | 8dp |
-        | USDC | 6dp |
-        | USDT | 6dp |
-
-        **Ratelimited:** `True` - see [custody limits](#tag--custody)
-      operationId: custody-withdrawal-challenge
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-      requestBody:
-        description: withdrawal challenge
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustodyApiWithdrawalChallengeRequest'
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustodyApiWithdrawalChallengeResponse'
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: []
-  /wallets/withdrawal-assertion:
-    post:
-      tags:
-        - custody
-      summary: Assertion for Withdrawal Challenge
-      description: |
-        Make an assertion (send signature and effect a withdrawal) for a withdrawal challenge created with the [withdrawal-challenge](#post-/wallets/withdrawal-challenge) endpoint, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-        
-        **Ratelimited:** `True` - see [custody limits](#tag--custody)
-      operationId: custody-withdrawal-assertion
-      parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-      requestBody:
-        description: withdrawal assertion
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustodyApiWithdrawalAssertionRequest'
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustodyApiWithdrawalAssertionResponse'
-        429:
-          description: Too Many Requests
-        500:
-          description: Internal Server Error
-      security:
-        - jwtTokenAuth: []
   /wallets/withdrawal:
     post:
       tags:
@@ -4872,30 +4773,6 @@ components:
           example: '100000.000001'
           allOf:
             - $ref: '#/components/schemas/CustodyQuantity'
-    CustodyApiWithdrawalAssertionCommand:
-      type: object
-      required:
-        - commandType
-        - publicKey
-        - challenge
-        - signature
-      properties:
-        commandType:
-          description: the command type, it must be 'V1WithdrawalAssertion'
-          type: string
-          example: 'V1WithdrawalAssertion'
-        publicKey:
-          description: user API public key
-          allOf:
-            - $ref: '#/components/schemas/PublicKey'
-        challenge:
-          description: challenge
-          allOf:
-            - $ref: '#/components/schemas/CustodyWithdrawalChallenge'
-        signature:
-          description: signature of challenge
-          allOf:
-            - $ref: '#/components/schemas/Signature'
     CustodyApiWithdrawalCommand:
       type: object
       required:
@@ -4924,15 +4801,6 @@ components:
           example: '100000.000001'
           allOf:
             - $ref: '#/components/schemas/CustodyQuantity'
-    CustodyApiWithdrawalAssertionRequest:
-      type: object
-      required:
-        - command
-      properties:
-        command:
-          description: withdrawal assertion command
-          allOf:
-            - $ref: '#/components/schemas/CustodyApiWithdrawalAssertionCommand'
     CustodyApiWithdrawalRequest:
       type: object
       required:
@@ -4956,40 +4824,6 @@ components:
           description: withdrawal command
           allOf:
             - $ref: '#/components/schemas/CustodyApiWithdrawalCommand'
-    CustodyApiWithdrawalChallengeRequest:
-      type: object
-      required:
-        - timestamp
-        - nonce
-        - command
-      properties:
-        nonce:
-          type: string
-          description: Withdrawal nonce, independent of header nonce, recommendation re-use header nonce
-          example: "1628376611"
-        command:
-          description: withdrawal challenge command
-          allOf:
-            - $ref: '#/components/schemas/CustodyApiWithdrawalChallengeCommand'
-    CustodyApiWithdrawalChallengeResponse:
-      type: object
-      properties:
-        statusReason:
-          description: status reason, describes why withdrawal challenge is in a specific state
-          type: string
-          example: Withdrawal challenge created
-        statusReasonCode:
-          description: status reason code, see [details](#overview--custody-statusreasoncode-map)
-          type: integer
-          example: 1001
-        challenge:
-          description: withdrawal challenge command
-          allOf:
-            - $ref: '#/components/schemas/CustodyWithdrawalChallenge'
-        custodyTransactionId:
-          description: transaction id
-          allOf:
-            - $ref: '#/components/schemas/CustodyTransactionID'
     CustodyApiWithdrawalResponse:
       type: object
       properties:
@@ -4997,20 +4831,6 @@ components:
           description: status reason, describes why withdrawal challenge is in a specific state
           type: string
           example: Withdrawal accepted
-        statusReasonCode:
-          description: status reason code, see [details](#overview--custody-statusreasoncode-map)
-          type: integer
-          example: 1001
-        custodyTransactionId:
-          allOf:
-            - $ref: '#/components/schemas/CustodyTransactionID'
-    CustodyApiWithdrawalAssertionResponse:
-      type: object
-      properties:
-        statusReason:
-          description: status reason, describes why withdrawal challenge is in a specific state
-          type: string
-          example: Withdrawal assertion accepted
         statusReasonCode:
           description: status reason code, see [details](#overview--custody-statusreasoncode-map)
           type: integer
