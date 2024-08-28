@@ -100,6 +100,8 @@
                 <field name="MiscFeeCurr" required="N"/>
                 <field name="MiscFeeType" required="N"/>
             </group>
+            <field name="GrossTradeAmt" required="N"/>
+            <field name="CopyMsgIndicator" required="N"/>
             <field name="AggressorIndicator" required="N"/>
             <field name="BorrowedQty" required="N"/>
             <field name="BorrowedQtyCurr" required="N"/>
@@ -282,6 +284,7 @@
             <value enum="1" description="MARKET"/>
             <value enum="2" description="LIMIT"/>
             <value enum="4" description="STOP_LIMIT"/>
+            <value enum="p" description="POST_ONLY"/>
         </field>
         <field number="41" name="OrigClOrdID" type="STRING"/>
         <field number="44" name="Price" type="PRICE"/>
@@ -323,6 +326,9 @@
             <value enum="3033" description="LEVERAGE_INCREASE_NOT_PERMITTED"/>
             <value enum="3034" description="RATE_LIMIT_EXCEEDED"/>
             <value enum="3035" description="GLOBAL_RATE_LIMIT_EXCEEDED"/>
+            <value enum="3064" description="ORDER_FAILED_TO_MAKE_OR_TAKE"/>
+            <value enum="3065" description="MARKET_OPEN_INTEREST_LIMIT_REACHED"/>
+            <value enum="3066" description="CONCENTRATION_LIMIT_REACHED"/>
         </field>
         <field number="136" name="NoMiscFees" type="NUMINGROUP"/>
         <field number="137" name="MiscFeeAmt" type="AMT"/>
@@ -354,6 +360,7 @@
         <field number="378" name="ExecRestatementReason" type="CHAR">
             <value enum="5" description="PARTIAL_DECLINE_OF_ORDER_QTY"/>
         </field>
+        <field number="381" name="GrossTradeAmt" type="AMT"/>
         <field number="434" name="CxlRejResponseTo" type="CHAR">
             <value enum="1" description="ORDER_CANCEL_REQUEST"/>
         </field>
@@ -381,6 +388,7 @@
             <value enum="1" description="INVALID_OR_UNSUPPORTED_REQUEST"/>
             <value enum="2" description="INSTRUMENT_NOT_FOUND"/>
         </field>
+        <field number="797" name="CopyMsgIndicator" type="BOOLEAN"/>
         <field number="893" name="LastFragment" type="BOOLEAN"/>
         <field number="969" name="MinPriceIncrement" type="FLOAT"/>
         <field number="1057" name="AggressorIndicator" type="BOOLEAN"/>
