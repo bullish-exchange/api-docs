@@ -4907,6 +4907,10 @@ components:
       type: string
       example: "2022-09-16T07:56:15.000Z"
       description: time of initial transaction
+    CustodyUpdatedAtDateTime:
+      type: string
+      example: "2022-09-16T07:59:23.000Z"
+      description: last updated time of transaction
     PublicKey:
       type: string
       example: PUB_R1_6PTdfWbXvXWQduhcCiRooGHTVpriu15xMqfr7EDq6sWLDj7NjS
