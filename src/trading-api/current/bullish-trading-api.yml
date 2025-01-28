@@ -341,7 +341,7 @@ info:
       "token": "<JWT_TOKEN>"
     }
     ```
-    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/bullish/rest/generate_jwt_v2.py) for a sample Python script.
+    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/session) for sample Python scripts.
     
     ### HMAC API Key
     To generate/get a JWT token for a HMAC API Key you will need to perform the following request:
@@ -370,7 +370,7 @@ info:
     - request method - `GET`
     - request path - `/trading-api/v1/users/hmac/login`
     
-    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/hmac/rest/generate_jwt.py) for a sample Python script.
+    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/session/generate_jwt_hmac.py) for a sample Python script.
 
     ### ECDSA API Key
     To generate/get a JWT token for a ECDSA API Key you will need to perform the following request:
@@ -408,7 +408,7 @@ info:
       "token": "<JWT_TOKEN>"
     }
     ```
-    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/ecdsa/rest/generate_jwt.py) for a sample Python script.
+    See [generate JWT](https://github.com/bullish-exchange/api-examples/blob/master/session/generate_jwt_ecdsa.py) for a sample Python script.
     
     ## Logout using a JWT Token
     Users can better manage their sessions by logging out of unused sessions. This can be done by calling the `GET /trading-api/v1/users/logout` endpoint with the JWT Token in the header - see [Add Authenticated Request Header](#overview--add-authenticated-request-header).
@@ -575,24 +575,24 @@ info:
     1. Hash the above string using a SHA-256 hash function and sign the resulting hexdigest with your ECDSA `<PRIVATE_KEY>`.
     2. DER encode the signature, and base64 encode the DER encoded signature.  
     
-    See [sign a request with ECDSA](https://github.com/bullish-exchange/api-examples/blob/master/ecdsa/rest/v2_endpoints/create_order.py) for a sample Python script.
+    See [sign a request with ECDSA](https://github.com/bullish-exchange/api-examples/blob/master/orders/create_order_ecdsa.py) for a sample Python script.
 
     #### How To Sign - HMAC API Key
 
     1. Hash the above string using a SHA-256 hash function and take the hexdigest.
     2. Sign the hexdigest from step 2 with your HMAC Secret Key.  
     
-    See [sign a request with HMAC](https://github.com/bullish-exchange/api-examples/blob/master/hmac/rest/v2_endpoints/create_order.py) for a sample Python script.
+    See [sign a request with HMAC](https://github.com/bullish-exchange/api-examples/blob/master/orders/create_order_hmac.py) for a sample Python script.
 
     ## Fetch Trading Account Ids
     
     Trading Account Ids may be required by some endpoints. They can be fetched from [Get All Trading Accounts](#get-/accounts/trading-accounts).
     
-    See an API example [Here](https://github.com/bullish-exchange/api-examples/blob/master/bullish/rest/get_trading_accounts.py).
+    See an API example [Here](https://github.com/bullish-exchange/api-examples/blob/master/session/get_trading_accounts.py).
 
     ## Send The HTTP Authenticated Request
 
-    See [create an order](https://github.com/bullish-exchange/api-examples/blob/master/bullish/rest/create_order.py) for a sample Python script.
+    See [create an order](https://github.com/bullish-exchange/api-examples/blob/master/orders/create_order_hmac.py) for a sample Python script.
 
     ## How To Ensure The Order Of *Create Order* or *Cancel Order* Requests
 
@@ -873,6 +873,7 @@ info:
     |:----------------------|:-------|:--------------------------------------------------------------------------------|
     | topic                 | String | l1 orderbook: l1Orderbook<br>l2 orderbook: l2Orderbook<br>heartbeat: heartbeat  |
     | symbol                | String | market symbol                                                                   |
+    | depth                 | String | Allowed depths are 10, 50, 100, 200                                             |
 
     L1 Subscription Message Sample:
     ```json
@@ -953,7 +954,7 @@ info:
     }
     ```
     
-    See [connect to multi-orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/bullish/websocket/multi_orderbook_web_socket.py) for a sample Python script.
+    See [connect to multi-orderbook web-socket](https://github.com/bullish-exchange/api-examples/blob/master/websocket/multi_orderbook_web_socket.py) for a sample Python script.
 
     ## Unified Anonymous Trades WebSocket (unauthenticated)
     **Route**
@@ -1146,7 +1147,7 @@ info:
     }
     ```
     
-    See [connect to trades web-socket](https://github.com/bullish-exchange/api-examples/blob/master/trades_web_socket.py) for a sample Python script.
+    See [connect to trades web-socket](https://github.com/bullish-exchange/api-examples/blob/master/websocket/trades_web_socket.py) for a sample Python script.
     
     ## Anonymous Market Data Price Tick (unauthenticated)
     **Route**
@@ -1300,7 +1301,8 @@ info:
     | assetAccounts          | Provides snapshot and updates on assets in your account.                                                                              | `V1TAAssetAccount`       | By `<TOPIC>`      |
     | tradingAccounts        | Provides snapshot and updates on your trading account summary.                                                                        | `V1TATradingAccount`     | By `<TOPIC>`      |
     | heartbeat              | Provides heartbeat updates for healthcheck.                                                                                           | `V1TAHeartbeat`          | By `<TOPIC>`      |
-    | derivativesPositions   | Provides derivative position information on your trading account.                                                                     | `V1TAPerpetualPosition`  | By `<TOPIC>`      |
+    | ~derivativesPositions~ | `Deprecated`[*Replaced by:* `derivativesPositionsV2`] Provides derivative position information on your trading account.                                                        | `V1TAPerpetualPosition`  | By `<TOPIC>`      |
+    | derivativesPositionsV2 | Provides derivative position information on your trading account.                                                                | `V1TADerivativesPosition`| By `<TOPIC>`      |
     | ammInstructions        | Provides amm instructions update on your trading account.                                                                             | `V1TAAmmInstruction`     | By `<TOPIC>`      |
 
     ### orders response
@@ -1489,6 +1491,7 @@ info:
     | endCustomerId           | String    | The end customer id used for self trade prevention (default is institution id, max 32 characters)     |
     | defaultedMarginUSD      | String    | The value of margin when this trading account will be moved into a Defaulted state                    |
     | riskLimitUSD            | String    | The maximum allowed borrowing for this trading account displayed in USD                               |
+    | totalLiabilitiesUSD     | String    | The total liabilities for this trading account displayed in USD                       |
     | maxInitialLeverage      | String    | The maximum initial leverage                                                                          |
     | isPrimaryAccount        | String    | Whether this trading account is the primary account                                                   |
     | isBorrowing             | String    | Whether this trading account is borrowing any asset                                                   |
@@ -1497,6 +1500,14 @@ info:
     | takerFee                | String    | Taker fee                                                                                             |
     | makerFee                | String    | Maker Fee                                                                                             |
     | referenceAssetSymbol    | String    | asset symbol                                                                                          |
+    | liquidityAddonUSD       | String    | Expected market impact of unwinding the portfolio in the case of a liquidation event                  |
+    | marketRiskUSD           | String    | The worst possible loss on the portfolio based on scenario analysis                                   |
+    | marginProfile                          | Object | Contains the market risk multipliers applied to a trading account to derive the five individual Margin Requirement values         |
+    | initialMarketRiskMultiplierPct         | String | Market risk multiplier used to calculate initial margin requirement of the account                                               |
+    | warningMarketRiskMultiplierPct         | String | Market risk multiplier used to calculate warning margin requirement of the account                                               |
+    | liquidationMarketRiskMultiplierPct     | String | Market risk multiplier used to calculate liquidation margin requirement of the account                                           |
+    | fullLiquidationMarketRiskMultiplierPct | String | Market risk multiplier used to calculate full liquidation margin requirement of the account                                      |
+    | defaultedMarketRiskMultiplierPct       | String | Market risk multiplier used to calculate defaulted margin requirement of the account                                             | 
     | updatedAtDatetime       | String    | denotes the time the trading account was updated by the exchange, ISO 8601 with millisecond as string |
     | updatedAtTimestamp      | String    | denotes the time the trading account was updated by the exchange                                      |
     | publishedAtTimestamp    | String    | denotes the time the update was broadcasted to connected websockets                                   |
@@ -1521,6 +1532,7 @@ info:
           "endCustomerId" : "PrimeBroker",
           "defaultedMarginUSD": "300000.0000",
           "riskLimitUSD": "1000000.0000",
+          "totalLiabilitiesUSD": "13000.0000",
           "maxInitialLeverage": "3",
           "isPrimaryAccount": true,
           "isBorrowing": true,
@@ -1528,6 +1540,15 @@ info:
           "isDefaulted": false,
           "takerFee": null,
           "makerFee": null,
+          "liquidityAddonUSD": "100.0000",
+          "marketRiskUSD": "200.0000",
+          "marginProfile": {
+            "initialMarketRiskMultiplierPct": "200.00",
+            "warningMarketRiskMultiplierPct": "150.00",
+            "liquidationMarketRiskMultiplierPct": "100.00",
+            "fullLiquidationMarketRiskMultiplierPct": "75.00",
+            "defaultedMarketRiskMultiplierPct": "50.00"
+          },
           "updatedAtDatetime": "2021-12-30T07:36:35.918Z",
           "updatedAtTimestamp": "1640849795918",
           "publishedAtTimestamp": "1640849795920"
@@ -1558,6 +1579,7 @@ info:
     }
     ```
     ### Derivative position response
+    `Deprecated`: *Topic derivativesPosition will be replaced by `derivativesPositionV2`*
     -  Provide a detail view of the derivative position of each market.
     
     | Name                    | Type      | Description                                                                                                                                                                                                   |
@@ -1595,6 +1617,57 @@ info:
           "reportedMtmPnl": "120.0000",
           "reportedFundingPnl": "130.0000",
           "realizedPnl": "140.0000",
+          "createdAtDatetime": "2020-01-01T00:00:00.000Z",
+          "createdAtTimestamp": "1577836800000",
+          "updatedAtDatetime": "2020-01-02T00:00:00.000Z",
+          "updatedAtTimestamp": "1577923200000",
+          "publishedAtTimestamp": "1577923300000"
+        }
+      ]
+    }
+    ```
+    ### Derivative position V2 response
+    -  Provide a detail view of the derivative position of each market.
+    
+    | Name                    | Type      | Description                                                                                                                                                                                                   |
+    |-------------------------|-----------|-------------------------------------------------------------------------------------------------------                                                                                                        |
+    | tradingAccountId        | String    | Id of the trading account                                                                                                                                                                                     |
+    | symbol                  | String    | Market symbol, eg. BTC-USDC-PERP                                                                                                                                                                              |
+    | side                    | String    | Side of the position                                                                                                                                                                                          |
+    | quantity                | String    | Current size of the  position [asset value](#overview--price-and-quantity-precision) format                                                                                                                   |
+    | notional                | String    | Notional value of the current position, calculated using the mark price                                                                                                                                       |
+    | entryNotional           | String    | Notional value of the position, using the average entry price                                                                                                                                                 |
+    | mtmPnl                  | String    | Sum of all mark-to-market profits and losses plus profits and losses realised from trading, accumulated since the last settlement                                                                             |
+    | reportedMtmPnl          | String    | The profit/losses from the net price change since the last time the absolute quantity decreased. It is updated with every mark to market and is not updated during settlement or a position size increase     |
+    | reportedFundingPnl      | String    | Sum of all funding payments received  since the position was opened. This is updated every time funding is paid.                                                                                              |
+    | realizedPnl             | String    | Total profits realized since the trading account first opened this position. This is only updated every time a position’s absolute quantity (aka size) is reduced.                                            |
+    | settlementAssetSymbol   | String    | Settlement asset symbol                                                                                                                                                                                       |
+    | eventType               | String    | Derivatives position update event types                                                                                                                                                                       |
+    | createdAtDatetime       | String    | denotes the time the position was created by the exchange, ISO 8601 with millisecond as string                                                                                                                |
+    | createdAtTimestamp      | String    | denotes the time the position was created by the exchange, number of milliseconds since EPOCH                                                                                                                 |
+    | updatedAtDatetime       | String    | denotes the time the position was updated by the exchange, ISO 8601 with millisecond as string                                                                                                                |
+    | updatedAtTimestamp      | String    | denotes the time the position was updated by the exchange  number of milliseconds since EPOCH                                                                                                                 |
+    | publishedAtTimestamp    | String    | denotes the time the update was broadcasted to connected websockets                                                                                                                                           |
+    
+    ```json
+    {
+      "tradingAccountId": "1111",
+      "type": "snapshot",
+      "dataType": "V1TADerivativesPosition",
+      "data": [
+        {
+          "tradingAccountId": "111234567890",
+          "symbol": "BTC-USDC-PERP",
+          "side": "BUY",
+          "quantity": "1.00000000",
+          "notional": "30000.0000",
+          "entryNotional": "30000.0000",
+          "mtmPnl": "110.0000",
+          "reportedMtmPnl": "120.0000",
+          "reportedFundingPnl": "130.0000",
+          "realizedPnl": "140.0000",
+          "settlementAssetSymbol": "USDC",
+          "eventType": "settlementUpdate",
           "createdAtDatetime": "2020-01-01T00:00:00.000Z",
           "createdAtTimestamp": "1577836800000",
           "updatedAtDatetime": "2020-01-02T00:00:00.000Z",
@@ -1681,7 +1754,7 @@ info:
         }
     }
     ```
-    See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/bullish/websocket/private_data_web_socket.py) for a sample Python script.
+    See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/websocket/private_data_web_socket.py) for a sample Python script.
 
     # Quickly Try The API
 
@@ -1718,7 +1791,18 @@ info:
     - `DEMOTWO`
     
     # API Change Log
-    ## 2024 Change
+    ## 2024 Changes
+    - December
+      - updated REST API - [Get Trading Account](#tag--trading-accounts) new field `totalLiabilitiesUSD`
+      - updated WebSocket API - `/private-data` topic - `tradingAccounts` new field `totalLiabilitiesUSD`
+    - November
+      - updated REST API - [Get Trading Account](#tag--trading-accounts) new fields `liquidityAddonUSD`, `marketRiskUSD` and `marginProfile`
+      - updated WebSocket API - `/private-data` topic - `tradingAccounts` new fields `liquidityAddonUSD`, `marketRiskUSD` and `marginProfile`
+      - updated REST API - [Get Assets](#tag--asset-data) new nested fields `underlyingAsset`
+      - updated REST API - [Get Markets](#tag--market-data) new field `expiryDatetime`
+      - New REST API - [Derivatives Settlement History](#get-/v1/history/derivatives-settlement)
+      - Deprecating REST API - [Perpetual Settlement History](#get-/v1/history/perpetual-settlement)
+      - WebSocket API `/private-data` new topic - `derivativesPositionV2`
     - October
       - New REST API - [Portfolio Simulator](#tag--portfolio-simulator)
     - September
@@ -2350,12 +2434,11 @@ paths:
         - orders
       summary: Get Orders
       description: |
-        Gets the orders list based on specified filters.
-        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-        - [supports pagination](#overview--pagination-support)
-        - filtering on `createdAtDatetime`, `createdAtTimestamp` requires additional keywords, [see filtering support](#overview--filtering-support)
-
-        **Ratelimited:** `True`
+        Retrieve a list of orders placed by a trading account with specified filters.
+        
+        This endpoint requires [authentication](#overview--generate-a-jwt-token) and supports [pagination](#overview--pagination-support).
+        To filter by `createdAtDatetime` and `createdAtTimestamp`, additional parameters are required. For detailed instructions, see the [Filtering Support](#overview--filtering-support) section.
+        Additionally, this endpoint is subjected to rate limiting.
       operationId: trade-get-orders-v2
       parameters:
         - in: header
@@ -2514,9 +2597,9 @@ paths:
         - orders
       summary: Get Order by ID
       description: |
-        Gets an order by ID, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-
-        **Ratelimited:** `True`
+        Retrieve a specific order using its unique identifier.
+        
+        This endpoint requires [authentication](#overview--generate-a-jwt-token) and is subjected to rate limiting.
       operationId: trade-get-order-by-id-v2
       parameters:
         - in: header
@@ -2737,7 +2820,6 @@ paths:
     post:
       tags:
         - "command entry"
-        - "orders"
         - "amm instructions"
         - "transfers"
       summary: Create Command
@@ -2867,6 +2949,126 @@ paths:
               TransferAssetCommand:
                 $ref: '#/components/examples/TransferAssetCommand'
 
+      security:
+        - jwtTokenAuth: [ ]
+
+  /v2/command#cancellations:
+    post:
+      tags:
+        - "orders"
+      summary: Order Cancellation Commands
+      description: |
+        Submits a command to the trading engine. A successful response indicates that the command entry was acknowledged 
+        but does not indicate that the command was executed. 
+        This endpoint uses the [signing format](#overview--signing-format) which does not require strict field 
+        ordering and addition of null fields in the request body. Quantities and prices does not require strict precision. 
+        Eg. for asset precision of 4 - `100`, `100.0`, `100.00`, `100.000` and `100.0000` are all accepted.
+
+        Command schemas and examples are provided below. Supported commands:
+        - V3CancelOrder
+        - V1CancelAllOrders
+        - V1CancelAllOrdersByMarket
+        - V1DelayedCancelAllOrders
+        - V1UnsetDelayedCancelAllOrders
+
+        Requires
+        - [bearer token](#overview--add-authenticated-request-header) in authorization header
+
+        **Ratelimited:** `True`. Higher tiers of rate limits available by providing the `BX-RATELIMIT-TOKEN` request header.
+      operationId: command-entry
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: header
+          name: BX-SIGNATURE
+          description: signature obtained using the [signing format](#overview--signing-format)
+          schema:
+            $ref: '#/components/headers/BX-SIGNATURE'
+          required: true
+        - in: header
+          name: BX-TIMESTAMP
+          description: timestamp is the number of milliseconds since EPOCH
+          schema:
+            $ref: '#/components/headers/BX-TIMESTAMP'
+          required: true
+        - in: header
+          name: BX-NONCE
+          description: nonce is a client side incremented unsigned 64 bit integer
+          schema:
+            $ref: '#/components/headers/BX-NONCE'
+          required: true
+        - in: header
+          name: BX-NONCE-WINDOW-ENABLED
+          description: |
+            string representation of a boolean value, [enables out-of-order order requests to be processed](#overview--how-to-enable-out-of-order-processing-of-order-requests),
+            only valid for `V3CancelOrder`
+          schema:
+            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
+          required: false
+      responses:
+        200:
+          description: Status OK. This means a command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/CancelOrderCommandResponseV3'
+                  - $ref: '#/components/schemas/CancelAllOrdersByMarketResponse'
+              examples:
+                CancelOrderResponse:
+                  $ref: '#/components/examples/CancelOrderCommandResponse'
+                CancelAllOrdersResponse:
+                  $ref: '#/components/examples/CancelAllOrdersCommandResponse'
+                CancelAllOrdersByMarketResponse:
+                  $ref: '#/components/examples/CancelAllOrdersByMarketCommandResponse'
+                DelayedCancelAllOrdersResponse:
+                  $ref: '#/components/examples/DelayedCancelAllOrdersCommandResponse'
+                UnsetDelayedCancelAllOrdersResponse:
+                  $ref: '#/components/examples/UnsetDelayedCancelAllOrdersCommandResponse'
+
+        400:
+          description: |+
+            Bad Request
+
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOrderEntryResponse'
+        401:
+          description: Not Authenticated
+        403:
+          description: Access Forbidden
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CancelOrderCommandV3'
+                - $ref: '#/components/schemas/CancelAllOrdersCommand'
+                - $ref: '#/components/schemas/CancelAllOrdersByMarketCommand'
+                - $ref: '#/components/schemas/DelayedCancelAllOrdersCommand'
+                - $ref: '#/components/schemas/UnsetDelayedCancelAllOrdersCommand'
+            examples:
+              CancelOrderCommand:
+                $ref: '#/components/examples/CancelOrderCommand'
+              CancelAllOrdersCommand:
+                $ref: '#/components/examples/CancelAllOrdersCommand'
+              CancelAllOrdersByMarketCommand:
+                $ref: '#/components/examples/CancelAllOrdersByMarketCommand'
+              DelayedCancelAllOrdersCommand:
+                $ref: '#/components/examples/DelayedCancelAllOrdersCommand'
+              UnsetDelayedCancelAllOrdersCommand:
+                $ref: '#/components/examples/UnsetDelayedCancelAllOrdersCommand'
       security:
         - jwtTokenAuth: [ ]
 
@@ -3364,9 +3566,68 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
+  /v1/history/derivatives-settlement:
+    get:
+      tags:
+        - history
+      summary: Get Historical Hourly Derivatives Settlement
+      description: |
+        Get historical derivatives settlement. 
+        - [supports pagination](#overview--pagination-support)
+        - filtering on `settlementDatetime` requires additional keywords, [see filtering support](#overview--filtering-support)
+      operationId: get-derivatives-settlement-history
+      parameters:
+        - in: header
+          name: Authorization
+          description: authorization header, its value must be 'Bearer ' + [ token ](#overview--generate-a-jwt-token)
+          schema:
+            $ref: '#/components/headers/Authorization'
+          required: true
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account. `tradingAccountId` is mandatory in the query for users with multiple trading accounts. For users with a single trading account, it can be automatically retrieved from the login.
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: false
+        - in: query
+          name: symbol
+          example: BTC-USDC-PERP
+          schema:
+            $ref: '#/components/schemas/DatedFutureMarketSymbol'
+          required: false
+        - in: query
+          name: settlementDatetime[gte]
+          description: start timestamp of window, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: true
+        - in: query
+          name: settlementDatetime[lte]
+          description: end timestamp of window, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/DerivativesSettlementResponse'
+        429:
+          description: Too Many Requests
+        500:
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
 
   /v1/history/perpetual-settlement:
     get:
+      deprecated: true
       tags:
         - history
       summary: Get Historical Hourly Perpetual Settlement
@@ -4071,6 +4332,10 @@ components:
       type: string
       description: order type can have the following string values `"LIMIT"`, `"MARKET"`, `"STOP_LIMIT"`, `"POST_ONLY"`
       example: "LIMIT"
+    OrderTypeAsStringAmend:
+      type: string
+      description: order type can have the following string values `"LIMIT"`, `"POST_ONLY"`
+      example: "LIMIT"
     OrderSideAsString:
       type: string
       description: order side can have the following string values `"BUY"`, `"SELL"`
@@ -4257,6 +4522,10 @@ components:
       type: string
       example: "2022-09-16T07:56:15.000Z"
       description: time of initial transaction
+    CustodyUpdatedAtDateTime:
+      type: string
+      example: "2022-09-16T07:59:23.000Z"
+      description: last updated time of transaction
     PublicKey:
       type: string
       example: PUB_R1_6PTdfWbXvXWQduhcCiRooGHTVpriu15xMqfr7EDq6sWLDj7NjS
@@ -4566,9 +4835,9 @@ components:
         - isBorrowing
         - isLending
         - isPrimaryAccount
-        - makerFee
         - maxInitialLeverage
         - rateLimitToken
+        - makerFee
         - takerFee
         - tradingAccountDescription
         - tradingAccountId
@@ -4584,6 +4853,10 @@ components:
         - defaultedMarginUSD
         - endCustomerId
         - isConcentrationRiskEnabled
+        - liquidityAddonUSD
+        - marketRiskUSD
+        - marginProfile
+        - totalLiabilitiesUSD
       properties:
         isBorrowing:
           description: whether the trading account is borrowing
@@ -4633,6 +4906,10 @@ components:
           description: The maximum allowed borrowing for this trading account (in USD currency)
           type: string
           example: "10000.0000"
+        totalLiabilitiesUSD:
+          description: The The total liabilities for this trading account (in USD currency)
+          type: string
+          example: "14000.0000"
         totalBorrowedUSD:
           description: total borrowed across all assets in this trading account displayed in the reference asset in USD
           type: string
@@ -4669,6 +4946,41 @@ components:
           description: whether concentration risk checks are enforced for an account when sending new orders. By default, concentration risk checks will apply to all accounts
           type: string
           example: true
+        liquidityAddonUSD:
+          description: expected market impact of unwinding the portfolio in the case of a liquidation event
+          type: string
+          example: "1000.0000"
+        marketRiskUSD:
+          description: the worst possible loss on the portfolio based on scenario analysis
+          type: string
+          example: "2000.0000"
+        marginProfile:
+          description: Contains the market risk multipliers applied to a trading account to derive the five individual Margin Requirement values
+          allOf:
+            - $ref: '#/components/schemas/MarginProfile'
+
+    MarginProfile:
+      properties:
+        initialMarketRiskMultiplierPct:
+          description: market risk multiplier used to calculate initial margin requirement of the account
+          type: string
+          example: "200.00"
+        warningMarketRiskMultiplierPct:
+          description: market risk multiplier used to calculate warning margin requirement of the account
+          type: string
+          example: "150.00"
+        liquidationMarketRiskMultiplierPct:
+          description: market risk multiplier used to calculate liquidation margin requirement of the account
+          type: string
+          example: "100.00"
+        fullLiquidationMarketRiskMultiplierPct:
+          description: market risk multiplier used to calculate full liquidation margin requirement of the account
+          type: string
+          example: "75.00"
+        defaultedMarketRiskMultiplierPct:
+          description: market risk multiplier used to calculate defaulted margin requirement of the account
+          type: string
+          example: "50.00"
     CreateAMMInstructionResponse:
       type: object
       required:
@@ -6423,6 +6735,49 @@ components:
           description: upper limit in USD for this band
           type: String
           example: "1000000.0000"
+    UnderlyingAsset:
+      type: object
+      properties:
+        symbol:
+          description: underlying asset symbol
+          type: String
+          example: "BTC"
+        assetId:
+          description: underlying asset ID
+          type: String
+          example: "1"
+        bpmMinReturnStart:
+          description: start of the 1/1000 biggest downward price movement of an underlying asset over 6 hours
+          type: String
+          example: "40.0000"
+        bpmMinReturnEnd:
+          description: end of the 1/1000 biggest downward price movement of an underlying asset over 6 hours
+          type: String
+          example: "20.0000"
+        bpmMaxReturnStart:
+          description: start of the 1/1000 biggest upward price movement of an underlying asset over 6 hours
+          type: String
+          example: "30.0000"
+        bpmMaxReturnEnd:
+          description: end of the 1/1000 biggest upward price movement of an underlying asset over 6 hours
+          type: String
+          example: "50.0000"
+        marketRiskFloorPctStart:
+          description: the percentage range of risk reduction allowed for a portfolio
+          type: String
+          example: "1.00"
+        marketRiskFloorPctEnd:
+          description: the percentage range of risk reduction allowed for a portfolio
+          type: String
+          example: "5.00"
+        bpmTransitionDateTimeStart:
+          description: the start datetime which the values linearly transition from `bpmMinReturnStart` to `bpmMinReturnEnd` for an underlying asset
+          type: String
+          example: "2024-08-02T12:00:00.000Z"
+        bpmTransitionDateTimeEnd:
+          description: the end datetime which the values linearly transition from `bpmMinReturnStart` to `bpmMinReturnEnd` for an underlying asset
+          type: String
+          example: "2024-08-02T18:00:00.000Z"
     PriceQuantityTuple:
       type: object
       properties:
@@ -6531,14 +6886,10 @@ components:
         - liquidityWithdrawEnabled
         - feeTiers
         - marketType
-        - maxInitialLeverage
-        - warningLeverage
-        - liquidationLeverage
-        - fullLiquidationLeverage
-        - defaultedLeverage
         - openInterestUSD
         - concentrationRiskThresholdUSD
         - concentrationRiskPercentage
+        - expiryDatetime
       properties:
         marketId:
           description: unique market ID
@@ -6706,31 +7057,6 @@ components:
           description: settlement asset symbol. (only applies to perpetual market)
           type: string
           example: null
-        maxInitialLeverage:
-          deprecated: true
-          description: It is your maximum Leverage immediately upon borrowing a Margin Loan.To borrow a Margin Loan, your Leverage after borrowing must not exceed the Maximum Initial Leverage. (only applies to perpetual market)
-          type: string
-          example: null
-        warningLeverage:
-          deprecated: true
-          description: It is the level of your Leverage above which you may be sent Margin Warnings,  alerting you that your Leverage is approaching the  Liquidation Leverage. (only applies to perpetual market)
-          type: string
-          example: null
-        liquidationLeverage:
-          deprecated: true
-          description: It is the level of your Leverage at which we may commence selling or liquidating your Collateral to reduce your Leverage. (only applies to perpetual market)
-          type: string
-          example: null
-        fullLiquidationLeverage:
-          deprecated: true
-          description: It is the level of your Leverage at which we may commence selling or liquidating your Collateral to repay all your Debts. (only applies to perpetual market)
-          type: string
-          example: null
-        defaultedLeverage:
-          deprecated: true
-          description: It is the level of your Leverage that triggers a suspension of the affected Trading Account. (only applies to perpetual market)
-          type: string
-          example: null
         openInterestUSD:
           description: cumulative notional value of all open interest for a specific perpetual contract on the exchange.
           type: string
@@ -6743,6 +7069,10 @@ components:
           description: percentage of the total open interest for a specific perpetual contract.
           type: string
           example: null
+        expiryDatetime:
+          description: denotes the time when the market expires in ISO 8601 with millisecond format as string
+          type: string
+          example: 2024-10-04T08:00:00.000Z
     Asset:
       type: object
       required:
@@ -6758,6 +7088,7 @@ components:
         - totalOfferedLoanQuantity
         - loanBorrowedQuantity
         - collateralBands
+        - underlyingAsset
       properties:
         assetId:
           description: unique asset ID
@@ -6809,6 +7140,10 @@ components:
           items:
             allOf:
               - $ref: '#/components/schemas/CollateralBand'
+        underlyingAsset:
+          description: underlying asset for the asset.
+          allOf:
+            - $ref: '#/components/schemas/UnderlyingAsset'
     OHLCVCandle:
       type: object
       properties:
@@ -7041,6 +7376,60 @@ components:
           description: Denotes the time the position was updated by the exchange, number of milliseconds since EPOCH
           allOf:
             - $ref: '#/components/schemas/TimeStampAsString'
+    DerivativesSettlementResponse:
+      description: Derivatives Settlement of one market for the trading account
+      type: string
+      properties:
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        symbol:
+          example: "BTC-USDC-PERP"
+          allOf:
+            - $ref: '#/components/schemas/DatedFutureMarketSymbol'
+        side:
+          allOf:
+            - $ref: '#/components/schemas/OrderSide'
+        settlementQuantity:
+          description: position size at the time of the settlement
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        deltaTradingQuantity:
+          description: the change in the position size from the account’s trading activities
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        mtmPnl:
+          description: mark to market profit (losses) accumulated since the last settlement
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        fundingPnl:
+          description: funding profits (losses) accumulated since the last settlement. Applicable for perpetuals only.
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        eventType:
+          description: derivatives position update event types
+          type: string
+          example: "settlementUpdate"
+        settlementMarkPrice:
+          description: market price at which the position was settled for this past cycle
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        settlementIndexPrice:
+          description: index price at which the position was settled for this past cycle
+          allOf:
+            - $ref: '#/components/schemas/UsdcValue'
+        settlementFundingRate:
+          description: funding rate at which the position was settled for this past cycle. Applicable for perpetuals only.
+          type: string
+          example: "10.0"
+        settlementDatetime:
+          description: Denotes the time the position was settled by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        settlementTimestamp:
+          description: Denotes the time the position was settled by the exchange, number of milliseconds since EPOCH
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
     PerpetualSettlementResponse:
       description: Perpetual Settlement of one market for the trading account
       type: string
@@ -7178,7 +7567,6 @@ components:
           description: reference price for asset or market
           type: string
           example: "12000.0"
-
     PortfolioSimulationRequest:
       type: object
       required:
