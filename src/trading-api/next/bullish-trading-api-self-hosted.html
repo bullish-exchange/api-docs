@@ -23,4 +23,22 @@
     <img slot="nav-logo" src="https://raw.githubusercontent.com/bullish-exchange/api-docs/master/src/trading-api/current/logo-s.png" style="margin: 30px 50px 30px 40px;"/>
 </rapi-doc>
 </body>
+<script>
+    // Removes the extra hash tag
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const rapidocEl = document.querySelector("rapi-doc");
+        if (rapidocEl) {
+            rapidocEl.addEventListener('spec-loaded', (e) => {
+                let rapid = document.querySelector("rapi-doc") || {}
+                let root = rapid.renderRoot
+                if (root) {
+                    let paths = root.querySelectorAll("span[part='label-operation-path']")
+                    for (const p of paths) {
+                        p.innerText = p.innerText.replace(/(#[a-z\d-]*)/, "")
+                    }
+                }
+            });
+        }
+    });
+</script>
 </html>
