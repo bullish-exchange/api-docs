@@ -8036,7 +8036,7 @@ components:
         symbol:
           description: Symbol of the option market. For example `BTC-USDC-20241004-70000-C`
           allOf:
-            - $ref: '#/components/schemas/MarketSymbol'
+            - $ref: '#/components/schemas/OptionMarketSymbol'
         baseSymbol:
           description: Base symbol of the option market. For `BTC-USDC-20241004-70000-C`, it will be `BTC`
           allOf:
