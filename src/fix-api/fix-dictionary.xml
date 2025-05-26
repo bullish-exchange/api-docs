@@ -105,6 +105,8 @@
             <field name="AggressorIndicator" required="N"/>
             <field name="BorrowedQty" required="N"/>
             <field name="BorrowedQtyCurr" required="N"/>
+            <field name="TradeFeeRebateAmt" required="N"/>
+            <field name="TradeFeeRebateAsset" required="N"/>
         </message>
         <message name="OrderCancelRequest" msgtype="F" msgcat="app">
             <field name="OrderID" required="N"/>
@@ -138,6 +140,17 @@
             <field name="MassCancelResponse" required="Y"/>
             <field name="MassCancelRejectReason" required="N"/>
             <field name="Text" required="N"/>
+            <field name="TransactTime" required="Y"/>
+        </message>
+        <message name="OrderCancelReplaceRequest" msgtype="G" msgcat="app">
+            <field name="OrderID" required="N"/>
+            <field name="OrigClOrdID" required="Y"/>
+            <field name="ClOrdID" required="Y"/>
+            <field name="Account" required="Y"/>
+            <field name="Symbol" required="Y"/>
+            <field name="OrderQty" required="N"/>
+            <field name="OrdType" required="N"/>
+            <field name="Price" required="N"/>
             <field name="TransactTime" required="Y"/>
         </message>
 
@@ -192,6 +205,7 @@
             <value enum="B" description="NEWS"/>
             <value enum="D" description="ORDER_SINGLE"/>
             <value enum="F" description="ORDER_CANCEL_REQUEST"/>
+            <value enum="G" description="ORDER_CANCEL_REPLACE_REQUEST"/>
             <value enum="9" description="ORDER_CANCEL_REJECT"/>
             <value enum="x" description="SECURITY_LIST_REQUEST"/>
             <value enum="y" description="SECURITY_LIST"/>
@@ -305,6 +319,9 @@
             <value enum="1" description="UNKNOWN_ORDER"/>
             <value enum="6" description="DUPLICATE_CLORDID"/>
             <value enum="99" description="OTHER"/>
+            <value enum="3034" description="RATE_LIMIT_EXCEEDED"/>
+            <value enum="3035" description="GLOBAL_RATE_LIMIT_EXCEEDED"/>
+            <value enum="3036" description="RATE_LIMIT_INIT_ERROR"/>
         </field>
         <field number="103" name="OrdRejReason" type="INT">
             <value enum="1" description="UNKNOWN_SYMBOL"/>
@@ -326,9 +343,13 @@
             <value enum="3033" description="LEVERAGE_INCREASE_NOT_PERMITTED"/>
             <value enum="3034" description="RATE_LIMIT_EXCEEDED"/>
             <value enum="3035" description="GLOBAL_RATE_LIMIT_EXCEEDED"/>
+            <value enum="3036" description="RATE_LIMIT_INIT_ERROR"/>
             <value enum="3064" description="ORDER_FAILED_TO_MAKE_OR_TAKE"/>
             <value enum="3065" description="MARKET_OPEN_INTEREST_LIMIT_REACHED"/>
             <value enum="3066" description="CONCENTRATION_LIMIT_REACHED"/>
+            <value enum="3067" description="MARKET_IS_EXPIRING_OR_EXPIRED"/>
+            <value enum="3068" description="MARKET_IS_NOT_EXPIRING"/>
+            <value enum="3069" description="POSS_DUPLICATE"/>
         </field>
         <field number="136" name="NoMiscFees" type="NUMINGROUP"/>
         <field number="137" name="MiscFeeAmt" type="AMT"/>
@@ -340,6 +361,7 @@
         <field number="150" name="ExecType" type="CHAR">
             <value enum="0" description="NEW"/>
             <value enum="4" description="CANCELED"/>
+            <value enum="5" description="REPLACED"/>
             <value enum="6" description="PENDING_CANCEL"/>
             <value enum="7" description="STOPPED"/>
             <value enum="8" description="REJECTED"/>
@@ -363,6 +385,7 @@
         <field number="381" name="GrossTradeAmt" type="AMT"/>
         <field number="434" name="CxlRejResponseTo" type="CHAR">
             <value enum="1" description="ORDER_CANCEL_REQUEST"/>
+            <value enum="2" description="ORDER_CANCEL_REPLACE_REQUEST"/>
         </field>
         <field number="530" name="MassCancelRequestType" type="CHAR">
             <value enum="7" description="CANCEL_ALL_ORDERS"/>
@@ -412,5 +435,7 @@
         <field number="8004" name="BorrowedQty" type="QTY"/>
         <field number="8005" name="MarginEnabled" type="BOOLEAN"/>
         <field number="8006" name="BorrowedQtyCurr" type="CURRENCY"/>
+        <field number="20000" name="TradeFeeRebateAmt" type="AMT"/>
+        <field number="20001" name="TradeFeeRebateAsset" type="STRING"/>
     </fields>
 </fix>
