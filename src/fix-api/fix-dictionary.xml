@@ -15,6 +15,7 @@
         <field name="SendingTime" required="Y"/>
         <field name="OrigSendingTime" required="N"/>
         <field name="LastMsgSeqNumProcessed" required="N"/>
+        <field name="OnBehalfOfCompID" required="N"/>
     </header>
     <trailer>
         <field name="CheckSum" required="Y"/>
@@ -69,6 +70,7 @@
             <field name="StopPx" required="N"/>
             <field name="TimeInForce" required="N"/>
             <field name="CashMargin" required="N"/>
+            <field name="MmpEnabled" required="N"/>
         </message>
         <message name="ExecutionReport" msgtype="8" msgcat="app">
             <field name="OrderID" required="Y"/>
@@ -216,6 +218,7 @@
         <field number="10" name="CheckSum" type="STRING"/>
         <field number="49" name="SenderCompID" type="STRING"/>
         <field number="50" name="SenderSubID" type="STRING"/>
+        <field number="115" name="OnBehalfOfCompID" type="STRING"/>
         <field number="142" name="SenderLocationID" type="STRING"/>
         <field number="56" name="TargetCompID" type="STRING"/>
         <field number="57" name="TargetSubID" type="STRING"/>
@@ -437,5 +440,6 @@
         <field number="8006" name="BorrowedQtyCurr" type="CURRENCY"/>
         <field number="20000" name="TradeFeeRebateAmt" type="AMT"/>
         <field number="20001" name="TradeFeeRebateAsset" type="STRING"/>
+        <field number="20002" name="MmpEnabled" type="BOOLEAN"/>
     </fields>
 </fix>
