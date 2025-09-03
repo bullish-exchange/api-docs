@@ -3,7 +3,7 @@ servers:
   - url: https://api.exchange.bullish.com/trading-api
     description: PRODUCTION
   - url: https://registered.api.exchange.bullish.com/trading-api
-    description: PRODUCTION (Cloudflare Bypass)
+    description: PRODUCTION
   - url: https://prod.access.bullish.com/trading-api
     description: PRODUCTION (Direct Connect)
   - url: https://api.bugbounty.bullish.com/trading-api
@@ -11,7 +11,7 @@ servers:
   - url: https://api.simnext.bullish-test.com/trading-api
     description: API SANDBOX
   - url: https://registered.api.simnext.bullish-test.com/trading-api
-    description: API SANDBOX (Cloudflare Bypass)
+    description: API SANDBOX
   - url: https://simnext.access.bullish.com/trading-api
     description: API SANDBOX (Direct Connect)
 info:
@@ -44,14 +44,9 @@ info:
     
     # Connectivity Options
     
-    Bullish offers 3 options for connectivity:
-    1. Cloudflare
-    2. Cloudflare Bypass
-    3. Direct Connect via AWS or GCP
-    
-    Cloudflare Bypass and Direct Connect allow for a more optimised connection with improved latencies.
-    In GCP, generally our most optimal connection is to operate within asia-southeast1-a Availability Zone. Please note, this may change at any given moment and without warning to another Availability Zone within asia-southeast1 for operational reasons.
-    For AWS or GCP connectivity details, please contact your sales representative. 
+    In GCP, generally our most optimal connection is to operate within asia-southeast1-a Availability Zone. 
+    Please note, this may change at any given moment and without warning to another Availability Zone within asia-southeast1 for operational reasons. 
+    For AWS or GCP connectivity details, please contact your sales representative
 
     # FIX API
     
@@ -66,7 +61,7 @@ info:
     
     
     For more details please refer to the full specification:
-    - [Bullish FIX Protocol Specification](../../fix-api/Bullish%20FIX%20Protocol%20Specification%20v1.0.12.pdf)
+    - [Bullish FIX Protocol Specification](../../fix-api/Bullish%20FIX%20Protocol%20Specification%20v1.0.13.pdf)
     - [Bullish FIX Protocol Dictionary](../../fix-api/fix-dictionary.xml) 
     - [Bullish FIX CRT Certificate](../../fix-api/bullish.crt) 
     
@@ -134,27 +129,38 @@ info:
 
     # Rate Limits
     
-    ## Rate Limits per IP address
+    ## Public Endpoints
     
-    Each IP address is subject to a blanket rate limit of 500 requests per 10 seconds (approximately 50 requests per second).
-    If an IP address is rate limited, the http response status code will be `429 Too Many Requests` and the IP address
-    is blocked from making any requests for 60 seconds.
-
-    ## Global Rate Limit
+    The below mentioned public endpoints will be rate limited. For more information please reach out to your Bullish customer support.
     
-    The global rate limit is an additional rate limit specific to the exchange. It is used to help limit the flow of orders into the exchange. It affects all clients fairly. 
-    When the global rate limit is breached the `x-ratelimit-global-breach` header value will be set to `true` else `false`.
+    - [/trading-api/v1/markets](#get-/v1/markets) and subpaths
+    - [/trading-api/v1/market-data](#overview--multi-orderbook-websocket-unauthenticated) and subpaths
+    - [/trading-api/v1/history/markets](#get-/v1/history/markets/-symbol-/trades) and subpaths
+    - [/trading-api/v1/assets](#get-/v1/assets) and subpaths
+    - [/trading-api/v1/index-prices](#get-/v1/index-prices) and subpaths
+    - [/trading-api/v1/index-data](#overview--index-data-websocket-unauthenticated) and subpaths
     
-    ## Rate Limits per API category
-
-    In addition, API endpoints denoted by `Ratelimited: True` in the description are also subject to rate limits.
+    ## Private Endpoints
+    
+    API endpoints denoted by `Ratelimited: True` in the description are also subject to rate limits.
     e.g. [Create Order](#post-/v2/orders). The API endpoints fall under the below categories. The rate limit for each category is *independently* applied.
     
     - Unauthenticated endpoints, rate limited at 50 requests per second.
     - Authenticated `/orders` endpoints, rate limited at 50 requests per second.
     - Other Authenticated endpoints, rate limited at 50 requests per second.
     
-    ## Rate Limits Info
+    ### Rate Limits per IP address
+    
+    Each IP address is subject to a blanket rate limit of 500 requests per 10 seconds (approximately 50 requests per second).
+    If an IP address is rate limited, the http response status code will be `429 Too Many Requests` and the IP address
+    is blocked from making any requests for 60 seconds.
+
+    ### Global Rate Limit
+    
+    The global rate limit is an additional rate limit specific to the exchange. It is used to help limit the flow of orders into the exchange. It affects all clients fairly. 
+    When the global rate limit is breached the `x-ratelimit-global-breach` header value will be set to `true` else `false`.
+    
+    ### Rate Limits Info
     
     When rate limits are not exceeded, the http response header of the API endpoint called will contain the below:
     - `x-ratelimit-limit`: Maximum number of requests allowed for the specific API category within time period.
@@ -162,7 +168,7 @@ info:
     - `x-ratelimit-reset`: The next time period in which `x-ratelimit-remaining` is reset back to the maximum allowed for the specific API category.
     - `x-ratelimit-global-breach`: true/false, indicating whether the global limit has been breached.
 
-    ## Exceeding Rate Limits
+    ### Exceeding Rate Limits
     When rate limits are exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
     ```json
       {
@@ -172,7 +178,7 @@ info:
       }
     ```
 
-    ## Exceeding The Global Rate Limit
+    ### Exceeding The Global Rate Limit
     When the global rate limit is exceeded, the API endpoint will return the http response status code `429 Too Many Requests` and the http response body will be:
     ```json
       {
@@ -182,18 +188,11 @@ info:
       }
     ```
 
-    ## Increasing Rate Limits
-    
-    Bullish has a tiered rate limit offering based on volume. 
-    
-    |                   | Default       | 30-Day Volume between $1B USD and $2B USD | 30-Day Volume over $2B USD |
-    | ----------------- |-------------- |------------------------------------------ |--------------------------- |
-    | Cloudflare        | 50 msgs/sec   | same as default                           | same as default            |
-    | Cloudflare Bypass | 100 msgs/sec  | up to 200 msgs/sec                        | up to 500 msgs/sec         |
+    ### Increasing Rate Limits
     
     For more information on increasing your rate limits, please reach out to your sales representative.
     
-    ## Obtaining Your Rate Limit Token
+    ### Obtaining Your Rate Limit Token
     
     Each trading account has a unique rate limit token that can be obtained by querying [Get Trading Accounts](#get-/v1/accounts/trading-accounts).
     The rate limit token must be provided in the HTTP request header `BX-RATELIMIT-TOKEN` to enjoy higher tiers of rate limits 
@@ -645,11 +644,10 @@ info:
     
     This referrer header is applicable to the below mentioned authenticated endpoints:
       1. [Create Order](#post-/v2/orders)
-      2. [Create OTC Trade](#post-/trading-api/v2/otc-trades)
-      3. [OTC Trade Cancellation Command](#post-/trading-api/v2/otc-command)
+      2. [Create OTC Trade](#post-/v2/otc-trades)
     
     For more details, please reach out to your relationship manager to understand which referrer you are assigned.
-    
+
     # WebSockets
 
     Connection request to the web-socket uses [JWT_COOKIE based authentication](https://github.com/bullish-exchange/api-examples/blob/master/websocket/private_data_web_socket.py).
@@ -658,11 +656,11 @@ info:
 
     ## Servers
       - `wss://api.exchange.bullish.com` - PRODUCTION
-      - `wss://registered.api.exchange.bullish.com` - PRODUCTION (Cloudflare Bypass)
+      - `wss://registered.api.exchange.bullish.com` - PRODUCTION
       - `wss://prod.access.bullish.com` - PRODUCTION (Direct Connect)
       - `wss://api.simnext.bullish-test.com` - SANDBOX
-      - `wss://registered.api.simnext.bullish-test.com` - SANDBOX (Cloudflare Bypass)
-      - `wss://simnext.access.bullish.com` - SANDBOX (Direct Connect)
+      - `wss://registered.api.simnext.bullish-test.com` - SANDBOX
+      - `wss://simnext.access.bullish.com` - SANDBOX  (Direct Connect)
 
     ## Max Open WebSocket Connections
     
@@ -911,13 +909,15 @@ info:
     ### Multi-Orderbook Response
     
     * L1 Update Response
-    | Name           | Type   | Description                                                                          |
-    |:---------------|:-------|:-----------------------------------------------------------------                    |
-    | sequenceNumber | String | incrementing, unique, unsigned integer that identifies a state of the L1-orderbook   |
-    | symbol         | String | market symbol                                                                        |
-    | timestamp      | String | denotes the time the update was created                                              |
-    | bid            | Array  | nested array containing price and quantity of highest bid                            |
-    | ask            | Array  | nested array containing price and quantity of lowest ask                             |
+    | Name           | Type   | Description                                                                                                   |
+    |:---------------|:-------|:--------------------------------------------------------------------------------------------------------------|
+    | sequenceNumber | String | incrementing, unique, unsigned integer that identifies a state of the L1-orderbook                            |
+    | symbol         | String | market symbol                                                                                                 |
+    | timestamp      | String | denotes the time the update was created                                                                       |
+    | bid            | Array  | nested array containing price and quantity of highest bid                                                     |
+    | ask            | Array  | nested array containing price and quantity of lowest ask                                                      |
+    
+    
     ```json
     {
       "type": "update",
@@ -939,7 +939,7 @@ info:
     }
     ``` 
     
-    * l2Snapshot response
+    * L2 Snapshot Response
 
     | Name                    | Type   | Description                                                                                                                                                                                                              |
     |---------------------    |--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -1053,6 +1053,9 @@ info:
     | quantity             | String    | quantity, see [asset value](#overview--price-and-quantity-precision) format               |
     | side                 | String    | order side                                                                                |
     | isTaker              | Boolean   | denotes whether this is a taker's trade                                                   |
+    | otcMatchId           | String    | unique OTC match id                                                                       |
+    | otcTradeId           | String    | unique Bullish OTC trade id                                                               |
+    | clientOtcTradeId     | String    | unique client OTC trade id                                                                |
     | createdAtTimestamp   | String    | denotes the time the order was ACK'd by the exchange                                      |
     | createdAtDatetime    | String    | denotes the time the order was ACK'd by the exchange, ISO 8601 with millisecond as string |
     | publishedAtTimestamp | String    | denotes the time the update was broadcasted to connected websockets                       |
@@ -1076,7 +1079,10 @@ info:
             "publishedAtTimestamp": "1721879162124",
             "side": "SELL",
             "createdAtDatetime": "2024-07-25T03:46:00.353Z",
-            "symbol": "BTCUSDC"
+            "symbol": "BTCUSDC",
+            "otcMatchId": "1",
+            "otcTradeId": "200069000000063765",
+            "clientOtcTradeId": "300069000000063765"
           },
           {
             "tradeId": "100069000000063764",
@@ -1087,7 +1093,10 @@ info:
             "publishedAtTimestamp": "1721879162124",
             "side": "SELL",
             "createdAtDatetime": "2024-07-25T03:45:55.351Z",
-            "symbol": "BTCUSDC"
+            "symbol": "BTCUSDC",
+            "otcMatchId": "2",
+            "otcTradeId": "200069000000063764",
+            "clientOtcTradeId": "300069000000063764"
           },
           ...
           {
@@ -1139,7 +1148,10 @@ info:
             "publishedAtTimestamp": "1722408780790",
             "side": "SELL",
             "createdAtDatetime": "2024-07-31T06:53:00.738Z",
-            "symbol": "BTCUSDC"
+            "symbol": "BTCUSDC",
+            "otcMatchId": "10",
+            "otcTradeId": "200028000018887837",
+            "clientOtcTradeId": "300028000018887837"
           },
           ...
           {
@@ -1151,12 +1163,110 @@ info:
             "publishedAtTimestamp": "1722408780790",
             "side": "BUY",
             "createdAtDatetime": "2024-07-31T06:53:00.786Z",
-            "symbol": "BTCUSDC"
+            "symbol": "BTCUSDC",
+            "otcMatchId": "11",
+            "otcTradeId": "200028000018887992",
+            "clientOtcTradeId": "300028000018887992"
           }
         ],
         "createdAtTimestamp": "1722408780786",
         "publishedAtTimestamp": "1722408780790",
         "symbol": "BTCUSDC"
+      }
+    }
+    ```
+    
+    ## Unified Anonymous Tick WebSocket (unauthenticated)
+    **Route**
+    - `/trading-api/v1/market-data/tick`
+    
+    This allows simultaneous tick subscriptions to multiple markets. 
+    
+    Upon subscribing to a market, the client will first receive a snapshot of latest ticker, followed by updates. 
+    See the data model: [Get Market Tick](#get-/v1/markets/-symbol-/tick)
+    
+    ### Unified Anonymous Tick Subscription
+    Tick of different markets to be subscribed to, are controlled by parameters in the subscription message listed below:
+    | Parameters            | Type   | Description                                                                     |
+    |:----------------------|:-------|:--------------------------------------------------------------------------------|
+    | topic                 | String | `tick`                                                                        |
+    | symbol                | String | market symbol such as `BTCUSDC`                                                 |
+
+    ### Tick Subscription Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "subscribe",
+      "params": {
+          "topic": "tick",
+          "symbol": "BTCUSD"
+      },
+      "id": "1611082473000"
+    }
+    ```
+
+    ### Keepalive Message Sample:
+    ```json
+    {
+      "jsonrpc": "2.0",
+      "type": "command",
+      "method": "keepalivePing",
+      "params": {},
+      "id": "1611082473001"
+    }
+    ```
+    
+    ### Tick response example
+    ```json
+    {
+      "type": "snapshot",
+      "dataType": "V1TATickerResponse",
+      "data": {
+        "askVolume": "3.56000000",
+        "average": "5200.0400",
+        "baseVolume": "1.00000000",
+        "bestAsk": "6543.0000",
+        "bestBid": "2345.0000",
+        "bidVolume": "2.00000000",
+        "change": "0.0000",
+        "close": "5200.0400",
+        "createdAtTimestamp": "1591058897000",
+        "publishedAtTimestamp": "1591058898000",
+        "high": "5200.0400",
+        "last": "5200.0400",
+        "lastTradeDatetime": "2020-06-02T00:40:39.500Z",
+        "lastTradeSize": "1.00000000",
+        "low": "5200.0400",
+        "open": "5200.0400",
+        "percentage": "0.00",
+        "quoteVolume": "5200.0400",
+        "symbol": "BTC-USDC-PERP",
+        "type": "ticker",
+        "vwap": "5200.0400",
+        "currentPrice": "0.0007",
+        "ammData": [
+          {
+            "feeTierId": "1",
+            "currentPrice": "0.0007",
+            "baseReservesQuantity": "96153.00000000",
+            "quoteReservesQuantity": "500005200.0400",
+            "bidSpreadFee": "0.00000005",
+            "askSpreadFee": "0.00000006"
+          },
+          {
+            "feeTierId": "2",
+            "currentPrice": "0.0017",
+            "baseReservesQuantity": "96153.00000000",
+            "quoteReservesQuantity": "500005200.0400",
+            "bidSpreadFee": "0.00000015",
+            "askSpreadFee": "0.00000016"
+          }
+        ],
+        "createdAtDatetime": "2020-06-02T00:48:17.000Z",
+        "markPrice": "26000.0000",
+        "fundingRate": "0.114100",
+        "openInterest": "9.00000000"
       }
     }
     ```
@@ -1223,6 +1333,7 @@ info:
     }
     ```
     
+  
     ## Index Data websocket (unauthenticated)
     **Route**
     - `/trading-api/v1/index-data`
@@ -1289,6 +1400,9 @@ info:
             "id": "1611082473000"
         }
       ```
+      - It is possible to subscribe to multiple topics with a single subscription message. For example, a topic of `assetAccounts+derivativesPositionsV2` 
+        would subscribe to both `assetAccounts` and `derivativesPositionsV2`
+    
     2. Getting private data from multiple trading accounts.
       - Connect to `/trading-api/v1/private-data`
       - For example, to subscribe to the `orders` topic for each of your trading accounts, the following subscription message is sent for each trading account you wish to subscribe to:
@@ -1313,10 +1427,11 @@ info:
     | assetAccounts          | Provides snapshot and updates on assets in your account.                                                                              | `V1TAAssetAccount`       | By `<TOPIC>`      |
     | tradingAccounts        | Provides snapshot and updates on your trading account summary.                                                                        | `V1TATradingAccount`     | By `<TOPIC>`      |
     | heartbeat              | Provides heartbeat updates for healthcheck.                                                                                           | `V1TAHeartbeat`          | By `<TOPIC>`      |
-    | ~derivativesPositions~ | `Deprecated`[*Replaced by:* `derivativesPositionsV2`] Provides derivative position information on your trading account.                                                        | `V1TAPerpetualPosition`  | By `<TOPIC>`      |
-    | derivativesPositionsV2 | Provides derivative position information on your trading account.                                                                | `V1TADerivativesPosition`| By `<TOPIC>`      |
+    | ~derivativesPositions~ | `Deprecated`[*Replaced by:* `derivativesPositionsV2`] Provides derivative position information on your trading account.               | `V1TAPerpetualPosition`  | By `<TOPIC>`      |
+    | derivativesPositionsV2 | Provides derivative position information on your trading account.                                                                     | `V1TADerivativesPosition`| By `<TOPIC>`      |
     | ammInstructions        | Provides amm instructions update on your trading account.                                                                             | `V1TAAmmInstruction`     | By `<TOPIC>`      |
-
+    | mmpTrigger             | Provides snapshot and updates on your market maker protection trigger events.                                                         | `V1TAMMPTrigger`         | By `<TOPIC>`      |
+    | mmpRequest             | Provides snapshot and updates on your market maker protection configurations.                                                         | `V1TAMMPConfigRequest`   | By `<TOPIC>`      |
     ### orders response
 
     | Name                  | Type      | Description                                                                                                                                                                                        |
@@ -1401,6 +1516,9 @@ info:
     | tradeRebateAmount      | String    | amount of rebate that is credited to the user as part of the trade                                         |
     | tradeRebateAssetSymbol | String    | symbol of the asset in which the rebate is paid                                                                |
     | isTaker                | Boolean   | denotes whether this is a taker's trade                                                                        |
+    | otcMatchId             | String    | unique OTC match id                                                                                            |
+    | otcTradeId             | String    | unique Bullish OTC trade id                                                                                    |
+    | clientOtcTradeId       | String    | unique client OTC trade id                                                                                     |
     | createdAtDatetime      | String    | denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string                   |
     | createdAtTimestamp     | String    | denotes the time the trade was executed by the exchange                                                        |
     | publishedAtTimestamp   | String    | denotes the time the update was broadcasted to connected websockets                                            |
@@ -1425,6 +1543,9 @@ info:
           "isTaker": false,
           "tradeRebateAmount": "3.0000",
           "tradeRebateAssetSymbol": "USDC",
+          "otcMatchId": "15",
+          "otcTradeId": "200014000000000118",
+          "clientOtcTradeId": "300014000000000118",
           "createdAtDatetime": "2021-12-30T07:36:35.918Z",
           "createdAtTimestamp": "1640849795918",
           "publishedAtTimestamp": "1640849795920"
@@ -1770,6 +1891,76 @@ info:
         }
     }
     ```
+    
+    ### mmpTrigger response
+
+    | Name                  | Type   | Description                                                                                                                                   |
+    |-----------------------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+    | tradingAccountId      | String | id of the trading account                                                                                                                     |
+    | mmpTriggerId          | String | unique MMP trigger ID                                                                                                                         |
+    | underlyingAssetSymbol | String | underlying asset symbol                                                                                                                       |
+    | triggeredBy           | String | trigger reason                                                                                                                                |
+    | frozenTimeInSecond    | String | duration for which a market maker’s trading activity is temporarily halted after a protective measure is triggered                            |
+    | frozenStartTime       | String | start time of the MMP trigger in epoch milliseconds                                                                                           |
+    | frozenUntil           | String | end time of the MMP trigger in epoch milliseconds                                                                                             |
+
+    ```json
+    {
+      "tradingAccountId": "111000000000000",
+      "type": "snapshot",
+      "dataType": "V1TAMMPTrigger",
+      "data": [
+        {
+          "mmpTriggerId": "100000000000000"
+          "tradingAccountId": "111000000000000",
+          "underlyingAssetSymbol": "BTC",
+          "triggeredBy": "Delta Limit",
+          "frozenTimeInSecond": "10",
+          "frozenStartTime": "1611082473000",
+          "frozenUntil": "1611082483000"
+        }
+      ]
+    }
+    ```
+    ### mmpRequest response
+
+    | Name                  | Type   | Description                                                                                                                                   |
+    |-----------------------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+    | tradingAccountId      | String | id of the trading account                                                                                                                     |
+    | requestId             | String | id of the request                                                                                                                             |
+    | assetSymbol           | String | underlying asset symbol                                                                                                                       |
+    | windowTimeInSecond    | String | time window during which the MMP checks are conducted                                                                                         |
+    | frozenTimeInSecond    | String | duration for which a market maker’s trading activity is temporarily halted after a protective measure is triggered                            |
+    | quantityLimit         | String | cap on the total number of contracts that a market maker can trade within `windowTimeInSeconds`                                               |
+    | deltaLimit            | String | net delta exposure that a market maker can accumulate within `windowTimeInSeconds`                                                            |
+    | status                | String | status of the request                                                                                                                         |
+    | statusReason          | String | status reason, describes why the request is in a specific state                                                                               |
+    | isReset               | String | boolean value that indicates if it was a set or reset MMP configuration request                                                               |
+    | createdAt             | String | denotes the time the request was ACK'd by the exchange                                                                                        |
+
+    ```json
+    {
+      "tradingAccountId": "111000000000000",
+      "type": "snapshot",
+      "dataType": "V1TAMMPConfigRequest",
+      "data": [
+        {
+          "requestId": "1",
+          "tradingAccountId": "111000000000000",
+          "assetSymbol": "BTC",
+          "windowTimeInSecond": "10",
+          "frozenTimeInSecond": "10",
+          "quantityLimit": "1000",
+          "deltaLimit": "500",
+          "status": "CLOSED",
+          "statusReason": "Ok",
+          "isReset": "false",
+          "createdAt": "1611082473000"
+        }
+      ]
+    }
+    ```
+    
     See [connect to private data web-socket](https://github.com/bullish-exchange/api-examples/blob/master/websocket/private_data_web_socket.py) for a sample Python script.
 
     # Quickly Try The API
@@ -1792,23 +1983,24 @@ info:
     2. Click the `TRY` green button
     3. Inspect the results
     
-    # Test Instruments
-    Bullish has test instruments which are used for internal testing. Clients can ignore these test instruments.
-    
-    ## Test Markets
-    Bullish currently has 1 test market.
-    
-    - `DEMOONEDEMOTWO`
-    
-    ## Test Assets
-    Bullish currently has 2 test assets.
-    
-    - `DEMOONE`
-    - `DEMOTWO`
     
     # API Change Log
     ## 2025 Changes
+    - August
+      - new REST API - [Get Option Ladder](#tag--option-ladder)
+      - updated REST API - [Get Markets](#get-/v1/markets) NEW fields `strikePrice`
+      - updated REST API - [Get Market Tick](#get-/v1/markets/-symbol-/tick) NEW fields `bidIVPercentage`, `askIVPercentage` and `greeks`
+      - new REST API - [OTC](#tag--OTC)
+      - new fields at [Get Trades](#get-/v1/trades) - `otcMatchId` and `otcTradeId`
+      - new REST API - [Market Maker Protection](#tag--market-maker-protection(MMP))
+      - new WebSocket API - `mmpRequest` topic for [Private Data WebSocket](#overview--private-data-websocket-authenticated)
+      - new WebSocket API - `mmpTrigger` topic for [Private Data WebSocket](#overview--private-data-websocket-authenticated)
+      - new REST API - [Get Market Maker Protection Configuration by Trading Account Id](#get-/v2/mmp-configuration)
     - July
+      - new Websocket API - [Unified tick for multiple markets](#overview--anonymous-unified-tick-websocket-unauthenticated)
+    - June
+      - new REST API - [Get Historical Trades](#get-/v1/history/trades)
+      - new REST API - [Get Historical Orders](#get-/v2/history/orders)
     - May
       - Deprecated Features to be removed June 2025:
         - Hybrid OrderBook WebSocket (unauthenticated)
@@ -1817,6 +2009,8 @@ info:
       true
       - Support for fee rebates - [Get Trades](#get-/v1/trades) new fields `tradeRebateAmount` and `tradeRebateAssetSymbol`
       
+    - April
+      - updated REST API - [Get Historical Market Trades](#get-/v1/history/markets/-symbol-/trades) new filter `tradeId`
     - March
       - updated REST API - [Get Trading Account](#tag--trading-accounts) new field `tradeFees`
       - updated REST API - [Get Trading Account](#tag--trading-accounts) Deprecated fields `makerFee` and `takerFee`
@@ -2134,7 +2328,7 @@ tags:
   - name: derivatives
   - name: history
   - name: otc
-    description: The OTC Clearing Facility API (OTC API) is available to customers to book trades negotiated outside of the Bullish Exchange order book to Bullish’s clearing and settlement platform.Customers may agree to an OTC transaction through bilateral negotiations or via a 3rd party RFQ platform. Once the two customers agree on the trade details, they can use the OTC API to book the trade to their Bullish account to benefit from Bullish’s risk and collateral management system.For purposes of clarity, the OTC API is not for trading purposes.
+    description: The OTC Clearing Facility API (OTC API) is available to customers to book trades negotiated outside of the Bullish Exchange order book to Bullish’s clearing and settlement platform. Customers may agree to an OTC transaction through bilateral negotiations or via a 3rd party RFQ platform. Once the two customers agree on the trade details, they can use the OTC API to book the trade to their Bullish account to benefit from Bullish’s risk and collateral management system. For purposes of clarity, the OTC API is not for trading purposes.
 x-tagGroups:
   - name: Authenticated API
     tags:
@@ -2176,6 +2370,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/users/logout:
     get:
       tags:
@@ -2187,12 +2382,7 @@ paths:
         **Ratelimited:** `True`
       operationId: logout
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
       responses:
         '200':
           description: OK
@@ -2241,6 +2431,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
+      security: []
   /v1/users/hmac/login:
     get:
       tags:
@@ -2251,32 +2442,12 @@ paths:
         be used for the duration of the session for any subsequent requests.
 
         **Ratelimited:** `True`
-      operationId: login
+      operationId: hmac-login
       parameters:
-        - in: header
-          name: BX-SIGNATURE
-          description: HMAC signature is a signature resulted from the [signed message of the `login` request](#overview--add-authenticated-request-header)
-          schema:
-            $ref: '#/components/headers/BX-SIGNATURE'
-          required: true
-        - in: header
-          name: BX-TIMESTAMP
-          description: timestamp is the number of milliseconds since EPOCH
-          schema:
-            $ref: '#/components/headers/BX-TIMESTAMP'
-          required: true
-        - in: header
-          name: BX-NONCE
-          description: nonce is a client side incremented 64-bit unsigned integer
-          schema:
-            $ref: '#/components/headers/BX-NONCE'
-          required: true
-        - in: header
-          name: BX-PUBLIC-KEY
-          description: public key for the HMAC Key being used to generate the JWT
-          schema:
-            $ref: '#/components/headers/BX-PUBLIC-KEY'
-          required: true
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
+        - $ref: '#/components/parameters/BX-PUBLIC-KEY'
       responses:
         '200':
           description: returns JWT and the `authorizer` for signing requests
@@ -2294,6 +2465,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/accounts/trading-accounts:
     get:
       tags:
@@ -2305,12 +2477,7 @@ paths:
         **Ratelimited:** `True`
       operationId: user-get-trading-accounts
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization' 
       responses:
         '200':
           description: OK
@@ -2343,13 +2510,8 @@ paths:
         **Ratelimited:** `True`
       operationId: user-get-trading-account-by-id
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: query
+        - $ref: '#/components/parameters/Authorization'
+        - in: path
           name: tradingAccountId
           description: Id of the trading account
           schema:
@@ -2388,12 +2550,7 @@ paths:
         **Ratelimited:** `True`
       operationId: user-get-asset-accounts
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: tradingAccountId
           description: Id of the trading account
@@ -2424,12 +2581,7 @@ paths:
   /v1/accounts/asset/{symbol}:
     get:
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: path
           name: symbol
           schema:
@@ -2476,19 +2628,14 @@ paths:
       summary: Get Orders
       description: |
         Retrieve a list of orders placed by a trading account with specified filters.
-        
+        - Only the last 24 hours of data is available for querying
         
         This endpoint requires [authentication](#overview--generate-a-jwt-token) and supports [pagination](#overview--pagination-support).
         To filter by `createdAtDatetime` and `createdAtTimestamp`, additional parameters are required. For detailed instructions, see the [Filtering Support](#overview--filtering-support) section.
         Additionally, this endpoint is subjected to rate limiting.
       operationId: trade-get-orders-v2
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: symbol
           schema:
@@ -2553,37 +2700,12 @@ paths:
         **Ratelimited:** `True`. Higher tiers of rate limits available by providing the `BX-RATELIMIT-TOKEN` request header.
       operationId: trade-create-order-v2
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: header
-          name: BX-SIGNATURE
-          description: signature obtained using the [signing format](#overview--signing-format)
-          schema:
-            $ref: '#/components/headers/BX-SIGNATURE'
-          required: true
-        - in: header
-          name: BX-TIMESTAMP
-          description: timestamp is the number of milliseconds since EPOCH
-          schema:
-            $ref: '#/components/headers/BX-TIMESTAMP'
-          required: true
-        - in: header
-          name: BX-NONCE
-          description: nonce is a client side incremented unsigned 64 bit integer
-          schema:
-            $ref: '#/components/headers/BX-NONCE'
-          required: true
-        - in: header
-          name: BX-NONCE-WINDOW-ENABLED
-          description:
-            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED/description'
-          schema:
-            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
-          required: false
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
+        - $ref: '#/components/parameters/BX-NONCE-WINDOW-ENABLED'
+        - $ref: '#/components/parameters/BX-REFERRER'
       responses:
         '200':
           description: Status OK. The create order command was successfully acknowledged. To check the current status of the order, query [Get Order by ID](#get-/trading-api/v2/orders/-orderId-) using the `orderId` received in the response payload. Please consult the section [How To Ensure The Order Of *Create Order* or *Cancel Order* Requests](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests) for more information.
@@ -2644,12 +2766,7 @@ paths:
         This endpoint requires [authentication](#overview--generate-a-jwt-token) and is subjected to rate limiting.
       operationId: trade-get-order-by-id-v2
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: tradingAccountId
           description: Id of the trading account
@@ -2673,6 +2790,88 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: [ ]
+  /v2/history/orders:
+    get:
+      tags:
+        - history
+      summary: Get Historical Orders
+      description: |
+        Retrieve a list of orders placed by a trading account with specified filters.
+        - Only the last 90 days of data is available for querying
+
+        This endpoint requires [authentication](#overview--generate-a-jwt-token) and supports [pagination](#overview--pagination-support).
+        To filter by `createdAtDatetime` and `createdAtTimestamp`, additional parameters are required. For detailed instructions, see the [Filtering Support](#overview--filtering-support) section.
+        Additionally, this endpoint is subjected to rate limiting.
+      operationId: trade-get-orders-history-v2
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: false
+        - in: query
+          name: orderId
+          schema:
+            $ref: '#/components/schemas/OrderID'
+          required: false
+        - in: query
+          name: clientOrderId
+          description: Unique numeric (i64) identifier generated on the client side expressed as a string value
+          schema:
+            $ref: '#/components/schemas/OrderHandle'
+          required: false
+        - in: query
+          name: side
+          description: order side
+          schema:
+            $ref: '#/components/schemas/OrderSide'
+          required: false
+        - in: query
+          name: status
+          description: order status
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+          required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+        - in: query
+          name: createdAtDatetime[gte]
+          description: start timestamp of period, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: false
+        - in: query
+          name: createdAtDatetime[lte]
+          description: end timestamp of period, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/Order'
+        '401':
+          description: Not Authenticated
+        '403':
+          description: Access Forbidden
+        '429':
+          description: Too Many Requests
+        '500':
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /v2/amm-instructions:
     get:
       tags:
@@ -2686,12 +2885,7 @@ paths:
         **Ratelimited:** `True`
       operationId: trade-get-amm-instructions
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: symbol
           schema:
@@ -2745,30 +2939,10 @@ paths:
         **Ratelimited:** `True`
       operationId: trade-create-amm-instruction
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: header
-          name: BX-SIGNATURE
-          description:
-          schema:
-            $ref: '#/components/headers/BX-SIGNATURE'
-          required: true
-        - in: header
-          name: BX-TIMESTAMP
-          description: signature obtained using the [signing format](#overview--signing-format)
-          schema:
-            $ref: '#/components/headers/BX-TIMESTAMP'
-          required: true
-        - in: header
-          name: BX-NONCE
-          description: nonce is a client side incremented unsigned 64 bit integer
-          schema:
-            $ref: '#/components/headers/BX-NONCE'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
       responses:
         '200':
           description: Status OK. This means a create AMM instruction command was successfully acknowledged. It does not necessarily mean the instruction was created. To check the current status, query [Get AMM Instruction by ID](#get-/trading-api/v2/amm-instructions/-instructionid-) using the `instructionId` received in the response payload.
@@ -2808,7 +2982,7 @@ paths:
                 $ref: '#/components/examples/CreateAMMInstructionCommand'
       security:
         - jwtTokenAuth: [ ]
-  /v2/amm-instructions/{instructionid}:
+  /v2/amm-instructions/{instructionId}:
     parameters:
       - in: path
         name: instructionId
@@ -2833,12 +3007,7 @@ paths:
         **Ratelimited:** `True`
       operationId: trade-get-amm-instruction-by-id-v2
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
       responses:
         '200':
           description: OK
@@ -2887,38 +3056,11 @@ paths:
         **Ratelimited:** `True`. Higher tiers of rate limits available by providing the `BX-RATELIMIT-TOKEN` request header.
       operationId: command-entry
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: header
-          name: BX-SIGNATURE
-          description: signature obtained using the [signing format](#overview--signing-format)
-          schema:
-            $ref: '#/components/headers/BX-SIGNATURE'
-          required: true
-        - in: header
-          name: BX-TIMESTAMP
-          description: timestamp is the number of milliseconds since EPOCH
-          schema:
-            $ref: '#/components/headers/BX-TIMESTAMP'
-          required: true
-        - in: header
-          name: BX-NONCE
-          description: nonce is a client side incremented unsigned 64 bit integer
-          schema:
-            $ref: '#/components/headers/BX-NONCE'
-          required: true
-        - in: header
-          name: BX-NONCE-WINDOW-ENABLED
-          description: |
-            string representation of a boolean value, [enables out-of-order order requests to be processed](#overview--how-to-enable-out-of-order-processing-of-order-requests),
-            only valid for `V3CancelOrder`
-          schema:
-            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
-          required: false
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
+        - $ref: '#/components/parameters/BX-NONCE-WINDOW-ENABLED'
       responses:
         '200':
           description: Status OK. This means a command was successfully acknowledged.
@@ -3020,40 +3162,13 @@ paths:
         - [bearer token](#overview--add-authenticated-request-header) in authorization header
 
         **Ratelimited:** `True`. Higher tiers of rate limits available by providing the `BX-RATELIMIT-TOKEN` request header.
-      operationId: command-entry
+      operationId: command-entry-cancellations
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: header
-          name: BX-SIGNATURE
-          description: signature obtained using the [signing format](#overview--signing-format)
-          schema:
-            $ref: '#/components/headers/BX-SIGNATURE'
-          required: true
-        - in: header
-          name: BX-TIMESTAMP
-          description: timestamp is the number of milliseconds since EPOCH
-          schema:
-            $ref: '#/components/headers/BX-TIMESTAMP'
-          required: true
-        - in: header
-          name: BX-NONCE
-          description: nonce is a client side incremented unsigned 64 bit integer
-          schema:
-            $ref: '#/components/headers/BX-NONCE'
-          required: true
-        - in: header
-          name: BX-NONCE-WINDOW-ENABLED
-          description: |
-            string representation of a boolean value, [enables out-of-order order requests to be processed](#overview--how-to-enable-out-of-order-processing-of-order-requests),
-            only valid for `V3CancelOrder`
-          schema:
-            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
-          required: false
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
+        - $ref: '#/components/parameters/BX-NONCE-WINDOW-ENABLED'
       responses:
         '200':
           description: Status OK. This means a command was successfully acknowledged.
@@ -3136,40 +3251,13 @@ paths:
         - [bearer token](#overview--add-authenticated-request-header) in authorization header
 
         **Ratelimited:** `True`. Higher tiers of rate limits available by providing the `BX-RATELIMIT-TOKEN` request header.
-      operationId: command-entry
+      operationId: command-entry-amend
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: header
-          name: BX-SIGNATURE
-          description: signature obtained using the [signing format](#overview--signing-format)
-          schema:
-            $ref: '#/components/headers/BX-SIGNATURE'
-          required: true
-        - in: header
-          name: BX-TIMESTAMP
-          description: timestamp is the number of milliseconds since EPOCH
-          schema:
-            $ref: '#/components/headers/BX-TIMESTAMP'
-          required: true
-        - in: header
-          name: BX-NONCE
-          description: nonce is a client side incremented unsigned 64 bit integer
-          schema:
-            $ref: '#/components/headers/BX-NONCE'
-          required: true
-        - in: header
-          name: BX-NONCE-WINDOW-ENABLED
-          description: |
-            string representation of a boolean value, [enables out-of-order order requests to be processed](#overview--how-to-enable-out-of-order-processing-of-order-requests),
-            only valid for `V3CancelOrder`
-          schema:
-            $ref: '#/components/headers/BX-NONCE-WINDOW-ENABLED'
-          required: false
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
+        - $ref: '#/components/parameters/BX-NONCE-WINDOW-ENABLED'
       responses:
         '200':
           description: Status OK. This means a command was successfully acknowledged.
@@ -3210,6 +3298,105 @@ paths:
                 $ref: '#/components/examples/AmendOrderCommand'
       security:
         - jwtTokenAuth: [ ]
+  /v2/mmp-configuration:
+    post:
+      tags:
+        - market-maker-protection(MMP)
+      summary: Setup Market Maker Protection (MMP)
+      description: |
+        MMP configurations are setup per underlying asset symbol for a specific trading Account. While setting up MMP configurations you can specify `windowTimeInSeconds`, `frozenTimeInSeconds`, `quantityLimit` and `deltaLimit` and use it as best suited.
+        Please reach out to your relationship manager to understand how to enable MMP for your trading accounts.
+        
+        - To get updates on the status of your set / reset MMP configs request for an underlying asset symbol over WS ,please subscribe to `mmpRequest` TOPIC within the [Private Data WebSocket](#overview--private-data-websocket-authenticated).
+        - To get updates about MMP triggered event over WS ,please subscribe to the `mmpTriggered` TOPIC within the [Private Data WebSocket](#overview--private-data-websocket-authenticated).
+        
+        To update/amend your MMP configs ,please use the resetMMPCommandV1 to reset the MMP configurations , followed by setting up a new MMP config via setMMPCommandV1 per underlying asset symbol.
+        
+        Note: MMP is only applicable for Options [Orders created](#post-/v2/orders) with the `isMMP` flag set to `true`.
+      operationId: set-mmp-config
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
+      responses:
+        '200':
+          description: Status OK. This means a command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SetMMPCommandResponse'
+                  - $ref: '#/components/schemas/ResetMMPCommandResponse'
+              examples:
+                SetMMPCommandResponse:
+                  $ref: '#/components/examples/SetMMPCommandResponse'
+                ResetMMPCommandResponse:
+                  $ref: '#/components/examples/ResetMMPCommandResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Not Authenticated
+        '403':
+          description: Access Forbidden
+        '429':
+          description: Too Many Requests
+        '500':
+          description: Internal Server Error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/SetMMPCommandV1'
+                - $ref: '#/components/schemas/ResetMMPCommandV1'
+            examples:
+              SetMMPCommandV1:
+                $ref: '#/components/examples/SetMMPCommandV1'
+              ResetMMPCommandV1:
+                $ref: '#/components/examples/ResetMMPCommandV1'
+      security:
+        - jwtTokenAuth: [ ]
+    get:
+      tags:
+        - market-maker-protection(MMP)
+      summary: Get Market Marker Protection Configuration By Trading Account Id
+      description: |
+        Get market maker protection configurations under a trading account id 
+        
+        This endpoint requires [authentication](#overview--generate-a-jwt-token). To filter by `symbol`, additional parameters are required. For detailed instructions, see the [Filtering Support](#overview--filtering-support) section.
+      operationId: get-mmp-config-by-trading-account-id
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - in: query
+          name: symbol
+          description: The underlying asset id you filter the configurations against. If symbol is provided, this API will only return the market maker protection configuration for this symbol for this trading account.
+          schema:
+            $ref: '#/components/schemas/UnderlyingAssetSymbol'
+          required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+      responses:
+        '200':
+          description: Status OK. This means a command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetMmpConfigurationResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Not Authenticated
+        '403':
+          description: Access Forbidden
+      security:
+        - jwtTokenAuth: [ ]
+
   /v1/trades:
     get:
       tags:
@@ -3218,19 +3405,14 @@ paths:
       description: |
         Get a list of trades based on specified filters.
         - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
-        
+        - Only the last 24 hours of data is available for querying
         - [supports pagination](#overview--pagination-support)
         - filtering on `createdAtDatetime`, `createdAtTimestamp` requires additional keywords, [see filtering support](#overview--filtering-support)
 
         **Ratelimited:** `True`
       operationId: trade-get-trades
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: symbol
           schema:
@@ -3248,6 +3430,18 @@ paths:
           schema:
             $ref: '#/components/schemas/TradingAccountId'
           required: true
+        - in: query
+          name: otcTradeId
+          description: unique Bullish otc trade id
+          schema:
+            $ref: '#/components/schemas/OtcTradeId'
+          required: false
+        - in: query
+          name: clientOtcTradeId
+          description: unique client otc trade id
+          schema:
+            $ref: '#/components/schemas/ClientOtcTradeId'
+          required: false
       responses:
         '200':
           description: OK
@@ -3272,12 +3466,7 @@ paths:
   /v1/trades/{tradeId}:
     get:
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: path
           name: tradeId
           schema:
@@ -3317,6 +3506,90 @@ paths:
           description: Internal Server Error
       security:
         - jwtTokenAuth: []
+  /v1/history/trades:
+    get:
+      tags:
+        - history
+      summary: Get Historical Trades
+      description: |
+        Get a list of trades based on specified filters.
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - Only the last 90 days of data is available for querying
+        - [supports pagination](#overview--pagination-support)
+        - filtering on `createdAtDatetime`, `createdAtTimestamp` requires additional keywords, [see filtering support](#overview--filtering-support)
+  
+        **Ratelimited:** `True`
+      operationId: trade-get-trades-history
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - in: query
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/MarketSymbol'
+          required: false
+        - in: query
+          name: orderId
+          description: unique order ID
+          schema:
+            $ref: '#/components/schemas/OrderID'
+          required: false
+        - in: query
+          name: tradeId
+          description: unique trade ID
+          schema:
+            $ref: '#/components/schemas/TradeID'
+          required: false
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+        - in: query
+          name: createdAtDatetime[gte]
+          description: start timestamp of period, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: false
+        - in: query
+          name: createdAtDatetime[lte]
+          description: end timestamp of period, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: false
+        - in: query
+          name: otcTradeId
+          description: unique Bullish otc trade id
+          schema:
+            $ref: '#/components/schemas/OtcTradeId'
+          required: false
+        - in: query
+          name: clientOtcTradeId
+          description: unique client otc trade id
+          schema:
+            $ref: '#/components/schemas/ClientOtcTradeId'
+          required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/Trade'
+        '401':
+          description: Not Authenticated
+        '403':
+          description: Access Forbidden
+        '429':
+          description: Too Many Requests
+        '500':
+          description: Internal Server Error
+      security:
+        - jwtTokenAuth: [ ]
   /v1/wallets/transactions:
     get:
       tags:
@@ -3324,17 +3597,15 @@ paths:
       summary: Get Custody Transaction History
       description: |
         Get custody transaction history, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        
+        Please note that Custody endpoints utilize a non-multiplied asset format for long decimal assets like SHIB and PEPE, ensuring consistency with real-world asset representation. This differs from Trading endpoints, which use a multiplied asset format, such as SHIB1M and PEPE1M. For more information, please see [help centre](https://bullishexchange.atlassian.net/wiki/spaces/BHC/pages/20807684/Understanding+Multiplied+Assets+PEPE1M+and+SHIB1M)
+        
         - [supports pagination](#overview--pagination-support)
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-history
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: createdAtDatetime[gte]
           description: start timestamp of period, ISO 8601 with millisecond as string
@@ -3375,16 +3646,11 @@ paths:
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-get-limits
       parameters:
+        - $ref: '#/components/parameters/Authorization'
         - in: path
           name: symbol
           schema:
             $ref: '#/components/schemas/CustodySymbol'
-          required: true
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
           required: true
       responses:
         '200':
@@ -3410,18 +3676,13 @@ paths:
         Please note that Custody endpoints utilize a non-multiplied asset format for long decimal assets like SHIB and PEPE, ensuring consistency with real-world asset representation. This differs from Trading endpoints, which use a multiplied asset format, such as SHIB1M and PEPE1M. For more information, please see [help centre](https://bullishexchange.atlassian.net/wiki/spaces/BHC/pages/20807684/Understanding+Multiplied+Assets+PEPE1M+and+SHIB1M)
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
-      operationId: custody-get-deposit-instructions
+      operationId: custody-get-deposit-instructions-crypto
       parameters:
+        - $ref: '#/components/parameters/Authorization'
         - in: path
           name: symbol
           schema:
             $ref: '#/components/schemas/CustodySymbol'
-          required: true
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
           required: true
       responses:
         '200':
@@ -3444,23 +3705,18 @@ paths:
         - custody
       summary: Get Withdrawal Instructions for Crypto
       description: |
-        Get withdrawal instructions added by the user, requires [bearer token](#overview--add-authenticated-request-header) in authorization header. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website
+        Get crypto withdrawal instructions, requires [bearer token](#overview--add-authenticated-request-header) in authorization header. Please note that all withdrawal addresses must be whitelisted via the Bullish website before any digital asset withdrawals can be processed.
         
         Please note that Custody endpoints utilize a non-multiplied asset format for long decimal assets like SHIB and PEPE, ensuring consistency with real-world asset representation. This differs from Trading endpoints, which use a multiplied asset format, such as SHIB1M and PEPE1M. For more information, please see [help centre](https://bullishexchange.atlassian.net/wiki/spaces/BHC/pages/20807684/Understanding+Multiplied+Assets+PEPE1M+and+SHIB1M)
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
-      operationId: custody-get-withdrawal-instructions
+      operationId: custody-get-withdrawal-instructions-crypto
       parameters:
+        - $ref: '#/components/parameters/Authorization'
         - in: path
           name: symbol
           schema:
             $ref: '#/components/schemas/CustodySymbol'
-          required: true
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
           required: true
       responses:
         '200':
@@ -3486,19 +3742,14 @@ paths:
         Get deposit instructions, requires [bearer token](#overview--add-authenticated-request-header) in authorization header
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
-      operationId: custody-get-deposit-instructions
+      operationId: custody-get-deposit-instructions-fiat
       parameters:
+        - $ref: '#/components/parameters/Authorization'
         - in: path
           name: symbol
           example: 'USD'
           schema:
             $ref: '#/components/schemas/InstrumentId'
-          required: true
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
           required: true
       responses:
         '200':
@@ -3524,18 +3775,13 @@ paths:
         Get withdrawal instructions added by the user, requires [bearer token](#overview--add-authenticated-request-header) in authorization header. Please note that before withdrawal destinations can be used for withdrawing to, they must be whitelisted on the Bullish website.
         
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
-      operationId: custody-get-withdrawal-instructions
+      operationId: custody-get-withdrawal-instructions-fiat
       parameters:
+        - $ref: '#/components/parameters/Authorization'
         - in: path
           name: symbol
           schema:
             $ref: '#/components/schemas/CustodyFiatSymbol'
-          required: true
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
           required: true
       responses:
         '200':
@@ -3573,7 +3819,7 @@ paths:
 
         > **Bullish requires you to whitelist a withdrawal destination address before submitting a withdrawal request. You may view, approve, and manage your list of destination addresses in Account Settings on the Bullish website. If you attempt a withdrawal without first whitelisting an address in Account Settings, then the withdrawal attempt will fail.**
 
-        For a full example of using the withdrawal endpoint please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/ecdsa/rest/custody_withdrawal.py)
+        For a full example of using the withdrawal endpoint please see the [Custody Withdrawal Example](https://github.com/bullish-exchange/api-examples/blob/master/custody/custody_withdrawal_ecdsa.py)
 
         Please note that Custody endpoints utilize a non-multiplied asset format for long decimal assets like SHIB and PEPE, ensuring consistency with real-world asset representation. This differs from Trading endpoints, which use a multiplied asset format, such as SHIB1M and PEPE1M. For more information, please see [help centre](https://bullishexchange.atlassian.net/wiki/spaces/BHC/pages/20807684/Understanding+Multiplied+Assets+PEPE1M+and+SHIB1M)
         
@@ -3584,7 +3830,6 @@ paths:
         | USD | 2dp | |
         | BTC | 8dp | |
         | DOGE | 8dp | |
-        | EOS | 4dp | |
         | ETH | 8dp | |
         | LTC | 8dp | |
         | XRP | 6dp | |
@@ -3597,24 +3842,15 @@ paths:
         | UNI | 8dp | |
         | USDC | 6dp | |
         | USDT | 6dp | |
-        | SHIB | 2dp | Please ensure to use the non-multiplied asset format (e.g., SHIB, PEPE) when creating withdrawals, as Custody endpoints align with real-world asset representation |
-        | PEPE | 2dp | Please ensure to use the non-multiplied asset format (e.g., SHIB, PEPE) when creating withdrawals, as Custody endpoints align with real-world asset representation |
+        | SHIB | 2dp | Please ensure to use the non-multiplied asset format (e.g., SHIB, PEPE, BONK) when creating withdrawals, as Custody endpoints align with real-world asset representation |
+        | PEPE | 2dp | Please ensure to use the non-multiplied asset format (e.g., SHIB, PEPE, BONK) when creating withdrawals, as Custody endpoints align with real-world asset representation |
+        | BONK | Round to the nearest ten (e.g., 120 or 130, not 125). | Please ensure to use the non-multiplied asset format (e.g., SHIB, PEPE, BONK) when creating withdrawals, as Custody endpoints align with real-world asset representation |
 
         **Ratelimited:** `True` - see [custody limits](#tag--custody)
       operationId: custody-withdrawal
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
-        - in: header
-          name: BX-SIGNATURE
-          description: ECDSA signature created by signing the request with an ECDSA Key
-          schema:
-            $ref: '#/components/headers/BX-SIGNATURE'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
       requestBody:
         description: withdrawal request
         required: true
@@ -3657,6 +3893,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/assets/{symbol}:
     get:
       tags:
@@ -3664,6 +3901,13 @@ paths:
       summary: Get Asset by Symbol
       description: Get Asset by Symbol
       operationId: asset-data-get-asset
+      parameters:
+        - in: path
+          name: symbol
+          schema:
+            type: string
+          required: true
+          example: BTC
       responses:
         '200':
           description: OK
@@ -3675,6 +3919,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/derivatives-positions:
     get:
       tags:
@@ -3683,12 +3928,7 @@ paths:
       description: Get derivatives positions
       operationId: get-derivatives-positions
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: tradingAccountId
           description: Id of the trading account. `tradingAccountId` is mandatory in the query for users with multiple trading accounts. For users with a single trading account, it can be automatically retrieved from the login.
@@ -3700,6 +3940,23 @@ paths:
           example: BTC-USDC-PERP
           schema:
             $ref: '#/components/schemas/MarketSymbol'
+        - in: query
+          name: marketType
+          description: Optional - Filter for results by expiry date
+          example: DATED_FUTURE
+          schema:
+            $ref: '#/components/schemas/MarketTypeAsString'
+        - in: query
+          name: optionType
+          description: Optional - Filter for results by option type
+          example: CALL
+          schema:
+            $ref: '#/components/schemas/OptionTypeAsString'
+        - in: query
+          name: sort
+          description: Optional - Sort results by Market Type or Option Type
+          schema:
+            $ref: '#/components/schemas/MarketTypeOrOptionTypeSortByAsString'
       responses:
         '200':
           description: OK
@@ -3724,14 +3981,10 @@ paths:
         Get historical derivatives settlement. 
         - [supports pagination](#overview--pagination-support)
         - filtering on `settlementDatetime` requires additional keywords, [see filtering support](#overview--filtering-support)
+        - Only the last 90 days of data is available for querying
       operationId: get-derivatives-settlement-history
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [ token ](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: tradingAccountId
           description: Id of the trading account. `tradingAccountId` is mandatory in the query for users with multiple trading accounts. For users with a single trading account, it can be automatically retrieved from the login.
@@ -3782,14 +4035,10 @@ paths:
         Get historical transfers.
         - [supports pagination](#overview--pagination-support)
         - filtering on `createdAtDatetime` and `createdAtTimestamp` requires additional keywords, [see filtering support](#overview--filtering-support)
+        - Only the last 90 days of data is available for querying
       operationId: get-transfer-history
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: tradingAccountId
           description: Id of the trading account. `tradingAccountId` is mandatory in the query for users with multiple trading accounts. For users with a single trading account, it can be automatically retrieved from the login.
@@ -3851,6 +4100,12 @@ paths:
         schema:
           $ref: '#/components/schemas/MarketTypeAsString'
         required: false
+      - in: query
+        name: optionType
+        description: Option Type to filter markets against. If this is present, only Option Markets will be returned
+        schema:
+          $ref: '#/components/schemas/OptionTypeAsString'
+        required: false
     get:
       tags:
         - market-data
@@ -3874,6 +4129,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/markets/{symbol}:
     parameters:
       - in: path
@@ -3900,6 +4156,34 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
+  /v1/history/markets/{symbol}:
+    parameters:
+      - in: path
+        name: symbol
+        schema:
+          $ref: '#/components/schemas/OptionAndDatedFuturesMarketSymbol'
+        required: true
+    get:
+      tags:
+        - market-data
+      summary: Get Historical Market by Symbol
+      description: Get Historical Market by Symbol. This endpoint will return specified market even if it is expired. Only applicable for this is applicable only for `DATED_FUTURE` and `OPTION` markets.
+      operationId: market-data-get-historical-market
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Market'
+        '404':
+          description: Not Found
+        '429':
+          description: Too Many Requests
+        '500':
+          description: Internal Server Error
+      security: []
   /v1/markets/{symbol}/orderbook/hybrid:
     get:
       parameters:
@@ -3930,6 +4214,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/markets/{symbol}/trades:
     get:
       parameters:
@@ -3966,6 +4251,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/index-prices:
     get:
       tags:
@@ -3987,6 +4273,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/index-prices/{assetSymbol}:
     parameters:
       - in: path
@@ -4013,6 +4300,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/history/markets/{symbol}/trades:
     get:
       parameters:
@@ -4034,6 +4322,12 @@ paths:
           schema:
             $ref: '#/components/schemas/DateTime'
           required: false
+        - in: query
+          name: tradeId
+          description: specific `tradeId` to search for, if any
+          schema:
+            $ref: '#/components/schemas/TradeID'
+            required: false
       tags:
         - history
       summary: Get Historical Market Trades
@@ -4042,6 +4336,7 @@ paths:
         - [supports pagination](#overview--pagination-support)
 
         **Ratelimited:** `False`
+        - Only the last 90 days of data is available for querying
       operationId: market-data-get-historical-anonymous-trades-by-market-symbol
       responses:
         '200':
@@ -4060,6 +4355,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/history/markets/{symbol}/funding-rate:
     get:
       parameters:
@@ -4085,6 +4381,7 @@ paths:
       description: |
         Get historical hourly funding rate for the requested perpetual market
         - [supports pagination](#overview--pagination-support)
+        - Only the last 90 days of data is available for querying
       operationId: market-data-get-funding-rate-history-by-market-symbol
       responses:
         '200':
@@ -4105,6 +4402,84 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
+  /v1/option-ladder:
+    get:
+      parameters:
+        - in: query
+          name: baseSymbol
+          schema:
+            $ref: '#/components/schemas/AssetSymbol'
+          required: true
+          description: symbol to get
+        - in: query
+          name: expiry
+          description: Optional - Filter results by expiry date of the option markets
+          schema:
+            $ref: '#/components/schemas/OptionExpiryDate'
+        - in: query
+          name: type
+          description: Optional - Filter results by type (`CALL` or ` PUT`) of the option markets
+          schema:
+            $ref: '#/components/schemas/OptionType'
+        - in: query
+          name: sort
+          description: Optional - Sort results by Option Type or Expiry Datetime
+          schema:
+            $ref: '#/components/schemas/OptionTypeOrExpiryDatetimeSortAsString'
+      tags:
+        - option-ladder
+      summary: Get Option Ladder
+      description: |
+        Returns the available options contracts. This data helps traders quickly assess the available options and their respective prices, implied volatilities, and Greeks (such as delta, gamma, theta, and vega).
+      operationId: get-option-ladder
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OptionLadderResponse'
+        '400':
+          description: Bad Request
+        '429':
+          description: Too Many Requests
+        '500':
+          description: Internal Server Error
+      security: []
+  /v1/option-ladder/{symbol}:
+    get:
+      parameters:
+        - in: path
+          name: symbol
+          schema:
+            $ref: '#/components/schemas/OptionMarketSymbol'
+          required: true
+          description: symbol to get. Only option markets are supported.
+      tags:
+        - option-ladder
+      summary: Get Option Ladder for market
+      description: |
+        Returns the for a given `baseSymbol`, organised by strike prices and expiration dates. This data helps traders quickly assess the available options and their respective prices, implied volatilities, and Greeks (such as delta, gamma, theta, and vega).
+      operationId: get-option-ladder-symbol
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptionLadderResponse'
+        '400':
+          description: Bad Request
+        '404':
+          description: Option Market Not Found
+        '429':
+          description: Too Many Requests
+        '500':
+          description: Internal Server Error
+      security: []
   /v1/markets/{symbol}/tick:
     get:
       parameters:
@@ -4136,6 +4511,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/markets/{symbol}/candle:
     get:
       tags:
@@ -4189,6 +4565,7 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
+      security: []
   /v1/history/borrow-interest:
     get:
       tags:
@@ -4200,16 +4577,12 @@ paths:
         which denotes the interest charged in the particular hour for the asset.
         - [supports pagination](#overview--pagination-support)
         - filtering `createdAtDatetime`, `createdAtTimestamp` requires additional keywords, [see filtering support](#overview--filtering-support)
+        - Only the last 90 days of data is available for querying
 
         **Ratelimited:** `True`
       operationId: market-data-get-historical-borrow-interest
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-          required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: tradingAccountId
           description: Id of the trading account. `tradingAccountId` is mandatory in the query for users with multiple trading accounts. For users with a single trading account, it can be automatically retrieved from the login.
@@ -4271,7 +4644,8 @@ paths:
           description: Too Many Requests
         '500':
           description: Internal Server Error
-  /v1/command?commandType=V1TransferAsset:
+      security: []
+  /v1/command:
     post:
       tags:
         - trading-accounts
@@ -4280,31 +4654,18 @@ paths:
         Send command to transfer asset between two trading accounts.
       operationId: command
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
+        - in: query
+          name: commandType
+          description: The command type, must be 'V1TransferAsset'
           required: true
-        - in: header
-          name: BX-SIGNATURE
-          description: command signature is a signature resulted from the [signed message of the `<COMMAND>`](#overview--construct-the-bx-signature-header)
           schema:
-            $ref: '#/components/headers/BX-SIGNATURE'
-          required: true
-        - in: header
-          name: BX-TIMESTAMP
-          description: command timestamp is the number of milliseconds since EPOCH
-          schema:
-            $ref: '#/components/headers/BX-TIMESTAMP'
-          required: true
-        - in: header
-          name: BX-NONCE
-          description: command nonce is a client side incremented unsigned 64 bit integer
-          schema:
-            $ref: '#/components/headers/BX-NONCE'
-          required: true
-
+            type: string
+            enum: ['V1TransferAsset']
+            example: 'V1TransferAsset'
       responses:
         '200':
           description: Status OK. This means the request was successfully acknowledged. It does not necessarily mean the command was successfully executed.
@@ -4349,12 +4710,7 @@ paths:
       operationId: simulate-portfolio-margin
 
       parameters:
-        - in: header
-          name: Authorization
-          description: authorization header, its value must be 'Bearer ' + [ token ](#overview--generate-a-jwt-token)
-          schema:
-            $ref: '#/components/headers/Authorization'
-            required: true
+        - $ref: '#/components/parameters/Authorization'
         - in: query
           name: includeExisting
           schema:
@@ -4385,6 +4741,294 @@ paths:
       security:
         - jwtTokenAuth: [ ]
 
+  /v2/otc-trades:
+    post:
+      summary: Create OTC Trade
+      operationId: create-otc-trade
+      description: |
+        Creates an OTC trade, requires [bearer token](#overview--add-authenticated-request-header) in authorization header.
+        
+        This endpoint uses the [signing format](#overview--signing-format) which does not require strict field ordering 
+        and addition of null fields in the request body. Prices do not require strict precision. 
+        Eg. for asset precision of 4 - `100`, `100.0`, `100.00`, `100.000` and `100.0000` are all accepted.
+      tags:
+        - OTC
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
+        - $ref: '#/components/parameters/BX-REFERRER'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOtcTradeCommand'
+      responses:
+        '200':
+          description: |
+            Status OK. The create OTC trade command was successfully acknowledged. To check the current status of the 
+            OTC trade, query [Get Trade by ID](#get-/v2/otc-trades/-otcTradeId-) using `otcTradeId` or `clientOtcTradeId` received in the response payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOtcTradeResponse'
+        '400':
+          description: |+
+            Bad Request
+            
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '401':
+          description: Unauthorized. Either API details are missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '403':
+          description: Forbidden- You do not have access to the requested resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+      security:
+        - jwtTokenAuth: [ ]
+    get:
+      summary: Get OTC Trades
+      operationId: get-otc-trades
+      description: |
+        Get the otc trade list based on specified filters.
+        - requires [bearer token](#overview--add-authenticated-request-header) in authorization header
+        - [supports pagination](#overview--pagination-support)
+        - supports filtering on `status`, `tradingAccountId`, `sharedMatchKey`, `clientOtcTradeId`, `createdAtDatetime`, `createdAtTimestamp`
+      tags:
+        - OTC
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - in: query
+          name: status
+          description: OTC trade status
+          schema:
+            $ref: '#/components/schemas/OtcTradeExternalStatus'
+          required: false
+        - in: query
+          name: tradingAccountId
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+        - in: query
+          name: sharedMatchKey
+          schema:
+            $ref: '#/components/schemas/SharedMatchKey'
+        - in: query
+          name: clientOtcTradeId
+          schema:
+            $ref: '#/components/schemas/ClientOtcTradeId'
+          required: false
+        - in: query
+          name: createdAtDatetime[ gte ]
+          description: Start timestamp of window, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: false
+        - in: query
+          name: createdAtDatetime[ lte ]
+          description: End timestamp of window, ISO 8601 with millisecond as string
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 25
+                items:
+                  $ref: '#/components/schemas/OtcTradeView'
+        '400':
+          description: For example, sending a request with an invalid trading account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '401':
+          description: Not Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '403':
+          description: Access Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+      security:
+        - jwtTokenAuth: [ ]
+  /v2/otc-trades/{otcTradeId}:
+    parameters:
+      - in: path
+        name: otcTradeId
+        schema:
+          type: string
+        required: true
+        description: Id of the OTC Trade
+    get:
+      summary: Get OTC Trade by ID
+      operationId: get-otc-trade--by-id
+      description: Retrieve a specific otc trade using its unique identifier.
+      tags:
+        - OTC
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - in: query
+          name: tradingAccountId
+          description: Id of the trading account
+          schema:
+            $ref: '#/components/schemas/TradingAccountId'
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OtcTradeView'
+        '400':
+          description: For example, sending a request with an invalid trading account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '401':
+          description: Not Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '403':
+          description: Access Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '404':
+          description: The given otcTradeId does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+      security:
+        - jwtTokenAuth: [ ]
+  /v2/otc-command:
+    post:
+      summary: OTC Trade Cancellation Command
+      operationId: otc-command
+      description: |
+        Submits a command to the trading engine. A successful response indicates that the command entry was acknowledged 
+        but does not indicate that the command was executed. 
+        This endpoint uses the [signing format](#overview--signing-format) which does not require strict field 
+        ordering and addition of null fields in the request body. 
+        
+        Command schemas and examples are provided below. Supported commands:
+        - V1CancelOtcTrade
+        - V1CancelAllOtcTrades
+        
+        Requires
+        - [bearer token](#overview--add-authenticated-request-header) in authorization header
+      tags:
+        - OTC
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/BX-SIGNATURE'
+        - $ref: '#/components/parameters/BX-TIMESTAMP'
+        - $ref: '#/components/parameters/BX-NONCE'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              discriminator:
+                propertyName: commandType
+                mapping:
+                  V1CancelOtcTrade: '#/components/schemas/CancelOtcTradeCommand'
+                  V1CancelAllOtcTrades: '#/components/schemas/CancelAllOtcTradesCommand'
+              oneOf:
+                - $ref: '#/components/schemas/CancelOtcTradeCommand'
+                - $ref: '#/components/schemas/CancelAllOtcTradesCommand'
+            examples:
+              CancelOtcTrade:
+                $ref: '#/components/examples/CancelOtcTradeCommand'
+              CancelAllOtcTrades:
+                $ref: '#/components/examples/CancelAllOtcTradesCommand'
+      responses:
+        '200':
+          description: Status OK. This means a command was successfully acknowledged.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/CancelOtcTradeResponse'
+                  - $ref: '#/components/schemas/CancelAllOtcTradesResponse'
+              examples:
+                CancelOtcTradeResponse:
+                  $ref: '#/components/examples/CancelOtcTradeResponse'
+                CancelAllOtcTradeResponse:
+                  $ref: '#/components/examples/CancelAllOtcTradesResponse'
+        '400':
+          description: |+
+            Bad Request
+            
+            For example, sending a request with the `BX-SIGNATURE` header missing will result in the following response:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '401':
+          description: Unauthorized. Either API details are missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '403':
+          description: Forbidden- You do not have access to the requested resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadOtcTradeEntryResponse'
+      security:
+        - jwtTokenAuth: [ ]
 
 components:
   securitySchemes:
@@ -4392,6 +5036,60 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  parameters:
+    Authorization:
+      in: header
+      name: Authorization
+      description: authorization header, its value must be 'Bearer '  + [token](#overview--generate-a-jwt-token)
+      required: true
+      schema:
+        type: string
+    BX-SIGNATURE:
+      in: header
+      name: BX-SIGNATURE
+      description: signature obtained using the [signing format](#overview--how-to-ensure-the-order-of-create-order-or-cancel-order-requests)
+      required: true
+      schema:
+        type: string
+    BX-TIMESTAMP:
+      in: header
+      name: BX-TIMESTAMP
+      description: timestamp is the number of milliseconds since EPOCH
+      required: true
+      schema:
+        type: string
+    BX-NONCE:
+      in: header
+      name: BX-NONCE
+      description: nonce is a client side incremented unsigned 64 bit integer
+      required: true
+      schema:
+        type: string
+    BX-REFERRER:
+      in: header
+      name: BX-REFERRER
+      description: A numeric referrer id if applicable
+      required: false
+      schema:
+        type: string
+    BX-PUBLIC-KEY:
+      in: header
+      name: BX-PUBLIC-KEY
+      description: public key being used to generate the JWT
+      required: true
+      schema:
+        type: string
+    BX-NONCE-WINDOW-ENABLED:
+      in: header
+      name: BX-NONCE-WINDOW-ENABLED
+      description: |
+        string representation of a boolean value, [enables out-of-order order requests to be processed](#overview--how-to-enable-out-of-order-processing-of-order-requests)
+      schema:
+        type: string
+        enum:
+          - "false"
+          - "true"
+        default: "false"
   schemas:
     ApiResponse:
       type: object
@@ -4407,21 +5105,43 @@ components:
       type: boolean
       format: true or false
       example: true
+    MarketTypeOrOptionTypeSortByAsString:
+      type: string
+      description: Sorting parameter that can have the following string values `"marketType"`, `"optionType"`
+      enum:
+        - marketType
+        - optionType
+      example: optionType
+    OptionTypeOrExpiryDatetimeSortAsString:
+      type: string
+      description: Sorting parameter that can have the following string values `"optionType"`, `"expiryDatetime"`
+      enum:
+        - optionType
+        - expiryDatetime
+      example: optionType
     MarketTypeAsString:
       type: string
-      description: market type can have the following string values `"SPOT"`, `"PERPETUAL"`, `"DATED_FUTURE"`
+      description: market type can have the following string values `"SPOT"`, `"PERPETUAL"`, `"DATED_FUTURE"`, `"OPTION"`
       enum:
         - SPOT
         - PERPETUAL
         - DATED_FUTURE
+        - OPTION
       example: SPOT
+    OptionTypeAsString:
+      type: string
+      description: option type can have the following string values `"CALL"`, `"PUT"`
+      enum:
+        - CALL
+        - PUT
+      example: CALL
     OrderTypeAsString:
       type: string
-      description: order type can have the following string values `"LMT"`, `"MKT"`, `"STOP_LIMIT"`, `"POST_ONLY"`. 
+      description: order type can have the following string values `"LMT"`, `"MKT"`, `"STOP_LIMIT"`, `"POST_ONLY"`. `"MKT"` and `"STOP_LIMIT"` are not applicable for Options
       example: "LMT"
     OrderTypeAsStringV2:
       type: string
-      description: order type can have the following string values `"LIMIT"`, `"MARKET"`, `"STOP_LIMIT"`, `"POST_ONLY"`. 
+      description: order type can have the following string values `"LIMIT"`, `"MARKET"`, `"STOP_LIMIT"`, `"POST_ONLY"`. `"MARKET"` and `"STOP_LIMIT"` are not applicable for Options
       example: "LIMIT"
     OrderTypeAsStringAmend:
       type: string
@@ -4502,6 +5222,11 @@ components:
       format: date-time
       example: "2025-05-20T01:01:01.000Z"
       description: ISO 8601 with millisecond as string
+    OptionExpiryDate:
+      type: string
+      format: date
+      example: "20250520"
+      description: Expiry Date of option, in YYYYMMDD format
     TimeStamp:
       type: string
       format: int64
@@ -4511,10 +5236,56 @@ components:
       type: string
       example: '1560ec0b406c0d909bb9f5f827dd6aa14a1f638884f33a2a3134878102e78038'
       description: destination id provided by bullish that uniquely identifies a whitelisted address or account
+    CustodyDestinationUserWalletType:
+      type: string
+      enum:
+        - HOSTED
+        - SELF_HOSTED
+        - UNKNOWN
+      description: The host type of the wallet. `HOSTED` wallet uses a custodial wallet service, `SELF_HOSTED` wallet is a non-custodial wallet.
+    CustodyDestinationSigned:
+      type: boolean
+      example: true
+      description: Whether this destination has been signed by the user. Some operations such as withdrawal requires the destination to be signed.
+    CustodyDestinationVaspName:
+      type: string
+      example: Bullish
+      description: The name of the hosting VASP of the wallet. This is only applicable for `HOSTED` wallets.
+    CustodySelfHostedRequestedDepositAmount:
+      type: string
+      example: '12.3456'
+      description: User-requested amount for the deposit.
+    CustodySelfHostedVerificationAmount:
+      type: string
+      example: '0.0012'
+      description: Bullish specified additional small deposit amount to add to the `requestedDepositAmount` for wallet verification.
+    CustodySelfHostedDepositAddress:
+      type: string
+      example: '0xb0a64d976972d87b0783eeb1ff88306cd1891f02'
+      description: The address of the Bullish trading account that the user should deposit to during a self hosted deposit attempt.
+    CustodySelfHostedDepositMemo:
+      type: string
+      example: MZAXEMRXA
+      description: The memo or destination tag of the Bullish trading account that the user should deposit to during a self hosted deposit attempt.
+    CustodySelfHostedTotalDepositAmount:
+      type: string
+      example: '12.3468'
+      description: The actual amount that the user should deposit for wallet verification. It is the sum of `requestedDepositAmount` and `verificationAmount`.
+    CustodySelfHostedVerificationStatus:
+      type: string
+      enum:
+        - VERIFIED
+        - PENDING_VERIFICATION
+        - VERIFICATION_EXPIRED
+      description: |
+        The status for the self-hosted wallet verification attempt.
+        - `VERIFIED` - Self-hosted wallet has been verified
+        - `PENDING_VERIFICATION` - pending verification via satoshi test
+        - `VERIFICATION_EXPIRED` - the verification has expired
     NetworkID:
       type: string
-      example: 'EOS'
-      description: the network of the native coin or token, e.g. BTC, ETH, EOS
+      example: 'ETH'
+      description: the network of the native coin or token, e.g. BTC, ETH, SOL
     CustodyNetworkAddress:
       type: string
       example: '0xb0a64d976972d87b0783eeb1ff88306cd1891f02'
@@ -4894,6 +5665,10 @@ components:
           description: allows to borrow on the order
           type: boolean
           example: false
+        isMMP:
+          description: Indicate if the order is subject to `Market Maker Protection`. Only applicable to option markets
+          type: boolean
+          example: true
         tradingAccountId:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
@@ -4943,6 +5718,10 @@ components:
           type: boolean
           default: false
           example: false
+        isMMP:
+          description: Indicate if the order is subject to `Market Maker Protection`. Only applicable to option markets
+          type: boolean
+          example: true
         tradingAccountId:
           allOf:
             - $ref: '#/components/schemas/TradingAccountId'
@@ -5051,7 +5830,7 @@ components:
           example: 97d98951b12fb11f330dd9cb1b807d888c702679ee602edcf1ebc6bac17ad63d
         isDefaulted:
           description: whether the trading account is defaulted
-          type: String
+          type: string
           example: "false"
         tradeFeeRate:
           description: Trade fees per `feeGroupId` for this trading account
@@ -5448,6 +6227,100 @@ components:
           $ref: '#/components/schemas/MarketSymbol/example'
         tradingAccountId:
           $ref: '#/components/schemas/TradingAccountId/example'
+    SetMMPCommandV1:
+      type: object
+      required:
+        - commandType
+        - tradingAccountId
+        - underlyingAssetSymbol
+        - windowTimeInSeconds
+        - frozenTimeInSeconds
+      properties:
+        commandType:
+          description: the command type must be provided as 'V1SetMMP'
+          type: string
+          example: 'V1SetMMP'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        underlyingAssetSymbol:
+          allOf:
+            - $ref: '#/components/schemas/UnderlyingAssetSymbol'
+        windowTimeInSeconds:
+          type: string
+          description: time window during which the MMP checks are conducted. It helps in determining how frequently the system evaluates the market maker's activity against predefined thresholds. Value needs to be `> 0`. Maximum value is 600 seconds (10 minutes).
+        frozenTimeInSeconds:
+          type: string
+          description: the duration for which a market maker’s trading activity is temporarily halted after a protective measure is triggered. Value needs to be `>= 0`. Maximum value is 3600 seconds (60 minutes).
+        quantityLimit:
+          type: string
+          description: cap on the total number of contracts that a market maker can trade within `windowTimeInSeconds`. This is direction(side) agnostic. Needs to be `> 0` if set.
+          example: "100"
+        deltaLimit:
+          type: string
+          description: net delta exposure that a market maker can accumulate within `windowTimeInSeconds`
+          example: "10"
+      example:
+        commandType: "V1SetMMP"
+        tradingAccountId: "123567443543"
+        underlyingAssetSymbol: "BTC"
+        windowTimeInSeconds: "10"
+        frozenTimeInSeconds: "5"
+        quantityLimit: "10"
+        deltaLimit: "1"
+    SetMMPCommandResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+      example:
+        message: 'Command acknowledged - SetMMPConfig'
+        requestId: '633910976353665025'
+    ResetMMPCommandV1:
+      type: object
+      required:
+        - commandType
+        - tradingAccountId
+        - underlyingAssetSymbol
+      properties:
+        commandType:
+          description: the command type must be provided as 'V1ResetMMP'
+          type: string
+          example: 'V1ResetMMP'
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        underlyingAssetSymbol:
+          allOf:
+            - $ref: '#/components/schemas/UnderlyingAssetSymbol'
+      example:
+        commandType: 'V1ResetMMP'
+        tradingAccountId: "123567443543"
+        underlyingAssetSymbol: "BTC"
+    ResetMMPCommandResponse:
+      type: object
+      required:
+        - message
+        - requestId
+      properties:
+        message:
+          description: message
+          type: string
+        requestId:
+          description: unique request ID
+          allOf:
+            - $ref: '#/components/schemas/RequestID'
+      example:
+        message: 'Command acknowledged - ResetMMPConfig'
+        requestId: '633910976353665026'
     CancelAllOrdersRequest:
       type: object
       required:
@@ -6349,11 +7222,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/CustodyDestinationID'
         symbol:
-          example: 'USDC'
           allOf:
             - $ref: '#/components/schemas/CustodySymbol'
         network:
-          example: 'ETH'
           allOf:
             - $ref: '#/components/schemas/NetworkID'
         quantity:
@@ -6377,11 +7248,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/CustodyDestinationID'
         symbol:
-          example: 'USDC'
           allOf:
             - $ref: '#/components/schemas/CustodySymbol'
         network:
-          example: 'ETH'
           allOf:
             - $ref: '#/components/schemas/NetworkID'
         quantity:
@@ -6506,13 +7375,18 @@ components:
         address: '0xb0a64d976972d87b0783eeb1ff88306cd1891f02'
     CustodyCryptoWithdrawalInstructions:
       type: object
+      required:
+        - network
+        - symbol
+        - address
+        - fee
+        - label
+        - destinationId
       properties:
         network:
-          example: 'ETH'
           allOf:
             - $ref: '#/components/schemas/NetworkID'
         symbol:
-          example: USDC
           allOf:
             - $ref: '#/components/schemas/CustodySymbol'
         address:
@@ -6530,6 +7404,131 @@ components:
         destinationId:
           allOf:
             - $ref: '#/components/schemas/CustodyDestinationID'
+    CustodySelfHostedInitiateRequest:
+      type: object
+      required:
+        - network
+        - symbol
+        - address
+        - label
+        - requestedDepositAmount
+      properties:
+        network:
+          allOf:
+            - $ref: '#/components/schemas/NetworkID'
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/CustodySymbol'
+        address:
+          allOf:
+            - $ref: '#/components/schemas/CustodyNetworkAddress'
+        memo:
+          allOf:
+            - $ref: '#/components/schemas/CustodyWithdrawalMemo'
+        label:
+          allOf:
+            - $ref: '#/components/schemas/CustodyWithdrawalLabel'
+        requestedDepositAmount:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedRequestedDepositAmount'
+      example:
+        network: "ETH"
+        symbol: "USDC"
+        address: "0xb0a64d976972d87b0783eeb1ff88306cd1891f02"
+        label: "Our cold wallet"
+        requestedDepositAmount: "12.3456"
+    CustodySelfHostedInitiateResponse:
+      type: object
+      properties:
+        destinationId:
+          allOf:
+            - $ref: '#/components/schemas/CustodyDestinationID'
+        network:
+          allOf:
+            - $ref: '#/components/schemas/NetworkID'
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/CustodySymbol'
+        depositAddress:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedDepositAddress'
+        depositMemo:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedDepositMemo'
+        requestedDepositAmount:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedRequestedDepositAmount'
+        verificationAmount:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedVerificationAmount'
+        totalDepositAmount:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedTotalDepositAmount'
+        verificationExpiryTime:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+      example:
+        destinationId: "1560ec0b406c0d909bb9f5f827dd6aa14a1f638884f33a2a3134878102e78038"
+        network: "ETH"
+        symbol: "USDC"
+        depositAddress: "0xb0a64d976972d87b0783eeb1ff88306cd1891f02"
+        requestedDepositAmount: "12.3456"
+        verificationAmount: "0.0012"
+        totalDepositAmount: "12.3468"
+        verificationExpiryTime: "2025-05-20T01:01:01.000Z"
+    CustodyGetSelfHostedVerificationResponse:
+      type: object
+      required:
+        - destinationId
+        - network
+        - symbol
+        - address
+        - verificationStatus
+        - requestedDepositAmount
+        - verificationAmount
+        - totalDepositAmount
+        - verificationExpiryTime
+      properties:
+        destinationId:
+          allOf:
+            - $ref: '#/components/schemas/CustodyDestinationID'
+        network:
+          allOf:
+            - $ref: '#/components/schemas/NetworkID'
+        symbol:
+          allOf:
+            - $ref: '#/components/schemas/CustodySymbol'
+        address:
+          allOf:
+            - $ref: '#/components/schemas/CustodyNetworkAddress'
+        memo:
+          allOf:
+            - $ref: '#/components/schemas/CustodyWithdrawalMemo'
+        verificationStatus:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedVerificationStatus'
+        requestedDepositAmount:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedRequestedDepositAmount'
+        verificationAmount:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedVerificationAmount'
+        totalDepositAmount:
+          allOf:
+            - $ref: '#/components/schemas/CustodySelfHostedTotalDepositAmount'
+        verificationExpiryTime:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+      example:
+        destinationId: "1560ec0b406c0d909bb9f5f827dd6aa14a1f638884f33a2a3134878102e78038"
+        network: "ETH"
+        symbol: "USDC"
+        address: "0xb0a64d976972d87b0783eeb1ff88306cd1891f02"
+        verificationStatus: "VERIFIED"
+        requestedDepositAmount: "12.3456"
+        verificationAmount: "0.0012"
+        totalDepositAmount: "12.3468"
+        verificationExpiryTime: "2025-05-20T01:01:01.000Z"
     CustodyBankDetails:
       type: object
       properties:
@@ -6648,6 +7647,9 @@ components:
         - isTaker
         - tradeRebateAmount
         - tradeRebateAssetSymbol
+        - otcMatchId
+        - otcTradeId
+        - clientOtcTradeId
         - createdAtTimestamp
         - createdAtDatetime
       properties:
@@ -6700,6 +7702,18 @@ components:
           description: the symbol of the asset in which the rebate is paid
           allOf:
             - $ref: '#/components/schemas/QuoteAssetSymbol'
+        otcMatchId:
+          description: unique OTC match ID.
+          allOf:
+            - $ref: '#/components/schemas/OtcMatchId'
+        otcTradeId:
+          description: unique Bullish OTC trade ID
+          allOf:
+            - $ref: '#/components/schemas/OtcTradeId'
+        clientOtcTradeId:
+          description: unique Client OTC trade ID
+          allOf:
+            - $ref: '#/components/schemas/ClientOtcTradeId'
         createdAtDatetime:
           description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
           allOf:
@@ -6754,6 +7768,10 @@ components:
           description: current best bid (buy) price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        bidIVPercentage:
+          description: Implied volatility of the best bid price
+          type: string
+          example: "99.0"
         bidVolume:
           description: current best bid (buy) quantity (may be missing or undefined), see [asset value](#overview--price-and-quantity-precision) format
           allOf:
@@ -6762,6 +7780,10 @@ components:
           description: current best ask (sell) price, see [asset value](#overview--price-and-quantity-precision) format
           allOf:
             - $ref: '#/components/schemas/AssetValue'
+        askIVPercentage:
+          description: Implied volatility of the best ask price
+          type: string
+          example: "99.0"
         askVolume:
           description: current best ask (sell) quantity (may be missing or undefined), see [asset value](#overview--price-and-quantity-precision) format
           allOf:
@@ -6831,12 +7853,28 @@ components:
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         ammData:
-          description: AMM data of all available fee tiers. 
+          description: AMM data of all available fee tiers. Not applicable for `Option` markets 
           type: array
           minItems: 0
           items:
             allOf:
               - $ref: '#/components/schemas/AmmData'
+        optionStrikePrice:
+          description: The price at which the option can be exercised upon expiry.
+          type: string
+          example: "70000"
+        optionType:
+          description: Type of Option
+          allOf:
+            - $ref: '#/components/schemas/OptionType'
+        expiryDateTime:
+          description: Expiry Date Time of the instrument
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        greeks:
+          description: Option greeks
+          allOf:
+            - $ref: '#/components/schemas/OptionGreeks'
     AmmData:
       type: object
       description: AMM data
@@ -6879,6 +7917,14 @@ components:
       type: string
       description: market symbol. Eg `BTC-USDC-PERP` for PERPETUAL and `BTC-USDC-20241201` for DATED FUTURE markets.
       example: 'BTC-USDC-20241201'
+    OptionMarketSymbol:
+      type: string
+      description: market symbol. Eg `BTC-USDC-20241004-70000-C` for OPTION markets.
+      example: 'BTC-USDC-20241004-70000-C'
+    OptionAndDatedFuturesMarketSymbol:
+      type: string
+      description: market symbol. Eg `BTC-USDC-20241004-70000-C` for OPTION markets and `BTC-USDC-20241201` for DATED FUTURE markets.
+      example: 'BTC-USDC-20241004-70000-C'
     PerpMarketSymbol:
       type: string
       description: market symbol. Eg `BTC-USDC-PERP` for PERPETUAL market
@@ -6916,7 +7962,7 @@ components:
       example: 'BTC'
     UnderlyingAssetSymbol:
       type: string
-      description: the underlying asset symbol of the options contract that is eligible for MMP checks
+      description: the underlying asset symbol that is configured for MMP checks
       example: 'BTC'
     QuoteAssetSymbol:
       type: string
@@ -6935,54 +7981,54 @@ components:
       properties:
         collateralPercentage:
           description: collateral percentage applied to the asset for this band - a value of 90.00 indicates 90% of the asset is eligible to be used as collateral
-          type: String
+          type: string
           example: "95.00"
         bandLimitUSD:
           description: upper limit in USD for this band
-          type: String
+          type: string
           example: "1000000.0000"
     UnderlyingAsset:
       type: object
       properties:
         symbol:
           description: underlying asset symbol
-          type: String
+          type: string
           example: "BTC"
         assetId:
           description: underlying asset ID
-          type: String
+          type: string
           example: "1"
         bpmMinReturnStart:
           description: start of the 1/1000 biggest downward price movement of an underlying asset over 6 hours
-          type: String
+          type: string
           example: "40.0000"
         bpmMinReturnEnd:
           description: end of the 1/1000 biggest downward price movement of an underlying asset over 6 hours
-          type: String
+          type: string
           example: "20.0000"
         bpmMaxReturnStart:
           description: start of the 1/1000 biggest upward price movement of an underlying asset over 6 hours
-          type: String
+          type: string
           example: "30.0000"
         bpmMaxReturnEnd:
           description: end of the 1/1000 biggest upward price movement of an underlying asset over 6 hours
-          type: String
+          type: string
           example: "50.0000"
         marketRiskFloorPctStart:
           description: the percentage range of risk reduction allowed for a portfolio
-          type: String
+          type: string
           example: "1.00"
         marketRiskFloorPctEnd:
           description: the percentage range of risk reduction allowed for a portfolio
-          type: String
+          type: string
           example: "5.00"
         bpmTransitionDateTimeStart:
           description: the start datetime which the values linearly transition from `bpmMinReturnStart` to `bpmMinReturnEnd` for an underlying asset
-          type: String
+          type: string
           example: "2024-08-02T12:00:00.000Z"
         bpmTransitionDateTimeEnd:
           description: the end datetime which the values linearly transition from `bpmMinReturnStart` to `bpmMinReturnEnd` for an underlying asset
-          type: String
+          type: string
           example: "2024-08-02T18:00:00.000Z"
     PriceQuantityTuple:
       type: object
@@ -7103,7 +8149,7 @@ components:
         symbol:
           description: market symbol
           allOf:
-            - $ref: '#/components/schemas/MarketSymbol'
+            - $ref: '#/components/schemas/OptionMarketSymbol'
         baseSymbol:
           description: base asset symbol (only applies to spot market)
           allOf:
@@ -7151,7 +8197,7 @@ components:
           type: integer
           example: 8
         priceBuffer:
-          description: buffer range of limit price from the last traded price. 
+          description: buffer range of limit price from the last traded price. Not applicable for `Option` markets
           type: string
           example: 0.3
         minQuantityLimit:
@@ -7187,11 +8233,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/AssetValue'
         liquidityTickSize:
-          description: liquidity tick size. 
+          description: liquidity tick size. Not applicable for `Option` markets
           type: string
           example: "100.0000"
         liquidityPrecision:
-          description: liquidity precision. 
+          description: liquidity precision. Not applicable for `Option` markets
           type: integer
           example: 4
         makerFee:
@@ -7209,7 +8255,7 @@ components:
           type: string
           example: "0.00000001"
         makerMinLiquidityAddition:
-          description: minimum amount required to invest liquidity to market. 
+          description: minimum amount required to invest liquidity to market. Not applicable for `Option` markets
           type: string
           example: "5000"
         orderTypes:
@@ -7233,16 +8279,21 @@ components:
           description: able to create order
           type: boolean
           example: true
+        amendOrderEnabled:
+          description: able to amend order
+          type: boolean
+          example: true
+          deprecated: true
         cancelOrderEnabled:
           description: able to cancel order
           type: boolean
           example: true
         liquidityInvestEnabled:
-          description: able to invest liquidity to market. 
+          description: able to invest liquidity to market. Not applicable for `Option` markets
           type: boolean
           example: true
         liquidityWithdrawEnabled:
-          description: able to withdraw liquidity from market. 
+          description: able to withdraw liquidity from market. Not applicable for `Option` markets
           type: boolean
           example: true
         feeGroupId:
@@ -7250,7 +8301,7 @@ components:
           type: integer
           example: 1
         feeTiers:
-          description: all available fee tiers. 
+          description: all available fee tiers. Not applicable for `Option` markets
           type: array
           minItems: 0
           items:
@@ -7284,6 +8335,18 @@ components:
           description: denotes the time when the market expires in ISO 8601 with millisecond format as string
           type: string
           example: 2024-10-04T08:00:00.000Z
+        optionStrikePrice:
+          description: The price at which the option can be exercised upon expiry.
+          type: string
+          example: "70000.0000"
+        optionType:
+          description: Specifies if it’s a call (right to buy) or a put (right to sell)
+          allOf:
+            - $ref: '#/components/schemas/OptionType'
+        premiumCapRatio:
+          description: A cap that is set on the underlying asset's movement as part of the premium that limits the option buyer's profit.
+          type: string
+          example: "0.10"
     Asset:
       type: object
       required:
@@ -7326,24 +8389,24 @@ components:
             - $ref: '#/components/schemas/AssetValue'
         apr:
           description: annualized percentage rate
-          type: String
+          type: string
           example: "12.50"
         collateralRating:
           deprecated: true
           description: collateral rating applied to this asset, a value of 100.00 indicates 100%. `Deprecated in favour of collateral bands`
-          type: String
+          type: string
           example: "95.00"
         maxBorrow:
           description: maximum quantity that can be borrowed for this asset
-          type: String
+          type: string
           example: "10.00000000"
         totalOfferedLoanQuantity:
           description: quantity of an asset that is across all loan offers on the exchange
-          type: String
+          type: string
           example: "5.00000000"
         loanBorrowedQuantity:
           description: amount of loans that is currently being borrowed for the asset
-          type: String
+          type: string
           example: "3.00000000"
         collateralBands:
           description: list of collateral bands for the asset. A collateral band holds the upper limit of the USD notional and the corresponding collateral percentage which applies to it. An asset's collateral value will be capped by the highest limit of the collateral bands, any remaining amount greater than this limit will have a collateral percentage of 0. If an asset has an empty list of CollateralBands, this signifies that the asset has a collateralValue of 0.
@@ -7459,6 +8522,13 @@ components:
         - GTC
         - FOK
         - IOC
+    OptionType:
+      description: Type of Option market
+      example: CALL
+      type: string
+      enum:
+        - CALL
+        - PUT
     OrderType:
       type: string
       description: Order Types supported for the market.
@@ -7773,6 +8843,102 @@ components:
           items:
             allOf:
               - $ref: '#/components/schemas/ReferencePrice'
+    OptionLadderResponse:
+      description: Option Ladder Response
+      type: string
+      properties:
+        symbol:
+          description: Symbol of the option market. For example `BTC-USDC-20241004-70000-C`
+          allOf:
+            - $ref: '#/components/schemas/OptionMarketSymbol'
+        baseSymbol:
+          description: Base symbol of the option market. For `BTC-USDC-20241004-70000-C`, it will be `BTC`
+          allOf:
+            - $ref: '#/components/schemas/AssetSymbol'
+        settlementAssetSymbol:
+          description: Asset used for Mark To Market settlement
+          allOf:
+            - $ref: '#/components/schemas/QuoteAssetSymbol'
+        bidQuantity:
+          description: Quantity of `bid`
+          type: string
+          example: "0.0"
+        askQuantity:
+          description: Quantity of `ask`
+          type: string
+          example: "0.0"
+        bidIVPercentage:
+          description: Implied volatility of the best bid price
+          type: string
+          example: "99.0"
+        askIVPercentage:
+          description: Implied volatility of the best ask price
+          type: string
+          example: "99.0"
+        bid:
+          description: Bid price in the order book
+          type: string
+          example: "90000.0000"
+        ask:
+          description: Ask price in the order book
+          type: string
+          example: "90000.0000"
+        underlyingPrice:
+          description: Index price of the base asset
+          type: string
+          example: "100000.0000"
+        optionStrikePrice:
+          description: Strike price of the option market
+          type: string
+          example: "90000"
+        markPrice:
+          description: Mark Price of the option market
+          type: string
+          example: "100.0000"
+        quantity:
+          description: Number of contracts outstanding
+          type: string
+          example: "1000"
+        openInterest:
+          description: Amount of outstanding contracts in the exchange
+          type: string
+          example: "0.11442400"
+        openInterestUSD:
+          description: USD value of outstanding contracts in the exchange
+          type: string
+          example: "1144240.0000"
+        optionType:
+          description: Specifies if it’s a call (right to buy) or a put (right to sell)
+          allOf:
+            - $ref: '#/components/schemas/OptionType'
+        expiryDatetime:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        greeks:
+          description: Option greeks
+          allOf:
+            - $ref: '#/components/schemas/OptionGreeks'
+
+    OptionGreeks:
+      description: Pricing parameters for option instruments
+      type: object
+      properties:
+        delta:
+          description: Sensitivity of an option’s price to a $1 change in the price of the underlying asset
+          type: string
+          example: "0.98"
+        gamma:
+          description: Rate of change of Delta with respect to a $1 change in the underlying asset’s price
+          type: string
+          example: "0.98"
+        theta:
+          description: The rate at which an option’s price decreases as it approaches its expiration date
+          type: string
+          example: "-0.17"
+        vega:
+          description: Sensitivity of an option’s price to a 1% change in the implied volatility of the underlying asset
+          type: string
+          example: "0.05"
     PortfolioSimulationResponse:
       description: Simulation result
       type: string
@@ -7825,46 +8991,397 @@ components:
           description: date time of the last funding rate update for the hour
           type: string
           example: "2024-09-16T12:59:59.000Z"
-
-  headers:
-    Authorization:
-      description: authorization header, its value must be 'Bearer ' + [token](#overview--generate-a-jwt-token)
-      schema:
-        type: string
+    CreateOtcTradeCommand:
+      type: object
+      description: A command with details to an OTC trade
+      required:
+        - commandType
+        - sharedMatchKey
+        - tradingAccountId
+        - isTaker
+        - trades
+      properties:
+        commandType:
+          type: string
+          description: Specifies the command type and must be ‘V1CreateOtcTrade’ to indicate the submission of an OTC trade.
+        clientOtcTradeId:
+          $ref: '#/components/schemas/ClientOtcTradeId'
+        sharedMatchKey:
+          $ref: '#/components/schemas/SharedMatchKey'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId'
+        isTaker:
+          description: denotes whether the role of the counterparty is Taker or Maker. The corresponding leg of the opposite side of the trade should have the inverse role to be successfully matched on the OTC Clearing Facility
+          allOf:
+            - $ref: '#/components/schemas/Boolean'
+        remarks:
+          $ref: '#/components/schemas/Remarks'
+        trades:
+          type: array
+          nullable: false
+          description: all trades for the OTC trade
+          items:
+            $ref: '#/components/schemas/TradeInOtcRequest'
+      example:
+        commandType: V1CreateOtcTrade
+        clientOtcTradeId: '20050900225'
+        sharedMatchKey: cfBtcXrpMatch001
+        tradingAccountId: '111000000000001'
+        isTaker: true
+        remarks: "first otc trade with xyz client"
+        trades:
+          - symbol: BTC-USDC-PERP
+            side: BUY
+            price: '98213.00000'
+            quantity: '1.5000'
+          - symbol: XRP-USDC-PERP
+            side: SELL
+            price: '2.66000000'
+            quantity: '50.0000'
+    TradeInOtcRequest:
+      description: A trade of an OTC trade
+      required:
+        - symbol
+        - side
+        - price
+        - quantity
+      properties:
+        symbol:
+          $ref: '#/components/schemas/OtcMarketSymbol'
+        side:
+          $ref: '#/components/schemas/TradeSideAsString'
+        price:
+          description: price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quantity:
+          description: quantity, see [ asset value ](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+    OtcTradeView:
+      type: object
+      required:
+        - otcTradeId
+        - sharedMatchKey
+        - status
+        - statusReason
+        - statusReasonCode
+        - expireDatetime
+        - expireTimestamp
+        - trades
+      properties:
+        otcTradeId:
+          allOf:
+            - $ref: '#/components/schemas/OtcTradeId'
+        clientOtcTradeId:
+          allOf:
+            - $ref: '#/components/schemas/ClientOtcTradeId'
+        sharedMatchKey:
+          allOf:
+            - $ref: '#/components/schemas/SharedMatchKey'
+        status:
+          allOf:
+            - $ref: '#/components/schemas/OtcTradeExternalStatus'
+          example: 'MATCHED'
+        statusReason:
+          description: status reason, describes why the otc trade is in a specific state
+          type: string
+          example: "Ok"
+        statusReasonCode:
+          description: status reason code, see [details](#overview--error--rejection-codes)
+          type: string
+          example: "1002"
+        createdAtDatetime:
+          description: denotes the time the otc trade was ACK'd by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: denotes the time the otc trade was ACK'd by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        expireDatetime:
+          description: denotes the time the otc trade would expire
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        expireTimestamp:
+          description: denotes the time the otc trade would expire, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+        remarks:
+          $ref: '#/components/schemas/Remarks'
+        trades:
+          type: array
+          minItems: 0
+          maxItems: 25
+          nullable: false
+          description: all trades for the OTC trade
+          items:
+            allOf:
+              - $ref: '#/components/schemas/OtcTradeLegView'
+    OtcTradeLegView:
+      description: a trade of an OTC trade
+      required:
+        - symbol
+        - price
+        - quantity
+        - side
+        - isTaker
+      properties:
+        tradeId:
+          description: unique trade ID
+          allOf:
+            - $ref: '#/components/schemas/TradeID'
+        symbol:
+          $ref: '#/components/schemas/OtcMarketSymbol'
+        price:
+          description: price, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quantity:
+          description: quantity, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quoteAmount:
+          description: notional value of the trade in quote or settlement asset, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        baseFee:
+          description: base fee, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        quoteFee:
+          description: quote fee, see [asset value](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        tradeRebateAssetSymbol:
+          $ref: '#/components/schemas/OtcMarketSymbol'
+        tradeRebateAmount:
+          description: trade rebate fee, see [ asset value ](#overview--price-and-quantity-precision) format
+          allOf:
+            - $ref: '#/components/schemas/AssetValue'
+        side:
+          $ref: '#/components/schemas/TradeSideAsString'
+          example: 'BUY'
+        isTaker:
+          description: denotes whether the role of the counterparty is Taker or Maker. The corresponding leg of the opposite side of the trade should have the inverse role to be successfully matched on the OTC Clearing Facility
+          allOf:
+            - $ref: '#/components/schemas/Boolean'
+        createdAtDatetime:
+          description: denotes the time the trade was executed by the exchange, ISO 8601 with millisecond as string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+        createdAtTimestamp:
+          description: denotes the time the trade was executed by the exchange
+          allOf:
+            - $ref: '#/components/schemas/TimeStampAsString'
+    CreateOtcTradeResponse:
+      description: A response for an acknowledged OTC trade creation request
+      required:
+        - message
+        - requestId
+        - otcTradeId
+        - sharedMatchKey
+      properties:
+        message:
+          type: string
+          description: message indicating the status of the request
+          example: Command acknowledged - CreateOtcTrade
+        requestId:
+          $ref: '#/components/schemas/RequestID'
+        otcTradeId:
+          $ref: '#/components/schemas/OtcTradeId'
+        clientOtcTradeId:
+          $ref: '#/components/schemas/ClientOtcTradeId'
+        sharedMatchKey:
+          $ref: '#/components/schemas/SharedMatchKey'
+    CancelOtcTradeCommand:
+      type: object
+      description: A command to cancel an OTC trade. Only one of `clientOtcTradeId` or `otcTradeId` can be used in the cancel OTC trade command
+      required:
+        - commandType
+        - tradingAccountId
+      properties:
+        commandType:
+          type: string
+          description: Specifies the command type and must be ‘V1CancelOtcTrade’ to indicate the cancellation of an OTC trade.
+        otcTradeId:
+          $ref: '#/components/schemas/OtcTradeId'
+        clientOtcTradeId:
+          $ref: '#/components/schemas/ClientOtcTradeId'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: V1CancelOtcTrade
+        clientOtcTradeId: '20050900225'
+        tradingAccountId: '111000000000001'
+    CancelOtcTradeResponse:
+      description: A response for an acknowledged OTC command to cancel an OTC trade
+      required:
+        - message
+        - requestId
+        - otcTradeId
+        - tradingAccountId
+      properties:
+        message:
+          type: string
+          description: message indicating the status of the request
+          example: Command acknowledged - CancelOtcTrade
+        requestId:
+          $ref: '#/components/schemas/RequestID'
+        otcTradeId:
+          $ref: '#/components/schemas/OtcTradeId'
+        clientOtcTradeId:
+          $ref: '#/components/schemas/ClientOtcTradeId'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId'
+      example:
+        message: Command acknowledged - CancelOtcTrade
+        requestId: '100000000000000147'
+        otcTradeId: '200000000000000098'
+        tradingAccountId: '111000000000001'
+    CancelAllOtcTradesCommand:
+      type: object
+      description: A command to cancel all pending OTC trades.
+      required:
+        - commandType
+        - tradingAccountId
+      properties:
+        commandType:
+          type: string
+          description: Specifies the command type and must be ‘V1CancelAllOtcTrades’ to indicate the cancellation of all pending OTC trades.
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId'
+      example:
+        commandType: V1CancelAllOtcTrades
+        tradingAccountId: '111000000000001'
+    CancelAllOtcTradesResponse:
+      description: A response for an acknowledged OTC command to cancel all pending OTC trades
+      required:
+        - message
+        - requestId
+        - tradingAccountId
+      properties:
+        message:
+          type: string
+          description: message indicating the status of the request
+          example: Command acknowledged - CancelOtcTrade
+        requestId:
+          $ref: '#/components/schemas/RequestID'
+        tradingAccountId:
+          $ref: '#/components/schemas/TradingAccountId'
+      example:
+        message: Command acknowledged - CancelAllOtcTrades
+        requestId: '100000000000000148'
+        tradingAccountId: '111000000000001'
+    BadOtcTradeEntryResponse:
+      type: object
+      required:
+        - message
+        - errorCode
+        - errorCodeName
+      properties:
+        message:
+          description: message
+          type: string
+        errorCode:
+          description: unique error code
+          type: integer
+        errorCodeName:
+          description: unique error code name
+          type: string
+    OtcMarketSymbol:
       type: string
-    BX-SIGNATURE:
-      description: command signature is a signature resulted from the [signed message of the `<COMMAND>`](#overview--construct-the-bx-signature-header)
-      schema:
-        type: string
+      description: market symbol. Eg `BTC-USDC-PERP` for PERPETUAL market `BTC-USDC-20250613` for DATEDFUTURE market and `BTC-USDC-20250613-100000-C` for OPTION market
+      example: BTC-USDC-PERP
+    SharedMatchKey:
       type: string
-    BX-TIMESTAMP:
-      description: command timestamp is the number of milliseconds since EPOCH
-      schema:
-        type: string
+      description: Unique shared key that is agreed between the two customers to represent their OTC trade to be matched on Bullish's OTC Clearing Facility. Must be a 12 to 64 characters alphanumeric value
+      example: cfBtcXrpMatch001
+    TradeSideAsString:
       type: string
-    BX-REFERRER:
-      description: a numeric referrer id
-      schema:
-        type: string
+      description: trade side can have the following string values `BUY`, `SELL`
+      example: BUY
+    OtcMatchId:
       type: string
-    X-NONCE:
-      description: command nonce is a client side incremented unsigned 64 bit integer
-      schema:
-        type: string
+      description: unique numeric (i64) identifier generated on Bullish side expressed as a string value
+      example: '15'
+    ClientOtcTradeId:
       type: string
-    BX-PUBLIC-KEY:
-      description: Public key being used to generate the JWT
-      schema:
-        type: string
+      description: unique numeric (i64) identifier generated on the client side expressed as a string value
+      example: '20050900225'
+    OtcTradeId:
       type: string
-    BX-NONCE-WINDOW-ENABLED:
-      description: |
-        string representation of a boolean value, [enables out-of-order order requests to be processed](#overview--how-to-enable-out-of-order-processing-of-order-requests)
+      description: unique numeric (i64) identifier generated on Bullish side expressed as a string value
+      example: '200000000000000098'
+    OtcTradeExternalStatus:
       type: string
+      description: otc trade status can have the following string values `"COUNTERPARTY_PENDING"`, `"COUNTERPARTY_PAIRED"`, `"RISK_PENDING"`, `"MATCHED"`, `"CANCELLED"`, `"REJECTED"`
       enum:
-        - "false"
-        - "true"
-      default: "false"
+        - COUNTERPARTY_PENDING
+        - COUNTERPARTY_PAIRED
+        - RISK_PENDING
+        - MATCHED
+        - CANCELLED
+        - REJECTED
+      example: MATCHED
+    Remarks:
+      type: string
+      description: text field for client’s internal reference to a trade, max length is 255 characters
+      example: "first otc trade with xyz client"
+    GetMmpConfigurationResponse:
+      type: object
+      required:
+        - tradingAccountId
+        - message
+        - mmpConfigurations
+      properties:
+        tradingAccountId:
+          allOf:
+            - $ref: '#/components/schemas/TradingAccountId'
+        message:
+          description: If there are no market maker protection configurations setup for this trading account or for the provided optional symbol under the same trading account, this field will be returned as "No mmp config setup".
+          type: string
+          example: null
+        mmpConfigurations:
+          description: A list of market maker protection configurations that the user has setup for each underlying asset symbol under the trading account provided. Supports filtering of symbol.
+          type: array
+          minItems: 0
+          items:
+            $ref: '#/components/schemas/MmpConfiguration'
+    MmpConfiguration:
+      type: object
+      required:
+        - underlyingAssetSymbol
+        - windowTimeInSeconds
+        - frozenTimeInSeconds
+        - quantityLimit
+        - deltaLimit
+        - isActive
+      properties:
+        underlyingAssetSymbol:
+          type: string
+          description: Underlying Asset Symbol
+          example: "BTC"
+        windowTimeInSeconds:
+          type: integer
+          description: Time window during which the MMP checks are conducted. It helps in determining how frequently the system evaluates the market maker's activity against predefined thresholds. Value needs to be `> 0`. Maximum value is 600 seconds (10 minutes).
+          example: 60
+        frozenTimeInSeconds:
+          type: integer
+          description: The duration for which a market maker’s trading activity is temporarily halted after a protective measure is triggered. Value needs to be `>= 0`. Maximum value is 3600 seconds (60 minutes).
+          example: 120
+        quantityLimit:
+          type: string
+          description: Cap on the total number of contracts that a market maker can trade within `windowTimeInSeconds`. This is direction(side) agnostic. Needs to be `> 0` if set.
+          example: '100'
+        deltaLimit:
+          type: string
+          description: Net delta exposure that a market maker can accumulate within `windowTimeInSeconds`
+          example: '10'
+        isActive:
+          type: boolean
+          description: This boolean indicates if this configuration is in effect or not.
+          example: true
   examples:
     CreateLimitOrderCommand:
       value:
@@ -7920,6 +9437,18 @@ components:
         allowBorrow: true
         tradingAccountId:
           $ref: '#/components/schemas/TradingAccountId/example'
+    SetMMPCommandV1:
+      value:
+        $ref: '#/components/schemas/SetMMPCommandV1/example'
+    ResetMMPCommandV1:
+      value:
+        $ref: '#/components/schemas/ResetMMPCommandV1/example'
+    SetMMPCommandResponse:
+      value:
+        $ref: '#/components/schemas/SetMMPCommandResponse/example'
+    ResetMMPCommandResponse:
+      value:
+        $ref: '#/components/schemas/ResetMMPCommandResponse/example'
     CreateAMMInstructionCommand:
       value:
         $ref: '#/components/schemas/CreateAMMInstructionCommandV3/example'
@@ -7979,3 +9508,15 @@ components:
     TransferAssetCommandResponse:
       value:
         $ref: '#/components/schemas/TradingAccountTransferResponse/example'
+    CancelOtcTradeCommand:
+      value:
+        $ref: '#/components/schemas/CancelOtcTradeCommand/example'
+    CancelAllOtcTradesCommand:
+      value:
+        $ref: '#/components/schemas/CancelAllOtcTradesCommand/example'
+    CancelOtcTradeResponse:
+      value:
+        $ref: '#/components/schemas/CancelOtcTradeResponse/example'
+    CancelAllOtcTradesResponse:
+      value:
+        $ref: '#/components/schemas/CancelAllOtcTradesResponse/example'
